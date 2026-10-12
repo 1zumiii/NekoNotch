@@ -71,6 +71,11 @@ struct NotificationLiveActivity: View {
 struct NotificationExpandedView: View {
     @ObservedObject private var manager = SystemNotificationManager.shared
     let notification: SystemNotification
+    /// Pins the notification while it is on screen. A notch the user opened
+    /// themselves holds it; one opened by the notification itself must not,
+    /// or it would never expire.
+    var holdWhileShown: Bool = true
+    @State private var didHold = false
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
@@ -150,8 +155,16 @@ struct NotificationExpandedView: View {
             }
             .padding(.trailing, 4)
         }
-        .onAppear { manager.holdActive() }
-        .onDisappear { manager.resumeDismiss() }
+        .onAppear {
+            guard holdWhileShown else { return }
+            didHold = true
+            manager.holdActive()
+        }
+        .onDisappear {
+            guard didHold else { return }
+            didHold = false
+            manager.resumeDismiss()
+        }
     }
 
     private func openSourceApp() {
