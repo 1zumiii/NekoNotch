@@ -470,6 +470,49 @@ struct CalendarView: View {
     @State private var selectedDate = Date()
     @Default(.calendarWeekView) private var calendarWeekView
 
+    /// The notch is still resizing for its first moments after opening, and
+    /// the event rows re-wrap and re-scroll on every frame of that. Show a
+    /// placeholder for the list until it settles, then build the real one.
+    /// The day header is cheap and stays live.
+    @State private var isReady = false
+    @State private var settleTask: Task<Void, Never>?
+    private let openSettleDelay: Duration = .milliseconds(420)
+
+    /// Restart the settle timer. Cancelling the previous one matters: a stale
+    /// timer from an earlier open would otherwise end this one early.
+    private func beginSettle() {
+        settleTask?.cancel()
+        isReady = false
+        settleTask = Task {
+            try? await Task.sleep(for: openSettleDelay)
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeOut(duration: 0.15)) { isReady = true }
+        }
+    }
+
+    private func resetSettle() {
+        settleTask?.cancel()
+        settleTask = nil
+        isReady = false
+    }
+
+    private var eventsSkeleton: some View {
+        let fill = Color.white.opacity(0.08)
+        return VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 8) {
+                Capsule().fill(fill).frame(width: 3, height: 40)
+                VStack(alignment: .leading, spacing: 8) {
+                    Capsule().fill(fill).frame(width: 150, height: 12)
+                    Capsule().fill(fill).frame(width: 90, height: 10)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.top, 8)
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             if calendarWeekView {
@@ -478,14 +521,21 @@ struct CalendarView: View {
                 dialHeader
             }
 
-            let filteredEvents = EventListView.filteredEvents(
-                events: calendarManager.events
-            )
-            if filteredEvents.isEmpty {
-                EmptyEventsView(selectedDate: selectedDate)
-                    .frame(maxHeight: .infinity, alignment: .center)
+            if isReady {
+                let filteredEvents = EventListView.filteredEvents(
+                    events: calendarManager.events
+                )
+                Group {
+                    if filteredEvents.isEmpty {
+                        EmptyEventsView(selectedDate: selectedDate)
+                            .frame(maxHeight: .infinity, alignment: .center)
+                    } else {
+                        EventListView(events: calendarManager.events)
+                    }
+                }
+                .transition(.opacity)
             } else {
-                EventListView(events: calendarManager.events)
+                eventsSkeleton
             }
         }
         .onChange(of: selectedDate) {
@@ -493,18 +543,24 @@ struct CalendarView: View {
                 await calendarManager.updateCurrentDate(selectedDate)
             }
         }
-        .onChange(of: vm.notchState) { _, _ in
+        .onChange(of: vm.notchState) { _, state in
+            // Opening is already handled by onAppear below; doing both loaded
+            // the day twice and re-scrolled the list mid-animation.
+            if state == .open { beginSettle() } else { resetSettle() }
+            guard state != .open else { return }
             Task {
                 await calendarManager.updateCurrentDate(Date.now)
                 selectedDate = Date.now
             }
         }
         .onAppear {
+            beginSettle()
             Task {
                 await calendarManager.updateCurrentDate(Date.now)
                 selectedDate = Date.now
             }
         }
+        .onDisappear { resetSettle() }
     }
 
     /// Week-aligned layout: a month/year header above a fixed, full-width week strip.
