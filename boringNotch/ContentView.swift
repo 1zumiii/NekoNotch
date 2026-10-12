@@ -579,7 +579,7 @@ struct ContentView: View {
                     // An open notch with a live notification is showing the
                     // reply UI — the usual tabs can wait until it's dismissed.
                     if let notification = notificationManager.activeNotification {
-                        NotificationExpandedView(notification: notification)
+                        NotificationExpandedView(notification: notification, holdWhileShown: !openedForNotification)
                             .id(notification.id)
                     } else if Defaults[.compactMode] {
                         // Player only — no tab switching, so currentView is
