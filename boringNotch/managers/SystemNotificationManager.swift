@@ -24,7 +24,7 @@ final class SystemNotificationManager: ObservableObject {
     @Published private(set) var queuedNotifications: [SystemNotification] = []
 
     private let queueLimit = 5
-    private let displayDuration: TimeInterval = 8
+    private var displayDuration: TimeInterval { Defaults[.notificationDisplayDuration] }
     private var dismissTask: Task<Void, Never>?
     private var notificationObserver: NSObjectProtocol?
     private var isUserPresent = false
