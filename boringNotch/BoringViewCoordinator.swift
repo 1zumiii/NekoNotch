@@ -216,6 +216,8 @@ final class BoringViewCoordinator: ObservableObject {
             if Defaults[.notificationLiveActivity] {
                 await SystemNotificationManager.shared.start()
             }
+            // Instantiating the manager starts clipboard tracking when enabled.
+            _ = ClipboardManager.shared
             self.applyOSDSources()
         }
     }
