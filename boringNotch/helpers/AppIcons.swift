@@ -132,7 +132,8 @@ final class BundleIDResolver: @unchecked Sendable {
     static let defaultSearchDirectories: [URL] = [
         URL(fileURLWithPath: "/Applications"),
         URL(fileURLWithPath: "/Users/\(NSUserName())/Applications"),
-        URL(fileURLWithPath: "/System/Applications")
+        URL(fileURLWithPath: "/System/Applications"),
+        URL(fileURLWithPath: "/System/Applications/Utilities")
     ]
 
     func bundleID(forAppNamed name: String, searchDirectories: [URL] = BundleIDResolver.defaultSearchDirectories) -> String? {
