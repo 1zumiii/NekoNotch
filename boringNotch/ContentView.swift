@@ -30,6 +30,9 @@ struct ContentView: View {
     /// Where the pointer was when a notification opened the notch. A notch
     /// that grows under a resting pointer isn't the user hovering on purpose.
     @State private var autoOpenPointerLocation: CGPoint?
+    /// The notification an auto-opened notch last showed, kept on screen
+    /// while the notch closes so the expiry doesn't flash the home page.
+    @State private var autoOpenNotification: SystemNotification?
     @State private var anyDropDebounceTask: Task<Void, Never>?
 
     @State private var gestureProgress: CGFloat = .zero
@@ -135,8 +138,14 @@ struct ContentView: View {
     /// as a hover-exit and closed the notch. The compact panel's height is
     /// controlled by its own internal padding instead, which is the honest
     /// lever anyway.
+    /// What the open notch shows as a notification: the live one, or, for a
+    /// notch that opened itself and is about to close, the one that just expired.
+    private var openNotification: SystemNotification? {
+        notificationManager.activeNotification ?? (openedForNotification ? autoOpenNotification : nil)
+    }
+
     private var openNotchHeight: CGFloat? {
-        if notificationManager.activeNotification != nil { return 132 }
+        if openNotification != nil { return 132 }
         return Defaults[.compactMode] ? nil : vm.notchSize.height
     }
 
@@ -146,7 +155,7 @@ struct ContentView: View {
     /// header spans the full notch width.
     private var showsHeader: Bool {
         vm.notchState == .open
-            && notificationManager.activeNotification == nil
+            && openNotification == nil
             && !Defaults[.compactMode]
     }
 
@@ -343,6 +352,7 @@ struct ContentView: View {
                     .onChange(of: notificationManager.activeNotification?.id) { _, newID in
                         if newID != nil {
                             activityIndex = 0
+                            autoOpenNotification = notificationManager.activeNotification
                             // Only a closed notch is opened for the user; one
                             // they already opened is left alone and not
                             // closed behind them.
@@ -354,16 +364,18 @@ struct ContentView: View {
                             }
                         } else if openedForNotification {
                             let pointerIdle = pointerIdleSinceAutoOpen
-                            openedForNotification = false
-                            autoOpenPointerLocation = nil
+                            // Close in the same pass as the expiry, while
+                            // `openNotification` still returns the last one.
                             if pointerIdle {
-                                // The pointer never moved, so the "hover" is
-                                // just the notch opening beneath it.
                                 isHovering = false
                                 if vm.notchState == .open, !vm.isPopoverActive {
                                     vm.close()
                                 }
-                            } else {
+                            }
+                            openedForNotification = false
+                            autoOpenPointerLocation = nil
+                            autoOpenNotification = nil
+                            if !pointerIdle {
                                 scheduleCloseIfNotHovering(overNotch: vm)
                             }
                         }
@@ -578,7 +590,7 @@ struct ContentView: View {
                 VStack {
                     // An open notch with a live notification is showing the
                     // reply UI — the usual tabs can wait until it's dismissed.
-                    if let notification = notificationManager.activeNotification {
+                    if let notification = openNotification {
                         NotificationExpandedView(notification: notification, holdWhileShown: !openedForNotification)
                             .id(notification.id)
                     } else if Defaults[.compactMode] {
