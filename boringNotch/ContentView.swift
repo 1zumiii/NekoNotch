@@ -27,6 +27,9 @@ struct ContentView: View {
     @State private var hoverTask: Task<Void, Never>?
     @State private var isHovering: Bool = false
     @State private var openedForNotification = false
+    /// Where the pointer was when a notification opened the notch. A notch
+    /// that grows under a resting pointer isn't the user hovering on purpose.
+    @State private var autoOpenPointerLocation: CGPoint?
     @State private var anyDropDebounceTask: Task<Void, Never>?
 
     @State private var gestureProgress: CGFloat = .zero
@@ -347,10 +350,22 @@ struct ContentView: View {
                                vm.notchState == .closed,
                                doOpen() {
                                 openedForNotification = true
+                                autoOpenPointerLocation = NSEvent.mouseLocation
                             }
                         } else if openedForNotification {
+                            let pointerIdle = pointerIdleSinceAutoOpen
                             openedForNotification = false
-                            scheduleCloseIfNotHovering(overNotch: vm)
+                            autoOpenPointerLocation = nil
+                            if pointerIdle {
+                                // The pointer never moved, so the "hover" is
+                                // just the notch opening beneath it.
+                                isHovering = false
+                                if vm.notchState == .open, !vm.isPopoverActive {
+                                    vm.close()
+                                }
+                            } else {
+                                scheduleCloseIfNotHovering(overNotch: vm)
+                            }
                         }
                     }
                     .onChange(of: vm.notchState) { _, state in
@@ -860,6 +875,13 @@ extension ContentView {
         }
     }
 
+    /// True while a notification-opened notch has not seen the pointer move.
+    private var pointerIdleSinceAutoOpen: Bool {
+        guard openedForNotification, let origin = autoOpenPointerLocation else { return false }
+        let current = NSEvent.mouseLocation
+        return hypot(current.x - origin.x, current.y - origin.y) < 4
+    }
+
     private func handleHover(_ hovering: Bool) {
         if coordinator.firstLaunch { return }
         hoverTask?.cancel()
@@ -874,7 +896,7 @@ extension ContentView {
             // minimumHoverDuration plus an animation, and a notification
             // near the end of its life would expire during that — so it
             // vanished exactly as the notch opened around it.
-            if notificationManager.activeNotification != nil {
+            if notificationManager.activeNotification != nil, !pointerIdleSinceAutoOpen {
                 notificationManager.holdActive()
             }
 
