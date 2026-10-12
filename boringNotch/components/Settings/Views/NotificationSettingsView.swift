@@ -31,6 +31,10 @@ struct NotificationSettingsView: View {
                 Defaults.Toggle(key: .notificationLiveActivity) {
                     Text("Show notifications in the notch")
                 }
+                Defaults.Toggle(key: .notificationAutoExpand) {
+                    Text("Expand the notch automatically")
+                }
+                .disabled(!notificationLiveActivity)
             } footer: {
                 Text("Requires \(AccessibilityPermission.displayName). Only visible banners are mirrored.")
                     .font(.caption)

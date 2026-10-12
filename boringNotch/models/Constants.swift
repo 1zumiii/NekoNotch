@@ -510,6 +510,9 @@ extension Defaults.Keys {
     /// Off by default: mirroring banners needs Accessibility access.
     static let notificationLiveActivity = Key<Bool>("notificationLiveActivity", default: false)
     static let notificationsFromAllApps = Key<Bool>("notificationsFromAllApps", default: false)
+    /// Open the notch on its own when a notification arrives, instead of
+    /// waiting for the pointer.
+    static let notificationAutoExpand = Key<Bool>("notificationAutoExpand", default: false)
     static let notificationAllowedApps = Key<Set<String>>(
         "notificationAllowedApps",
         default: []
