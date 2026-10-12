@@ -513,6 +513,8 @@ extension Defaults.Keys {
     /// Open the notch on its own when a notification arrives, instead of
     /// waiting for the pointer.
     static let notificationAutoExpand = Key<Bool>("notificationAutoExpand", default: false)
+    /// Seconds a mirrored notification stays before it is dismissed.
+    static let notificationDisplayDuration = Key<Double>("notificationDisplayDuration", default: 8)
     static let notificationAllowedApps = Key<Set<String>>(
         "notificationAllowedApps",
         default: []
