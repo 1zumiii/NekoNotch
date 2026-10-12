@@ -45,6 +45,9 @@ struct ShelfSettingsView: View {
                 Defaults.Toggle(key: .reverseShelfOrdering) {
                     Text("Keep newer shelf items in front")
                 }
+                Defaults.Toggle(key: .clipboardShelf) {
+                    Text("Show clipboard area")
+                }
             } header: {
                 Text("General")
             }

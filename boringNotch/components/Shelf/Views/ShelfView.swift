@@ -13,6 +13,7 @@ struct ShelfView: View {
     let dropInteraction: DropInteractionState
     let animation: Animation?
     @StateObject var shelfState = ShelfStateViewModel.shared
+    @Default(.clipboardShelf) private var clipboardShelf
 
     private let spacing: CGFloat = 8
 
@@ -31,6 +32,9 @@ struct ShelfView: View {
                     .onDrop(of: [.fileURL, .url, .utf8PlainText, .plainText, .data], isTargeted: $interaction.dragDetectorTargeting) { providers in
                         handleDrop(providers: providers)
                     }
+                if clipboardShelf {
+                    ClipboardShelfView(animation: animation)
+                }
             }
         }
     }
