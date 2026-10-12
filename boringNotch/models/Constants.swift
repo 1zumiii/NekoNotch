@@ -513,6 +513,9 @@ extension Defaults.Keys {
     /// Open the notch on its own when a notification arrives, instead of
     /// waiting for the pointer.
     static let notificationAutoExpand = Key<Bool>("notificationAutoExpand", default: false)
+    /// Read notifications from Notification Center's database (Full Disk
+    /// Access) so system banners can be switched off instead of hidden.
+    static let notificationFromDatabase = Key<Bool>("notificationFromDatabase", default: false)
     /// Seconds a mirrored notification stays before it is dismissed.
     static let notificationDisplayDuration = Key<Double>("notificationDisplayDuration", default: 8)
     static let notificationAllowedApps = Key<Set<String>>(

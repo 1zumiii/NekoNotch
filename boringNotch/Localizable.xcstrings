@@ -1,6 +1,70 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Read notifications from the system database" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read notifications from the system database"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从系统数据库读取通知"
+          }
+        }
+      }
+    },
+    "Full Disk Access Required" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Full Disk Access Required"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要完全磁盘访问权限"
+          }
+        }
+      }
+    },
+    "Grant Full Disk Access to Boring Notch, then reopen the app." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grant Full Disk Access to Boring Notch, then reopen the app."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请在系统设置中为 Boring Notch 开启完全磁盘访问权限，然后重新打开应用。"
+          }
+        }
+      }
+    },
+    "Lets you turn off banners for an app in System Settings so nothing flashes on screen; its notifications still appear in the notch." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lets you turn off banners for an app in System Settings so nothing flashes on screen; its notifications still appear in the notch."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可以在系统设置里关闭某个应用的横幅，这样屏幕上不会再闪一下，它的通知仍会显示在刘海里。"
+          }
+        }
+      }
+    },
     "Dismiss after" : {
       "localizations" : {
         "en" : {

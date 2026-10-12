@@ -28,6 +28,7 @@ final class SystemNotificationManager: ObservableObject {
     private var dismissTask: Task<Void, Never>?
     private var notificationObserver: NSObjectProtocol?
     private var isUserPresent = false
+    private var recentKeys: [String: Date] = [:]
 
     private init() {
         notificationObserver = NotificationCenter.default.addObserver(
@@ -45,12 +46,22 @@ final class SystemNotificationManager: ObservableObject {
     }
 
     func start() async {
+        updateDatabaseWatcher()
         guard await XPCHelperClient.shared.isAccessibilityAuthorized() else { return }
         updateFilter()
         _ = await XPCHelperClient.shared.startNotificationWatching()
     }
 
+    func updateDatabaseWatcher() {
+        if Defaults[.notificationLiveActivity], Defaults[.notificationFromDatabase] {
+            NotificationDatabaseWatcher.shared.start()
+        } else {
+            NotificationDatabaseWatcher.shared.stop()
+        }
+    }
+
     func stop() {
+        NotificationDatabaseWatcher.shared.stop()
         XPCHelperClient.shared.stopNotificationWatching()
         queuedNotifications.removeAll()
         isUserPresent = false
@@ -152,6 +163,7 @@ final class SystemNotificationManager: ObservableObject {
             receivedAt: Date()
         )
         guard isAllowed(notification) else { return }
+        guard !isRecentDuplicate(notification) else { return }
         guard activeNotification == nil else {
             guard isUserPresent else {
                 show(notification)
@@ -165,6 +177,18 @@ final class SystemNotificationManager: ObservableObject {
             return
         }
         show(notification)
+    }
+
+    /// The same notification can arrive from both sources (banner mirroring
+    /// and the database); show it once.
+    private func isRecentDuplicate(_ notification: SystemNotification) -> Bool {
+        let key = [notification.bundleID ?? notification.appName ?? "", notification.title ?? "", notification.body ?? ""]
+            .joined(separator: "\u{1F}")
+        let now = Date()
+        recentKeys = recentKeys.filter { now.timeIntervalSince($0.value) < 3 }
+        if recentKeys[key] != nil { return true }
+        recentKeys[key] = now
+        return false
     }
 
     private func show(_ notification: SystemNotification) {
