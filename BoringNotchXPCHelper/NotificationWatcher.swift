@@ -270,13 +270,27 @@ final class NotificationWatcher {
                     seen.insert(token)
                     guard !liveTokens.contains(token) else { continue }
 
-                    let notification = capture(banner, token: token)
-                    guard mirrorAllApps || isAllowed(notification) else { continue }
-                    guard park(window, for: token) else {
-                        NSLog("[boringNotch] could not hide notification banner \(token)")
-                        continue
+                    // Hide the banner as early as possible: the system has
+                    // already drawn it, so every AX round trip or app lookup
+                    // spent before moving it is time it flashes on screen.
+                    // Only a per-app filter needs the app identity first.
+                    let header: CapturedNotification
+                    if mirrorAllApps {
+                        guard park(window, for: token) else {
+                            NSLog("[boringNotch] could not hide notification banner \(token)")
+                            continue
+                        }
+                        header = captureHeader(banner, token: token)
+                    } else {
+                        header = captureHeader(banner, token: token)
+                        guard isAllowed(header) else { continue }
+                        guard park(window, for: token) else {
+                            NSLog("[boringNotch] could not hide notification banner \(token)")
+                            continue
+                        }
                     }
 
+                    let notification = capture(banner, token: token, header: header)
                     liveTokens.insert(token)
                     onBanner?(notification)
                 }
@@ -384,8 +398,9 @@ final class NotificationWatcher {
         parkedWindows.removeAll()
     }
 
-    private func capture(_ banner: AXUIElement, token: String) -> CapturedNotification {
-        let parts = collectText(in: banner)
+    /// App name and bundle ID only: cheap enough to decide whether to hide the
+    /// banner before the slower text collection.
+    private func captureHeader(_ banner: AXUIElement, token: String) -> CapturedNotification {
         let description = (banner["AXAttributedDescription"] as? NSAttributedString)?.string
             ?? banner["AXAttributedDescription"] as? String
         let appName = description.flatMap { value in
@@ -398,6 +413,22 @@ final class NotificationWatcher {
             token: token,
             appName: appName,
             bundleID: appName.flatMap(bundleID(forAppNamed:)),
+            title: nil,
+            subtitle: nil,
+            body: nil
+        )
+    }
+
+    private func capture(
+        _ banner: AXUIElement,
+        token: String,
+        header: CapturedNotification
+    ) -> CapturedNotification {
+        let parts = collectText(in: banner)
+        return CapturedNotification(
+            token: token,
+            appName: header.appName,
+            bundleID: header.bundleID,
             title: parts["title"],
             subtitle: parts["subtitle"],
             body: parts["body"]
