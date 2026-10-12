@@ -26,6 +26,7 @@ struct ContentView: View {
     @State private var activityIndex: Int = 0
     @State private var hoverTask: Task<Void, Never>?
     @State private var isHovering: Bool = false
+    @State private var openedForNotification = false
     @State private var anyDropDebounceTask: Task<Void, Never>?
 
     @State private var gestureProgress: CGFloat = .zero
@@ -337,7 +338,23 @@ struct ContentView: View {
                     // A new notification always takes the front of the stack,
                     // even if the user had swiped away to music.
                     .onChange(of: notificationManager.activeNotification?.id) { _, newID in
-                        if newID != nil { activityIndex = 0 }
+                        if newID != nil {
+                            activityIndex = 0
+                            // Only a closed notch is opened for the user; one
+                            // they already opened is left alone and not
+                            // closed behind them.
+                            if Defaults[.notificationAutoExpand],
+                               vm.notchState == .closed,
+                               doOpen() {
+                                openedForNotification = true
+                            }
+                        } else if openedForNotification {
+                            openedForNotification = false
+                            scheduleCloseIfNotHovering(overNotch: vm)
+                        }
+                    }
+                    .onChange(of: vm.notchState) { _, state in
+                        if state == .closed { openedForNotification = false }
                     }
                     // Activities disappear on their own (a notification
                     // expires, music stops). Keep the selection in range so
