@@ -17,6 +17,7 @@ struct NotificationSettingsView: View {
     @Default(.notificationLiveActivity) private var notificationLiveActivity
     @Default(.notificationsFromAllApps) private var notificationsFromAllApps
     @Default(.notificationAllowedApps) private var allowedApps
+    @Default(.notificationDisplayDuration) private var displayDuration
     @State private var isAccessibilityAuthorized = true
 
     private var selectedApps: [NotificationApp] {
@@ -33,6 +34,17 @@ struct NotificationSettingsView: View {
                 }
                 Defaults.Toggle(key: .notificationAutoExpand) {
                     Text("Expand the notch automatically")
+                }
+                .disabled(!notificationLiveActivity)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack {
+                        Text("Dismiss after")
+                        Spacer()
+                        Text(verbatim: "\(Int(displayDuration)) s")
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
+                    Slider(value: $displayDuration, in: 2...30, step: 1)
                 }
                 .disabled(!notificationLiveActivity)
             } footer: {
