@@ -196,7 +196,11 @@ final class CalendarManager: ObservableObject {
             to: Calendar.current.date(byAdding: .day, value: 1, to: currentWeekStartDate)!,
             calendars: calendarIDs
         )
-        self.events = eventsResult
+        // Opening the notch refreshes more than once; republishing an identical
+        // list would rebuild the event list and make it visibly twitch.
+        if eventsResult != events {
+            self.events = eventsResult
+        }
     }
 
     func setReminderCompleted(reminderID: String, completed: Bool) async {
