@@ -364,9 +364,12 @@ struct ContentView: View {
                             }
                         } else if openedForNotification {
                             let pointerIdle = pointerIdleSinceAutoOpen
+                            let wasHovering = isHovering
                             // Close in the same pass as the expiry, while
                             // `openNotification` still returns the last one.
-                            if pointerIdle {
+                            // A pointer that isn't over the notch (or hasn't
+                            // really moved) isn't a reason to stay open.
+                            if pointerIdle || !isHovering {
                                 isHovering = false
                                 if vm.notchState == .open, !vm.isPopoverActive {
                                     vm.close()
@@ -375,7 +378,7 @@ struct ContentView: View {
                             openedForNotification = false
                             autoOpenPointerLocation = nil
                             autoOpenNotification = nil
-                            if !pointerIdle {
+                            if !(pointerIdle || !wasHovering) {
                                 scheduleCloseIfNotHovering(overNotch: vm)
                             }
                         }
@@ -891,7 +894,7 @@ extension ContentView {
     private var pointerIdleSinceAutoOpen: Bool {
         guard openedForNotification, let origin = autoOpenPointerLocation else { return false }
         let current = NSEvent.mouseLocation
-        return hypot(current.x - origin.x, current.y - origin.y) < 4
+        return hypot(current.x - origin.x, current.y - origin.y) < 12
     }
 
     private func handleHover(_ hovering: Bool) {
