@@ -815,7 +815,8 @@ struct ContentView: View {
                     isPlaying: musicManager.isPlaying,
                     tintColor: Defaults[.coloredSpectrogram]
                     ? Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.5)
-                    : Color.gray
+                    : Color.gray,
+                    isActive: vm.notchState == .closed
                 )
                 .frame(width: 18, height: 12)
             }

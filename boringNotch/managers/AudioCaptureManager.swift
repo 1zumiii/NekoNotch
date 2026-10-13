@@ -28,6 +28,10 @@ final class AudioCaptureManager: ObservableObject {
     private static let log2n: vDSP_Length = 10
     private static let ringCapacity = 4096
     private static let fftIntervalMilliseconds = 33
+    /// The bars are 14 pt tall on a 2x screen: levels are published in 1/28
+    /// steps, so a frame is only handed to the main thread when at least one
+    /// bar would actually change by a physical pixel.
+    private static let pixelSteps: Float = 28
     private static let fftLeewayMilliseconds = 0
     private static let floorDB: Float = -58
     private static let ceilDB: Float = -14
@@ -693,8 +697,32 @@ final class AudioCaptureManager: ObservableObject {
         }
     }
 
+    /// True while at least one view wants levels. With none (notch open, so
+    /// the waveform isn't on screen) there is nothing to compute.
+    private func hasLevelsConsumers() -> Bool {
+        levelsConsumerLock.lock()
+        defer { levelsConsumerLock.unlock() }
+        return !levelsConsumers.allObjects.isEmpty
+    }
+
     private func processFFT() {
         guard let fft else { return }
+        guard hasLevelsConsumers() else {
+            // Forget stale levels so a view that attaches later starts clean
+            // and its first frame is always published.
+            levelsConsumerLock.lock()
+            let hadLevels = latestLevels != nil
+            latestLevels = nil
+            levelsConsumerLock.unlock()
+            if hadLevels {
+                for i in 0..<Self.barCount {
+                    smoothed[i] = 0
+                    barsBuf[i] = 0
+                    lastPublishedBuf[i] = -1
+                }
+            }
+            return
+        }
         let n = Self.fftSize
         copyLatestSamples(count: n)
 
@@ -743,13 +771,16 @@ final class AudioCaptureManager: ObservableObject {
             let next = target > decayed ? (decayed + (target - decayed) * 0.58) : decayed
             smoothed[i] = next
             let clipped = max(0, min(1, next))
-            barsBuf[i] = clipped
-            let delta = abs(clipped - lastPublishedBuf[i])
+            // Snap to whole pixels of bar height; smoothing above keeps the
+            // unquantised state, so the motion itself is unchanged.
+            let snapped = (clipped * Self.pixelSteps).rounded() / Self.pixelSteps
+            barsBuf[i] = snapped
+            let delta = abs(snapped - lastPublishedBuf[i])
             if delta > maxDelta { maxDelta = delta }
         }
 
-        // Skip main-thread delivery when nothing perceptible changed.
-        guard maxDelta > 1e-4 else { return }
+        // Skip main-thread delivery when no bar changed by a pixel.
+        guard maxDelta > 1e-6 else { return }
         for i in 0..<Self.barCount {
             lastPublishedBuf[i] = barsBuf[i]
         }
