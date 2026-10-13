@@ -118,6 +118,14 @@
 		A7F4A06476BC4B029B6BECEA /* NotchUIEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80E354C7D712441284085CEA /* NotchUIEvent.swift */; };
 		AA01NLA12E7A0001 /* NotificationLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01NLA22E7A0001 /* NotificationLiveActivity.swift */; };
 		CB10000F2F00000100EC13B2 /* NotificationDatabaseWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB10000E2F00000100EC13B2 /* NotificationDatabaseWatcher.swift */; };
+		CB1000202F00000100EC13B2 /* UsageStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1000102F00000100EC13B2 /* UsageStore.swift */; };
+		CB1000402F00000100EC13B2 /* DashboardLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1000302F00000100EC13B2 /* DashboardLayout.swift */; };
+		CB1000412F00000100EC13B2 /* DashboardWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1000312F00000100EC13B2 /* DashboardWidgets.swift */; };
+		CB1000422F00000100EC13B2 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1000322F00000100EC13B2 /* DashboardView.swift */; };
+		CB1000432F00000100EC13B2 /* UsageWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1000332F00000100EC13B2 /* UsageWidgetView.swift */; };
+		CB1000442F00000100EC13B2 /* DashboardSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1000342F00000100EC13B2 /* DashboardSettingsView.swift */; };
+		CB1000602F00000100EC13B2 /* DashboardComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1000502F00000100EC13B2 /* DashboardComponents.swift */; };
+		CB1000612F00000100EC13B2 /* StorageWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1000512F00000100EC13B2 /* StorageWidgetView.swift */; };
 		AA01SNM12E7A0001 /* SystemNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01SNM22E7A0001 /* SystemNotificationManager.swift */; };
 		AA02CAM12E7A0001 /* ContactAvatarManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02CAM22E7A0001 /* ContactAvatarManager.swift */; };
 		AA03OTP12E7A0001 /* OTPDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA03OTP22E7A0001 /* OTPDetector.swift */; };
@@ -289,6 +297,14 @@
 		A5167212301F85B40018095A /* boringNotchTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = boringNotchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA01NLA22E7A0001 /* NotificationLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationLiveActivity.swift; sourceTree = "<group>"; };
 		CB10000E2F00000100EC13B2 /* NotificationDatabaseWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationDatabaseWatcher.swift; sourceTree = "<group>"; };
+		CB1000102F00000100EC13B2 /* UsageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = UsageStore.swift; path = boringNotch/components/Usage/UsageStore.swift; sourceTree = SOURCE_ROOT; };
+		CB1000302F00000100EC13B2 /* DashboardLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DashboardLayout.swift; path = boringNotch/components/Dashboard/DashboardLayout.swift; sourceTree = SOURCE_ROOT; };
+		CB1000312F00000100EC13B2 /* DashboardWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DashboardWidgets.swift; path = boringNotch/components/Dashboard/DashboardWidgets.swift; sourceTree = SOURCE_ROOT; };
+		CB1000322F00000100EC13B2 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DashboardView.swift; path = boringNotch/components/Dashboard/DashboardView.swift; sourceTree = SOURCE_ROOT; };
+		CB1000332F00000100EC13B2 /* UsageWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = UsageWidgetView.swift; path = boringNotch/components/Dashboard/UsageWidgetView.swift; sourceTree = SOURCE_ROOT; };
+		CB1000342F00000100EC13B2 /* DashboardSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DashboardSettingsView.swift; path = boringNotch/components/Dashboard/DashboardSettingsView.swift; sourceTree = SOURCE_ROOT; };
+		CB1000502F00000100EC13B2 /* DashboardComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DashboardComponents.swift; path = boringNotch/components/Dashboard/DashboardComponents.swift; sourceTree = SOURCE_ROOT; };
+		CB1000512F00000100EC13B2 /* StorageWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StorageWidgetView.swift; path = boringNotch/components/Dashboard/StorageWidgetView.swift; sourceTree = SOURCE_ROOT; };
 		AA01SNM22E7A0001 /* SystemNotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemNotificationManager.swift; sourceTree = "<group>"; };
 		AA02CAM22E7A0001 /* ContactAvatarManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactAvatarManager.swift; sourceTree = "<group>"; };
 		AA03OTP22E7A0001 /* OTPDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OTPDetector.swift; sourceTree = "<group>"; };
@@ -587,6 +603,14 @@
 				112FB7342CCF16F70015238C /* NotchSpaceManager.swift */,
 				EAB1C3E8B149445A9E57C6AF /* NotchWindowManager.swift */,
 				CB10000E2F00000100EC13B2 /* NotificationDatabaseWatcher.swift */,
+				CB1000102F00000100EC13B2 /* UsageStore.swift */,
+				CB1000302F00000100EC13B2 /* DashboardLayout.swift */,
+				CB1000312F00000100EC13B2 /* DashboardWidgets.swift */,
+				CB1000322F00000100EC13B2 /* DashboardView.swift */,
+				CB1000332F00000100EC13B2 /* UsageWidgetView.swift */,
+				CB1000342F00000100EC13B2 /* DashboardSettingsView.swift */,
+				CB1000502F00000100EC13B2 /* DashboardComponents.swift */,
+				CB1000512F00000100EC13B2 /* StorageWidgetView.swift */,
 				AA01SNM22E7A0001 /* SystemNotificationManager.swift */,
 				AA02CAM22E7A0001 /* ContactAvatarManager.swift */,
 				147163992C5D35FF0068B555 /* MusicManager.swift */,
@@ -1027,6 +1051,14 @@
 				5917FD112E57891600E87F1C /* MediaKeyInterceptor.swift in Sources */,
 				149E0B9A2C737D40006418B1 /* WebcamView.swift in Sources */,
 				CB10000F2F00000100EC13B2 /* NotificationDatabaseWatcher.swift in Sources */,
+				CB1000202F00000100EC13B2 /* UsageStore.swift in Sources */,
+				CB1000402F00000100EC13B2 /* DashboardLayout.swift in Sources */,
+				CB1000412F00000100EC13B2 /* DashboardWidgets.swift in Sources */,
+				CB1000422F00000100EC13B2 /* DashboardView.swift in Sources */,
+				CB1000432F00000100EC13B2 /* UsageWidgetView.swift in Sources */,
+				CB1000442F00000100EC13B2 /* DashboardSettingsView.swift in Sources */,
+				CB1000602F00000100EC13B2 /* DashboardComponents.swift in Sources */,
+				CB1000612F00000100EC13B2 /* StorageWidgetView.swift in Sources */,
 				AA01SNM12E7A0001 /* SystemNotificationManager.swift in Sources */,
 				AA01NLA12E7A0001 /* NotificationLiveActivity.swift in Sources */,
 				AA06CHV12E7A0001 /* CompactHomeView.swift in Sources */,
