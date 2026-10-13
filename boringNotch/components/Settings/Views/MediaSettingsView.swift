@@ -17,6 +17,8 @@ struct MediaSettingsView: View {
     @Default(.sliderColor) var sliderColor
 
     @Default(.enableLyrics) var enableLyrics
+    @Default(.rainbowWaveform) var rainbowWaveform
+    @Default(.rainbowWaveformSpeed) var rainbowSpeed
     @ObservedObject private var musicManager = MusicManager.shared
 
     private var realtimeAudioWaveformSupported: Bool {
@@ -118,6 +120,26 @@ struct MediaSettingsView: View {
                 Defaults.Toggle(key: .coloredSpectrogram) {
                     Text("Colored spectrogram")
                 }
+                Defaults.Toggle(key: .rainbowWaveform) {
+                    Text("Rainbow waveform")
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("Color rotation speed")
+                        Spacer()
+                        Group {
+                            if rainbowSpeed == 0 {
+                                Text("Static")
+                            } else {
+                                Text(verbatim: String(format: "%.2g×", rainbowSpeed))
+                            }
+                        }
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                    }
+                    Slider(value: $rainbowSpeed, in: 0...3, step: 0.25)
+                }
+                .disabled(!rainbowWaveform)
                 Defaults.Toggle(key: .realtimeAudioWaveform) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Real-time audio waveform")
