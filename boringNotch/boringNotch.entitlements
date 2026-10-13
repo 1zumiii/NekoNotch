@@ -32,6 +32,8 @@
 	<key>com.apple.security.temporary-exception.files.home-relative-path.read-only</key>
 	<array>
 		<string>/Library/Group Containers/group.com.apple.usernoted/</string>
+		<string>/Library/Application Support/RunCatIntegrations/</string>
+		<string>/.codex/runcat-usage.json</string>
 	</array>
 	<key>com.apple.security.temporary-exception.mach-lookup.global-name</key>
 	<array>
