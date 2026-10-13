@@ -8,6 +8,7 @@ import SwiftUI
 final class BatteryStatusViewModel: ObservableObject {
     private var wasCharging: Bool = false
     private var notifyTask: Task<Void, Never>?
+    private var alertTracker = BatteryAlertTracker()
     private var lastPowerSourceChange = Date.distantPast
     private static let coalesceInterval: Double = 0.25
     /// A charging-state change this soon after plugging/unplugging is part of
@@ -31,6 +32,7 @@ final class BatteryStatusViewModel: ObservableObject {
         case plugged(Bool)
         case lowPower(Bool)
         case charging(isCharging: Bool, level: Float)
+        case lowBattery(level: Int)
     }
 
     var statusText: LocalizedStringKey {
@@ -40,6 +42,8 @@ final class BatteryStatusViewModel: ObservableObject {
         case .lowPower(let enabled):
             let key = enabled ? "Low Power: On" : "Low Power: Off"
             return LocalizedStringKey(key)
+        case .lowBattery(let level):
+            return LocalizedStringKey("Battery low: \(level)%")
         case .charging(let isCharging, let level):
             if isCharging {
                 return LocalizedStringKey("Charging battery")
@@ -61,6 +65,35 @@ final class BatteryStatusViewModel: ObservableObject {
     private init() {
         setupPowerStatus()
         setupMonitor()
+        evaluateLevelAlerts()
+    }
+
+    /// Shows the low-battery message for a level the user chose. Runs after
+    /// every level or power-source change; BatteryAlertTracker decides if it
+    /// is time to speak.
+    private func evaluateLevelAlerts() {
+        guard Defaults[.batteryAlertsEnabled] else {
+            // Start from a clean slate when alerts are switched back on.
+            alertTracker = BatteryAlertTracker()
+            return
+        }
+        // 0 means no reading yet (or no battery at all, as on a desktop Mac).
+        guard levelBattery > 0 else { return }
+        let level = Int(levelBattery.rounded())
+        let thresholds = Set(Defaults[.batteryAlertThresholds].filter { (1...99).contains($0) })
+        if alertTracker.update(level: level, onBattery: !isPluggedIn, thresholds: thresholds) != nil {
+            showLowBatteryAlert(level: level)
+        }
+    }
+
+    private func showLowBatteryAlert(level: Int) {
+        withAnimation { lastStatus = .lowBattery(level: level) }
+        notifyImportanChangeStatus()
+    }
+
+    /// For the Preview button in settings.
+    func previewLowBatteryAlert() {
+        showLowBatteryAlert(level: max(1, Int(levelBattery.rounded())))
     }
 
     /// Sets up the initial power status by fetching battery information
@@ -91,12 +124,14 @@ final class BatteryStatusViewModel: ObservableObject {
                 self.lastStatus = .plugged(isPluggedIn)
                 self.notifyImportanChangeStatus()
             }
+            self.evaluateLevelAlerts()
 
         case .batteryLevelChanged(let level):
             Log.battery.debug("🔋 Battery level: \(Int(level))%")
             withAnimation {
                 self.levelBattery = level
             }
+            self.evaluateLevelAlerts()
 
         case .lowPowerModeChanged(let isEnabled):
             Log.battery.debug("⚡ Low power mode: \(isEnabled ? "Enabled" : "Disabled")")
