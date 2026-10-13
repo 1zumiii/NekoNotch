@@ -489,6 +489,9 @@ extension Defaults.Keys {
 
     // MARK: Battery
     static let showPowerStatusNotifications = Key<Bool>("showPowerStatusNotifications", default: true)
+    /// Announce in the notch when the battery drops to each chosen level.
+    static let batteryAlertsEnabled = Key<Bool>("batteryAlertsEnabled", default: false)
+    static let batteryAlertThresholds = Key<[Int]>("batteryAlertThresholds", default: [20, 10, 5])
     static let showBatteryIndicator = Key<Bool>("showBatteryIndicator", default: true)
     static let showBatteryPercentage = Key<Bool>("showBatteryPercentage", default: true)
     static let showPowerStatusIcons = Key<Bool>("showPowerStatusIcons", default: true)
