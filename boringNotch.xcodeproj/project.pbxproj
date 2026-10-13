@@ -126,6 +126,7 @@
 		CB1000442F00000100EC13B2 /* DashboardSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1000342F00000100EC13B2 /* DashboardSettingsView.swift */; };
 		CB1000602F00000100EC13B2 /* DashboardComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1000502F00000100EC13B2 /* DashboardComponents.swift */; };
 		CB1000612F00000100EC13B2 /* StorageWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1000512F00000100EC13B2 /* StorageWidgetView.swift */; };
+		CB10007B2F00000100EC13B2 /* CustomBuild.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB10007A2F00000100EC13B2 /* CustomBuild.swift */; };
 		AA01SNM12E7A0001 /* SystemNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01SNM22E7A0001 /* SystemNotificationManager.swift */; };
 		AA02CAM12E7A0001 /* ContactAvatarManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02CAM22E7A0001 /* ContactAvatarManager.swift */; };
 		AA03OTP12E7A0001 /* OTPDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA03OTP22E7A0001 /* OTPDetector.swift */; };
@@ -305,6 +306,7 @@
 		CB1000342F00000100EC13B2 /* DashboardSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DashboardSettingsView.swift; path = boringNotch/components/Dashboard/DashboardSettingsView.swift; sourceTree = SOURCE_ROOT; };
 		CB1000502F00000100EC13B2 /* DashboardComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DashboardComponents.swift; path = boringNotch/components/Dashboard/DashboardComponents.swift; sourceTree = SOURCE_ROOT; };
 		CB1000512F00000100EC13B2 /* StorageWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StorageWidgetView.swift; path = boringNotch/components/Dashboard/StorageWidgetView.swift; sourceTree = SOURCE_ROOT; };
+		CB10007A2F00000100EC13B2 /* CustomBuild.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CustomBuild.swift; path = boringNotch/CustomBuild.swift; sourceTree = SOURCE_ROOT; };
 		AA01SNM22E7A0001 /* SystemNotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemNotificationManager.swift; sourceTree = "<group>"; };
 		AA02CAM22E7A0001 /* ContactAvatarManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactAvatarManager.swift; sourceTree = "<group>"; };
 		AA03OTP22E7A0001 /* OTPDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OTPDetector.swift; sourceTree = "<group>"; };
@@ -611,6 +613,7 @@
 				CB1000342F00000100EC13B2 /* DashboardSettingsView.swift */,
 				CB1000502F00000100EC13B2 /* DashboardComponents.swift */,
 				CB1000512F00000100EC13B2 /* StorageWidgetView.swift */,
+				CB10007A2F00000100EC13B2 /* CustomBuild.swift */,
 				AA01SNM22E7A0001 /* SystemNotificationManager.swift */,
 				AA02CAM22E7A0001 /* ContactAvatarManager.swift */,
 				147163992C5D35FF0068B555 /* MusicManager.swift */,
@@ -1059,6 +1062,7 @@
 				CB1000442F00000100EC13B2 /* DashboardSettingsView.swift in Sources */,
 				CB1000602F00000100EC13B2 /* DashboardComponents.swift in Sources */,
 				CB1000612F00000100EC13B2 /* StorageWidgetView.swift in Sources */,
+				CB10007B2F00000100EC13B2 /* CustomBuild.swift in Sources */,
 				AA01SNM12E7A0001 /* SystemNotificationManager.swift in Sources */,
 				AA01NLA12E7A0001 /* NotificationLiveActivity.swift in Sources */,
 				AA06CHV12E7A0001 /* CompactHomeView.swift in Sources */,

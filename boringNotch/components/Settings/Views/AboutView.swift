@@ -47,7 +47,7 @@ struct AboutView: View {
                     HStack {
                         Text("Release name")
                         Spacer()
-                        Text(Defaults[.releaseName])
+                        Text(CustomBuild.releaseName)
                             .foregroundStyle(.secondary)
                     }
                     HStack {
@@ -57,7 +57,13 @@ struct AboutView: View {
                             Text("(\(Bundle.main.buildVersionNumber ?? ""))")
                                 .foregroundStyle(.secondary)
                         }
-                        Text(Bundle.main.releaseVersionNumber ?? "unkown")
+                        Text(CustomBuild.version)
+                            .foregroundStyle(.secondary)
+                    }
+                    HStack {
+                        Text("Based on Boring Notch")
+                        Spacer()
+                        Text(Bundle.main.releaseVersionNumber ?? "unknown")
                             .foregroundStyle(.secondary)
                     }
                     .onTapGesture {
