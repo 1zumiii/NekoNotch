@@ -34523,6 +34523,118 @@
           }
         }
       }
+    },
+    "Battery low: %lld%%" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Battery low: %lld%%"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "电量低：%lld%%"
+          }
+        }
+      }
+    },
+    "Alert at low battery levels" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alert at low battery levels"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "低电量提醒"
+          }
+        }
+      }
+    },
+    "Battery Alerts" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Battery Alerts"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "电量提醒"
+          }
+        }
+      }
+    },
+    "Add a level: %lld%%" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a level: %lld%%"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加电量：%lld%%"
+          }
+        }
+      }
+    },
+    "Preview alert" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preview alert"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "预览提醒"
+          }
+        }
+      }
+    },
+    "Get a message in the notch when the battery drops to each selected level while unplugged. Each level speaks once per discharge and arms again after charging." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get a message in the notch when the battery drops to each selected level while unplugged. Each level speaks once per discharge and arms again after charging."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未接电源时，电量降到你选的每个等级，刘海里就会弹出提醒。每个等级在一次放电过程中只提醒一次，充电后会重新生效。"
+          }
+        }
+      }
+    },
+    "Turn on \"Show power status notifications\" above to use battery alerts." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Turn on \"Show power status notifications\" above to use battery alerts."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先打开上面的“显示电源状态通知”，才能使用电量提醒。"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"
