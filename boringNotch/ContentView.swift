@@ -482,12 +482,19 @@ struct ContentView: View {
                             .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
                     } else if coordinator.expandingView.type == .battery && coordinator.expandingView.show
                         && vm.notchState == .closed && Defaults[.showPowerStatusNotifications] {
+                        // Both sides get the same width. With unequal sides the
+                        // black plate drifts off the real notch's centre by half
+                        // the difference, so a short label (e.g. 已插入) pushed
+                        // the battery readout under the physical notch.
                         HStack(spacing: 0) {
                             HStack {
                                 Text(batteryModel.statusText)
                                     .font(.subheadline)
                                     .foregroundStyle(.white)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.7)
                             }
+                            .frame(width: 96, alignment: .leading)
 
                             Rectangle()
                                 .fill(.black)
@@ -504,7 +511,7 @@ struct ContentView: View {
                                     isForNotification: true
                                 )
                             }
-                            .frame(width: 76, alignment: .trailing)
+                            .frame(width: 96, alignment: .trailing)
                         }
                         .frame(height: displayClosedNotchHeight, alignment: .center)
                         } else if coordinator.shouldShowSneakPeek(on: vm.screenUUID) && Defaults[.inlineOSD] && (coordinator.sneakPeekState(for: vm.screenUUID).type != .music) && (coordinator.sneakPeekState(for: vm.screenUUID).type != .battery) && vm.notchState == .closed {

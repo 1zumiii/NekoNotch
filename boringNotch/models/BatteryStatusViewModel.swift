@@ -7,6 +7,12 @@ import SwiftUI
 /// A view model that manages and monitors the battery status of the device
 final class BatteryStatusViewModel: ObservableObject {
     private var wasCharging: Bool = false
+    private var notifyTask: Task<Void, Never>?
+    private var lastPowerSourceChange = Date.distantPast
+    private static let coalesceInterval: Double = 0.25
+    /// A charging-state change this soon after plugging/unplugging is part of
+    /// the same event, not news of its own.
+    private static let followUpWindow: TimeInterval = 2
     private var powerSourceChangedCallback: IOPowerSourceCallbackType?
     private var runLoopSource: Unmanaged<CFRunLoopSource>?
 
@@ -79,6 +85,7 @@ final class BatteryStatusViewModel: ObservableObject {
             Log.battery.debug("🔌 Power source: \(isPluggedIn ? "Connected" : "Disconnected")")
             withAnimation {
                 self.isPluggedIn = isPluggedIn
+                self.lastPowerSourceChange = Date()
                 // remember the last battery-related message so the computed
                 // property can translate it later
                 self.lastStatus = .plugged(isPluggedIn)
@@ -103,10 +110,16 @@ final class BatteryStatusViewModel: ObservableObject {
             Log.battery.debug("🔌 Charging: \(isCharging ? "Yes" : "No")")
             Log.battery.debug("maxCapacity: \(self.maxCapacity.map { "\($0)" } ?? "Unavailable")")
             Log.battery.debug("levelBattery: \(self.levelBattery)")
-            self.notifyImportanChangeStatus()
-            withAnimation {
-                self.isCharging = isCharging
-                self.lastStatus = .charging(isCharging: isCharging, level: self.levelBattery)
+            if !isCharging, Date().timeIntervalSince(lastPowerSourceChange) < Self.followUpWindow {
+                // "Not charging" right after "Unplugged" says the same thing
+                // twice: keep the unplug message, just record the state.
+                withAnimation { self.isCharging = isCharging }
+            } else {
+                self.notifyImportanChangeStatus()
+                withAnimation {
+                    self.isCharging = isCharging
+                    self.lastStatus = .charging(isCharging: isCharging, level: self.levelBattery)
+                }
             }
 
         case .timeToFullChargeChanged(let time):
@@ -157,8 +170,14 @@ final class BatteryStatusViewModel: ObservableObject {
     /// Notifies important changes in the battery status with an optional delay
     /// - Parameter delay: The delay before notifying the change, default is 0.0
     private func notifyImportanChangeStatus(delay: Double = 0.0) {
-        Task { [delay] in
-            try? await Task.sleep(for: .seconds(delay))
+        // Unplugging fires several events in a row (power source, then charging
+        // state). Each used to pop its own notification, the second replacing
+        // the first. Restarting one short timer per event shows a single
+        // notification, with whatever status was set last.
+        notifyTask?.cancel()
+        notifyTask = Task { [delay] in
+            try? await Task.sleep(for: .seconds(max(delay, Self.coalesceInterval)))
+            guard !Task.isCancelled else { return }
             NotchUIEventBus.events.send(.expandingView(type: .battery))
         }
     }
