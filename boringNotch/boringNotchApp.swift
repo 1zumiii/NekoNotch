@@ -80,7 +80,11 @@ struct DynamicNotchApp: App {
                 }
                 NSLog("Failed to migrate legacy Boring Notch app bundle at %@", sourceURL.path)
             }
-            updaterController.startUpdater()
+            // Custom build: never start Sparkle, so nothing checks for,
+            // downloads or installs an official release over this app.
+            if !CustomBuild.updatesDisabled {
+                updaterController.startUpdater()
+            }
         }
     }
 
