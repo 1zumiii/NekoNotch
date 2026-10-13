@@ -61,14 +61,19 @@ struct ClipboardShelfView: View {
                 .font(.system(.callout, design: .rounded))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
+            // A plain VStack (the list is capped at 20 rows): a lazy stack builds
+            // rows as they scroll into view, and under the panel's spring
+            // animation below they would fly in from above. The list also opts
+            // out of that animation so scrolling never animates the rows.
             ScrollView(.vertical) {
-                LazyVStack(spacing: spacing) {
+                VStack(spacing: spacing) {
                     ForEach(clipboard.entries) { entry in
                         ClipboardEntryCard(entry: entry)
                     }
                 }
             }
             .scrollIndicators(.never)
+            .transaction { $0.animation = nil }
         }
     }
 }
