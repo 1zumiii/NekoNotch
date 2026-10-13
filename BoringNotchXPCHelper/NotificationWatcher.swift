@@ -35,6 +35,16 @@ private extension AXUIElement {
             + (self[orderedChildrenAttribute] as? [AXUIElement] ?? [])
     }
 
+    func size(_ attribute: String) -> CGSize? {
+        guard let value = self[attribute],
+              CFGetTypeID(value as CFTypeRef) == AXValueGetTypeID(),
+              AXValueGetType(value as! AXValue) == .cgSize
+        else { return nil }
+        var size = CGSize.zero
+        AXValueGetValue(value as! AXValue, .cgSize, &size)
+        return size
+    }
+
     func point(_ attribute: String) -> CGPoint? {
         guard let value = self[attribute],
               CFGetTypeID(value as CFTypeRef) == AXValueGetTypeID(),
@@ -75,6 +85,8 @@ final class NotificationWatcher {
     private var parkedWindowByToken: [String: Int] = [:]
     private var parkedWindows: [Int: (window: AXUIElement, origin: CGPoint)] = [:]
     private var bundleIDCache: [String: String] = [:]
+
+    private static let maxBannerWindowHeight: CGFloat = 320
 
     var isRunning: Bool { appElement != nil }
 
@@ -308,6 +320,14 @@ final class NotificationWatcher {
     }
 
     private func inspect(_ root: AXUIElement) -> WindowContents {
+        // Banners are short. The notification side panel is a full-height
+        // window, so a tall window is never a banner, whatever the system
+        // calls its parts this release. (macOS 27 stopped matching the
+        // identifier-based panel checks below, and the panel got parked off
+        // screen and its notifications re-captured over and over.)
+        if let size = root.size(kAXSizeAttribute), size.height > Self.maxBannerWindowHeight {
+            return .ignored
+        }
         var pending: [(element: AXUIElement, insideBanner: Bool, insideList: Bool)] = [
             (root, false, false)
         ]
