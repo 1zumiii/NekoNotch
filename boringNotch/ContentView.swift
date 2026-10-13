@@ -636,6 +636,8 @@ struct ContentView: View {
                             )
                         case .dashboard:
                             DashboardView()
+                        case .mixer:
+                            MixerView()
                         }
                     }
                 }

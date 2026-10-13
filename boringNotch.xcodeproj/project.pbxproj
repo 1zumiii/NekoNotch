@@ -127,6 +127,10 @@
 		CB1000602F00000100EC13B2 /* DashboardComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1000502F00000100EC13B2 /* DashboardComponents.swift */; };
 		CB1000612F00000100EC13B2 /* StorageWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1000512F00000100EC13B2 /* StorageWidgetView.swift */; };
 		CB10007B2F00000100EC13B2 /* CustomBuild.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB10007A2F00000100EC13B2 /* CustomBuild.swift */; };
+		CB1000902F00000100EC13B2 /* MixerModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1000802F00000100EC13B2 /* MixerModels.swift */; };
+		CB1000912F00000100EC13B2 /* AudioMixerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1000812F00000100EC13B2 /* AudioMixerEngine.swift */; };
+		CB1000922F00000100EC13B2 /* MixerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1000822F00000100EC13B2 /* MixerView.swift */; };
+		CB1000932F00000100EC13B2 /* MixerSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1000832F00000100EC13B2 /* MixerSettingsView.swift */; };
 		AA01SNM12E7A0001 /* SystemNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01SNM22E7A0001 /* SystemNotificationManager.swift */; };
 		AA02CAM12E7A0001 /* ContactAvatarManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA02CAM22E7A0001 /* ContactAvatarManager.swift */; };
 		AA03OTP12E7A0001 /* OTPDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA03OTP22E7A0001 /* OTPDetector.swift */; };
@@ -307,6 +311,10 @@
 		CB1000502F00000100EC13B2 /* DashboardComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DashboardComponents.swift; path = boringNotch/components/Dashboard/DashboardComponents.swift; sourceTree = SOURCE_ROOT; };
 		CB1000512F00000100EC13B2 /* StorageWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StorageWidgetView.swift; path = boringNotch/components/Dashboard/StorageWidgetView.swift; sourceTree = SOURCE_ROOT; };
 		CB10007A2F00000100EC13B2 /* CustomBuild.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CustomBuild.swift; path = boringNotch/CustomBuild.swift; sourceTree = SOURCE_ROOT; };
+		CB1000802F00000100EC13B2 /* MixerModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MixerModels.swift; path = boringNotch/components/Mixer/MixerModels.swift; sourceTree = SOURCE_ROOT; };
+		CB1000812F00000100EC13B2 /* AudioMixerEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AudioMixerEngine.swift; path = boringNotch/components/Mixer/AudioMixerEngine.swift; sourceTree = SOURCE_ROOT; };
+		CB1000822F00000100EC13B2 /* MixerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MixerView.swift; path = boringNotch/components/Mixer/MixerView.swift; sourceTree = SOURCE_ROOT; };
+		CB1000832F00000100EC13B2 /* MixerSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = MixerSettingsView.swift; path = boringNotch/components/Mixer/MixerSettingsView.swift; sourceTree = SOURCE_ROOT; };
 		AA01SNM22E7A0001 /* SystemNotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemNotificationManager.swift; sourceTree = "<group>"; };
 		AA02CAM22E7A0001 /* ContactAvatarManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactAvatarManager.swift; sourceTree = "<group>"; };
 		AA03OTP22E7A0001 /* OTPDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OTPDetector.swift; sourceTree = "<group>"; };
@@ -614,6 +622,10 @@
 				CB1000502F00000100EC13B2 /* DashboardComponents.swift */,
 				CB1000512F00000100EC13B2 /* StorageWidgetView.swift */,
 				CB10007A2F00000100EC13B2 /* CustomBuild.swift */,
+				CB1000802F00000100EC13B2 /* MixerModels.swift */,
+				CB1000812F00000100EC13B2 /* AudioMixerEngine.swift */,
+				CB1000822F00000100EC13B2 /* MixerView.swift */,
+				CB1000832F00000100EC13B2 /* MixerSettingsView.swift */,
 				AA01SNM22E7A0001 /* SystemNotificationManager.swift */,
 				AA02CAM22E7A0001 /* ContactAvatarManager.swift */,
 				147163992C5D35FF0068B555 /* MusicManager.swift */,
@@ -1063,6 +1075,10 @@
 				CB1000602F00000100EC13B2 /* DashboardComponents.swift in Sources */,
 				CB1000612F00000100EC13B2 /* StorageWidgetView.swift in Sources */,
 				CB10007B2F00000100EC13B2 /* CustomBuild.swift in Sources */,
+				CB1000902F00000100EC13B2 /* MixerModels.swift in Sources */,
+				CB1000912F00000100EC13B2 /* AudioMixerEngine.swift in Sources */,
+				CB1000922F00000100EC13B2 /* MixerView.swift in Sources */,
+				CB1000932F00000100EC13B2 /* MixerSettingsView.swift in Sources */,
 				AA01SNM12E7A0001 /* SystemNotificationManager.swift in Sources */,
 				AA01NLA12E7A0001 /* NotificationLiveActivity.swift in Sources */,
 				AA06CHV12E7A0001 /* CompactHomeView.swift in Sources */,
