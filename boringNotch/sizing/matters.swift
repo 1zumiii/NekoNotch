@@ -49,7 +49,14 @@ enum MusicPlayerImageSizes {
     for screen in NSScreen.screens {
         let safeAreaTop = screen.safeAreaInsets.top
         if safeAreaTop > 0 {
-            return safeAreaTop
+            // macOS 27 reports a notch 1 pt shorter than its menu bar, which
+            // left a hairline of wallpaper between the black notch and the
+            // windows below. When the menu bar is only a point or two taller,
+            // follow it so the black reaches the window edge. A larger
+            // difference is a Dock at the top, not the menu bar.
+            let menuBar = (screen.frame.maxY - screen.visibleFrame.maxY).rounded(.up)
+            let difference = menuBar - safeAreaTop
+            return (difference > 0 && difference <= 2) ? menuBar : safeAreaTop
         }
     }
 
