@@ -62,7 +62,10 @@ struct StorageWidgetView: View {
             if let capacity {
                 let diameter = min(max(size.height - 18 - 22 - 28, 40), 64)
                 Spacer(minLength: 4)
-                HStack(spacing: 12) {
+                // Equal gaps before the ring, between ring and text, and after
+                // the text, instead of everything piled against the left edge.
+                HStack(spacing: 0) {
+                    Spacer(minLength: 6)
                     GaugeRing(
                         fraction: capacity.usedFraction,
                         valueText: capacity.usedPercent,
@@ -70,6 +73,7 @@ struct StorageWidgetView: View {
                         tint: Self.tint,
                         diameter: diameter
                     )
+                    Spacer(minLength: 10)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(Self.bytes(capacity.free))
                             .font(.system(size: 15, weight: .bold, design: .rounded))
@@ -84,7 +88,7 @@ struct StorageWidgetView: View {
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    Spacer(minLength: 6)
                 }
                 Spacer(minLength: 4)
             } else {
