@@ -19,6 +19,7 @@ struct NotificationSettingsView: View {
     @Default(.notificationAllowedApps) private var allowedApps
     @Default(.notificationDisplayDuration) private var displayDuration
     @Default(.notificationFromDatabase) private var fromDatabase
+    @Default(.notificationEarlyPlaceholder) private var earlyPlaceholder
     @State private var isAccessibilityAuthorized = true
     @State private var hasDatabaseAccess = true
 
@@ -35,6 +36,21 @@ struct NotificationSettingsView: View {
                     Text("Read notifications from the system database")
                 }
                 .disabled(!notificationLiveActivity)
+
+                if fromDatabase {
+                    Defaults.Toggle(key: .notificationEarlyPlaceholder) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Show the app at once")
+                            Text("For apps whose banners are off, the notch shows the app the moment its notification arrives, and fills in the text about five seconds later when the system provides it.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .disabled(!notificationLiveActivity)
+                    .onChange(of: earlyPlaceholder) { _, _ in
+                        SystemNotificationManager.shared.updateDatabaseWatcher()
+                    }
+                }
 
                 if fromDatabase && !hasDatabaseAccess {
                     HStack(alignment: .center, spacing: 12) {

@@ -523,6 +523,9 @@ extension Defaults.Keys {
     /// Read notifications from Notification Center's database (Full Disk
     /// Access) so system banners can be switched off instead of hidden.
     static let notificationFromDatabase = Key<Bool>("notificationFromDatabase", default: false)
+    /// For apps whose banners are off, show the app the moment its notification
+    /// arrives and fill in the text when the database delivers it.
+    static let notificationEarlyPlaceholder = Key<Bool>("notificationEarlyPlaceholder", default: false)
     /// Seconds a mirrored notification stays before it is dismissed.
     static let notificationDisplayDuration = Key<Double>("notificationDisplayDuration", default: 8)
     static let notificationAllowedApps = Key<Set<String>>(
