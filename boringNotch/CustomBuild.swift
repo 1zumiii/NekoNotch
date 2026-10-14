@@ -14,5 +14,5 @@ enum CustomBuild {
     /// The bundle's own version stays that of the upstream release it is
     /// based on, so merging upstream never has to touch the project file.
     static let releaseName = "Izumi Edition ✨"
-    static let version = "1.0.0"
+    static let version = "1.1.0"
 }

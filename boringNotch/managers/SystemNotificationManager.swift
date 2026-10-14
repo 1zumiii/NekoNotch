@@ -5,6 +5,11 @@
 import AppKit
 import Combine
 import Defaults
+import UserNotifications
+
+enum NotificationPriority: String {
+    case passive, normal, high
+}
 
 struct SystemNotification: Identifiable, Equatable {
     let id: String
@@ -18,6 +23,7 @@ struct SystemNotification: Identifiable, Equatable {
     var recordUUID: String?
     /// Shown the moment the notification arrived, before its text is known.
     var isPlaceholder = false
+    var priority: NotificationPriority = .normal
 }
 
 @MainActor
@@ -34,10 +40,19 @@ final class SystemNotificationManager: ObservableObject {
     private var isUserPresent = false
     private var recentKeys: [String: Date] = [:]
     private var earlyObserver: NSObjectProtocol?
+
+    /// When each source last delivered something, for the settings status panel.
+    @Published private(set) var lastBannerAt: Date?
+    @Published private(set) var lastDatabaseAt: Date?
+    @Published private(set) var lastEarlyAt: Date?
     /// Placeholder id by notification UUID, so the real text can replace it in place.
     private var placeholderIDs: [String: String] = [:]
     /// UUIDs of placeholders the user closed: their text must not pop back up.
     private var dismissedPlaceholders = Set<String>()
+    /// Lower-priority notifications that arrived while a high-priority one was
+    /// on screen; they follow it instead of pushing it off.
+    private var heldBehindHigh: [SystemNotification] = []
+    private static let heldLimit = 3
     private var recentArrivals: [(date: Date, bundleID: String?, appName: String?)] = []
 
     private init() {
@@ -92,6 +107,7 @@ final class SystemNotificationManager: ObservableObject {
         XPCHelperClient.shared.stopEarlyNotificationSignal()
         XPCHelperClient.shared.stopNotificationWatching()
         queuedNotifications.removeAll()
+        heldBehindHigh.removeAll()
         isUserPresent = false
         dismissActive()
     }
@@ -127,6 +143,9 @@ final class SystemNotificationManager: ObservableObject {
             promoteNext()
         } else {
             queuedNotifications.removeAll()
+        }
+        if activeNotification == nil, !heldBehindHigh.isEmpty {
+            show(heldBehindHigh.removeFirst())
         }
     }
 
@@ -170,6 +189,7 @@ final class SystemNotificationManager: ObservableObject {
 
     private func add(_ payload: [String: String]) {
         guard let token = payload["token"], !token.isEmpty else { return }
+        if token.hasPrefix("db-") { lastDatabaseAt = Date() } else { lastBannerAt = Date() }
         let appName = nonEmpty(payload["appName"])
         var bundleID = nonEmpty(payload["bundleID"]).map {
             normalizeBundleIdentifier($0.trimmingCharacters(in: .whitespacesAndNewlines))
@@ -192,9 +212,11 @@ final class SystemNotificationManager: ObservableObject {
             title: nonEmpty(payload["title"]),
             subtitle: nonEmpty(payload["subtitle"]),
             body: nonEmpty(payload["body"]),
-            receivedAt: Date()
+            receivedAt: Date(),
+            priority: NotificationPriority(rawValue: payload["priority"] ?? "") ?? .normal
         )
-        guard isAllowed(notification) else { return }
+        // Test notifications from the settings page ignore the app filter.
+        guard token.hasPrefix("test-") || isAllowed(notification) else { return }
         noteArrival(notification)
 
         // The text for a notification already on screen as a placeholder.
@@ -206,7 +228,15 @@ final class SystemNotificationManager: ObservableObject {
             }
         }
 
-        guard !isRecentDuplicate(notification) else { return }
+        guard !isRecentDuplicate(notification) else {
+            raiseActiveToHigh(matching: notification)
+            return
+        }
+        if highlightsPriority, activeNotification?.priority == .high, notification.priority != .high {
+            heldBehindHigh.append(notification)
+            if heldBehindHigh.count > Self.heldLimit { heldBehindHigh.removeFirst() }
+            return
+        }
         guard activeNotification == nil else {
             guard isUserPresent else {
                 show(notification)
@@ -238,6 +268,7 @@ final class SystemNotificationManager: ObservableObject {
     /// shows up soon (the banner reader would have, within a fraction of a
     /// second), show the app now and let the text catch up.
     private func handleEarlySignal(_ payload: [String: String]) {
+        lastEarlyAt = Date()
         guard Defaults[.notificationLiveActivity], Defaults[.notificationFromDatabase],
               Defaults[.notificationEarlyPlaceholder],
               let rawBundleID = nonEmpty(payload["bundleID"]),
@@ -290,6 +321,12 @@ final class SystemNotificationManager: ObservableObject {
         guard isAllowed(placeholder) else { return }
         placeholderIDs[uuid] = placeholder.id
 
+        if highlightsPriority, activeNotification?.priority == .high {
+            // Don't push a high-priority notification off for an unknown one;
+            // its text arrives later through the normal path and waits then.
+            placeholderIDs[uuid] = nil
+            return
+        }
         guard activeNotification == nil else {
             guard isUserPresent else {
                 show(placeholder)
@@ -307,11 +344,18 @@ final class SystemNotificationManager: ObservableObject {
         let upgraded = SystemNotification(
             id: placeholderID, appName: real.appName ?? nil, bundleID: real.bundleID,
             title: real.title, subtitle: real.subtitle, body: real.body,
-            receivedAt: real.receivedAt, recordUUID: uuid, isPlaceholder: false
+            receivedAt: real.receivedAt, recordUUID: uuid, isPlaceholder: false,
+            priority: real.priority
         )
-        _ = isRecentDuplicate(real)   // remember the text so a late copy isn't shown again
+        // Remember the text so a late copy isn't shown again, but only once
+        // the placeholder is really still there: a placeholder that was
+        // pushed off by another notification must not swallow its own text.
+        let isActive = activeNotification?.id == placeholderID
+        let isQueued = queuedNotifications.contains { $0.id == placeholderID }
+        guard isActive || isQueued else { return false }
+        _ = isRecentDuplicate(real)
 
-        if activeNotification?.id == placeholderID {
+        if isActive {
             activeNotification = upgraded
             // Give the text its full time on screen, counted from now.
             if !isUserPresent {
@@ -331,9 +375,28 @@ final class SystemNotificationManager: ObservableObject {
     /// is immediate, the database copy lands several seconds later. Match on
     /// title and the start of the text, over a window long enough to cover
     /// that delay, and show it once.
+    private static func dedupeKey(_ notification: SystemNotification) -> String {
+        [notification.title ?? "", String((notification.body ?? "").prefix(40))].joined(separator: "\u{1F}")
+    }
+
+    private var highlightsPriority: Bool { Defaults[.notificationPriorityHighlight] }
+
+    /// The banner reader shows a notification before the database says how
+    /// important it is; when the database copy arrives, promote the one on screen.
+    private func raiseActiveToHigh(matching notification: SystemNotification) {
+        guard highlightsPriority, notification.priority == .high,
+              var active = activeNotification, active.priority != .high,
+              Self.dedupeKey(active) == Self.dedupeKey(notification) else { return }
+        active.priority = .high
+        activeNotification = active
+        if !isUserPresent {
+            dismissTask?.cancel()
+            scheduleDismiss(for: active.id)
+        }
+    }
+
     private func isRecentDuplicate(_ notification: SystemNotification) -> Bool {
-        let key = [notification.title ?? "", String((notification.body ?? "").prefix(40))]
-            .joined(separator: "\u{1F}")
+        let key = Self.dedupeKey(notification)
         let now = Date()
         recentKeys = recentKeys.filter { now.timeIntervalSince($0.value) < Self.duplicateWindow }
         if recentKeys[key] != nil { return true }
@@ -342,6 +405,7 @@ final class SystemNotificationManager: ObservableObject {
     }
 
     private static let duplicateWindow: TimeInterval = 12
+    private static let highPriorityDurationFactor: Double = 2
     private static let placeholderMinimumDuration: TimeInterval = 9
     /// How long to wait for the banner reader or the database to produce
     /// the real notification before showing a placeholder for it.
@@ -358,7 +422,10 @@ final class SystemNotificationManager: ObservableObject {
         // notification, so a placeholder must outlive that, whatever the
         // display time is set to.
         let isPlaceholder = activeNotification?.id == token && activeNotification?.isPlaceholder == true
-        let duration = isPlaceholder ? max(displayDuration, Self.placeholderMinimumDuration) : displayDuration
+        var duration = isPlaceholder ? max(displayDuration, Self.placeholderMinimumDuration) : displayDuration
+        if highlightsPriority, activeNotification?.id == token, activeNotification?.priority == .high {
+            duration *= Self.highPriorityDurationFactor
+        }
         dismissTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(duration))
             guard !Task.isCancelled else { return }
@@ -443,5 +510,71 @@ final class SystemNotificationManager: ObservableObject {
     private func nonEmpty(_ value: String?) -> String? {
         guard let value, !value.isEmpty else { return nil }
         return value
+    }
+}
+
+// MARK: - Test notifications
+
+enum NotificationTestKind: String, CaseIterable, Identifiable {
+    /// A real notification from this app, so it travels the whole way through
+    /// the system: banner, database, early signal.
+    case system
+    /// Handed straight to the notch, skipping the system.
+    case ordinary
+    case timeSensitive
+
+    var id: String { rawValue }
+}
+
+extension SystemNotificationManager {
+    /// Sends a test notification of the given kind. For `.system`, `completion`
+    /// reports whether the system allowed this app to post.
+    func sendTest(_ kind: NotificationTestKind, completion: @escaping (Bool) -> Void = { _ in }) {
+        switch kind {
+        case .system:
+            TestNotificationSender.shared.send(completion: completion)
+        case .ordinary, .timeSensitive:
+            add([
+                "token": "test-\(UUID().uuidString)",
+                "appName": "Boring Notch",
+                "bundleID": Bundle.main.bundleIdentifier ?? "",
+                "title": String(localized: "Test notification"),
+                "body": String(localized: "If you can read this, notifications reach the notch."),
+                "priority": kind == .timeSensitive ? "high" : "normal"
+            ])
+            completion(true)
+        }
+    }
+}
+
+/// Posts a real notification from Boring Notch itself. The delegate lets it
+/// appear as a banner even while the settings window is in front.
+final class TestNotificationSender: NSObject, UNUserNotificationCenterDelegate {
+    static let shared = TestNotificationSender()
+
+    func send(completion: @escaping (Bool) -> Void) {
+        let center = UNUserNotificationCenter.current()
+        center.delegate = self
+        center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
+            DispatchQueue.main.async { completion(granted) }
+            guard granted else { return }
+            let content = UNMutableNotificationContent()
+            content.title = String(localized: "Test notification")
+            content.body = String(localized: "If you can read this, notifications reach the notch.")
+            let request = UNNotificationRequest(
+                identifier: UUID().uuidString,
+                content: content,
+                trigger: UNTimeIntervalNotificationTrigger(timeInterval: 1, repeats: false)
+            )
+            center.add(request)
+        }
+    }
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .list, .sound])
     }
 }

@@ -280,6 +280,14 @@ struct ContentView: View {
                     .padding([.horizontal, .bottom], vm.notchState == .open ? 12 : 0)
                     .background(.black)
                     .clipShape(currentNotchShape)
+                    .overlay {
+                        if Defaults[.notificationPriorityHighlight],
+                           notificationManager.activeNotification?.priority == .high {
+                            PriorityGlowBorder(shape: currentNotchShape.sidesOnly)
+                                .transition(.opacity)
+                        }
+                    }
+                    .animation(.easeInOut(duration: 0.3), value: notificationManager.activeNotification?.priority)
                           .overlay(alignment: .top) {
                               displayClosedNotchHeight.isZero && vm.notchState == .closed ? nil
                         : Rectangle()

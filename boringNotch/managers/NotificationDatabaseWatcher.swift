@@ -22,6 +22,20 @@ final class NotificationDatabaseWatcher: @unchecked Sendable {
 
     private static let pollInterval: DispatchTimeInterval = .milliseconds(400)
 
+    struct Status {
+        var isRunning: Bool
+        /// The last poll could not query the database.
+        var isFailing: Bool
+        var lastRecordAt: Date?
+    }
+
+    private var pollFailing = false
+    private var lastRecordAt: Date?
+
+    var status: Status {
+        queue.sync { Status(isRunning: timer != nil, isFailing: pollFailing, lastRecordAt: lastRecordAt) }
+    }
+
     private static var databasePath: String {
         // NSHomeDirectory() is the sandbox container inside a sandboxed app.
         let home = getpwuid(getuid()).flatMap { String(cString: $0.pointee.pw_dir) } ?? NSHomeDirectory()
@@ -84,13 +98,18 @@ final class NotificationDatabaseWatcher: @unchecked Sendable {
         var statement: OpaquePointer?
         defer { sqlite3_finalize(statement) }
         let sql = "SELECT rec_id, app_id, data, uuid FROM record WHERE rec_id > ? ORDER BY rec_id"
-        guard sqlite3_prepare_v2(database, sql, -1, &statement, nil) == SQLITE_OK else { return }
+        guard sqlite3_prepare_v2(database, sql, -1, &statement, nil) == SQLITE_OK else {
+            pollFailing = true
+            return
+        }
+        pollFailing = false
         sqlite3_bind_int64(statement, 1, lastRecordID)
 
         while sqlite3_step(statement) == SQLITE_ROW {
             let recordID = sqlite3_column_int64(statement, 0)
             let appID = sqlite3_column_int64(statement, 1)
             lastRecordID = max(lastRecordID, recordID)
+            lastRecordAt = Date()
 
             guard let bytes = sqlite3_column_blob(statement, 2) else { continue }
             let data = Data(bytes: bytes, count: Int(sqlite3_column_bytes(statement, 2)))
@@ -123,6 +142,11 @@ final class NotificationDatabaseWatcher: @unchecked Sendable {
         if let uuidPrefix { payload["recordUUID"] = uuidPrefix }
         if let name = app?.name { payload["appName"] = name }
         if let bundleID = app?.bundleID ?? identifier { payload["bundleID"] = bundleID }
+        // The notification's interruption level: 0 passive, 1 active (absent),
+        // 2 time sensitive, 3 critical.
+        if let level = (request["intrp"] as? NSNumber)?.intValue {
+            payload["priority"] = level >= 2 ? "high" : (level == 0 ? "passive" : "normal")
+        }
         if let title { payload["title"] = title }
         if let subtitle { payload["subtitle"] = subtitle }
         if let body { payload["body"] = body }
