@@ -160,6 +160,26 @@ class BoringNotchXPCHelper: NSObject, BoringNotchXPCHelperProtocol {
         }
     }
 
+    private static let earlySource = EarlyNotificationSource()
+
+    @objc func startEarlyNotificationSignal(with reply: @escaping (Bool) -> Void) {
+        // The delegate has to be taken from the incoming connection here, as
+        // in startNotificationWatching.
+        let connection = NSXPCConnection.current()
+        let proxy = connection?.remoteObjectProxyWithErrorHandler { error in
+            NSLog("[boringNotch] early signal callback failed: \(error.localizedDescription)")
+        }
+        let delegate = proxy as? BoringNotchXPCAppDelegate
+        Self.earlySource.onSignal = { bundleID, uuid in
+            delegate?.notificationDidAppear(["kind": "early", "bundleID": bundleID, "recordUUID": uuid])
+        }
+        reply(Self.earlySource.start())
+    }
+
+    @objc func stopEarlyNotificationSignal() {
+        Self.earlySource.stop()
+    }
+
     @objc func stopNotificationWatching() {
         DispatchQueue.main.async { Self.watcher.stop() }
     }

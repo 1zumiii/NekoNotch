@@ -407,9 +407,10 @@ final class NotificationXPCDelegate: NSObject, BoringNotchXPCAppDelegate {
     }
 
     func notificationDidAppear(_ payload: [String: String]) {
-        NotificationCenter.default.post(
-            name: .systemNotificationDidAppear, object: nil, userInfo: payload
-        )
+        let name: Notification.Name = payload["kind"] == "early"
+            ? .systemNotificationEarlySignal
+            : .systemNotificationDidAppear
+        NotificationCenter.default.post(name: name, object: nil, userInfo: payload)
     }
 }
 
@@ -441,6 +442,31 @@ extension XPCHelperClient {
         }
     }
 
+    nonisolated func startEarlyNotificationSignal() async -> Bool {
+        do {
+            let service = await MainActor.run { ensureRemoteService() }
+            return try await service.withContinuation { service, continuation in
+                service.startEarlyNotificationSignal { started in
+                    continuation.resume(returning: started)
+                }
+            }
+        } catch {
+            await MainActor.run { self.lastError = .transport(underlying: error) }
+            return false
+        }
+    }
+
+    nonisolated func stopEarlyNotificationSignal() {
+        Task {
+            let service = await MainActor.run { ensureRemoteService() }
+            do {
+                try await service.withService { $0.stopEarlyNotificationSignal() }
+            } catch {
+                await MainActor.run { self.lastError = .transport(underlying: error) }
+            }
+        }
+    }
+
     nonisolated func stopNotificationWatching() {
         Task {
             let service = await MainActor.run { ensureRemoteService() }
@@ -455,4 +481,5 @@ extension XPCHelperClient {
 
 extension Notification.Name {
     static let systemNotificationDidAppear = Notification.Name("systemNotificationDidAppear")
+    static let systemNotificationEarlySignal = Notification.Name("systemNotificationEarlySignal")
 }

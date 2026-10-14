@@ -14,6 +14,10 @@ struct SystemNotification: Identifiable, Equatable {
     let subtitle: String?
     let body: String?
     let receivedAt: Date
+    /// First eight hex digits of the notification's UUID, when known.
+    var recordUUID: String?
+    /// Shown the moment the notification arrived, before its text is known.
+    var isPlaceholder = false
 }
 
 @MainActor
@@ -29,6 +33,12 @@ final class SystemNotificationManager: ObservableObject {
     private var notificationObserver: NSObjectProtocol?
     private var isUserPresent = false
     private var recentKeys: [String: Date] = [:]
+    private var earlyObserver: NSObjectProtocol?
+    /// Placeholder id by notification UUID, so the real text can replace it in place.
+    private var placeholderIDs: [String: String] = [:]
+    /// UUIDs of placeholders the user closed: their text must not pop back up.
+    private var dismissedPlaceholders = Set<String>()
+    private var recentArrivals: [(date: Date, bundleID: String?, appName: String?)] = []
 
     private init() {
         notificationObserver = NotificationCenter.default.addObserver(
@@ -37,11 +47,20 @@ final class SystemNotificationManager: ObservableObject {
             guard let payload = note.userInfo as? [String: String] else { return }
             Task { @MainActor in self?.add(payload) }
         }
+        earlyObserver = NotificationCenter.default.addObserver(
+            forName: .systemNotificationEarlySignal, object: nil, queue: .main
+        ) { [weak self] note in
+            guard let payload = note.userInfo as? [String: String] else { return }
+            Task { @MainActor in self?.handleEarlySignal(payload) }
+        }
     }
 
     deinit {
         if let notificationObserver {
             NotificationCenter.default.removeObserver(notificationObserver)
+        }
+        if let earlyObserver {
+            NotificationCenter.default.removeObserver(earlyObserver)
         }
     }
 
@@ -58,10 +77,19 @@ final class SystemNotificationManager: ObservableObject {
         } else {
             NotificationDatabaseWatcher.shared.stop()
         }
+        // The early signal only makes sense with the database as the source
+        // of the text that replaces the placeholder.
+        if Defaults[.notificationLiveActivity], Defaults[.notificationFromDatabase],
+           Defaults[.notificationEarlyPlaceholder] {
+            Task { _ = await XPCHelperClient.shared.startEarlyNotificationSignal() }
+        } else {
+            XPCHelperClient.shared.stopEarlyNotificationSignal()
+        }
     }
 
     func stop() {
         NotificationDatabaseWatcher.shared.stop()
+        XPCHelperClient.shared.stopEarlyNotificationSignal()
         XPCHelperClient.shared.stopNotificationWatching()
         queuedNotifications.removeAll()
         isUserPresent = false
@@ -82,12 +110,16 @@ final class SystemNotificationManager: ObservableObject {
         dismissTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(delay))
             guard !Task.isCancelled else { return }
-            await self?.dismissActive(token: notification.id)
+            await self?.dismissActive(token: notification.id, byUser: false)
         }
     }
 
-    func dismissActive(token: String? = nil) {
+    func dismissActive(token: String? = nil, byUser: Bool = true) {
         guard token == nil || activeNotification?.id == token else { return }
+        if let closing = activeNotification, closing.isPlaceholder, let uuid = closing.recordUUID {
+            placeholderIDs[uuid] = nil
+            if byUser { dismissedPlaceholders.insert(uuid) }
+        }
         dismissTask?.cancel()
         dismissTask = nil
         activeNotification = nil
@@ -163,6 +195,17 @@ final class SystemNotificationManager: ObservableObject {
             receivedAt: Date()
         )
         guard isAllowed(notification) else { return }
+        noteArrival(notification)
+
+        // The text for a notification already on screen as a placeholder.
+        if let uuid = nonEmpty(payload["recordUUID"]) {
+            if dismissedPlaceholders.remove(uuid) != nil { return }
+            if let placeholderID = placeholderIDs.removeValue(forKey: uuid),
+               upgradePlaceholder(placeholderID, to: notification, uuid: uuid) {
+                return
+            }
+        }
+
         guard !isRecentDuplicate(notification) else { return }
         guard activeNotification == nil else {
             guard isUserPresent else {
@@ -179,17 +222,130 @@ final class SystemNotificationManager: ObservableObject {
         show(notification)
     }
 
-    /// The same notification can arrive from both sources (banner mirroring
-    /// and the database); show it once.
+    // MARK: Early placeholder
+
+    private func noteArrival(_ notification: SystemNotification) {
+        let now = Date()
+        recentArrivals.removeAll { now.timeIntervalSince($0.date) > 10 }
+        recentArrivals.append((now, notification.bundleID.map(Self.normalizedID), notification.appName.map(Self.normalizedID)))
+    }
+
+    private static func normalizedID(_ value: String) -> String {
+        normalizeBundleIdentifier(value).lowercased()
+    }
+
+    /// A notification just reached the system: if nothing real for that app
+    /// shows up soon (the banner reader would have, within a fraction of a
+    /// second), show the app now and let the text catch up.
+    private func handleEarlySignal(_ payload: [String: String]) {
+        guard Defaults[.notificationLiveActivity], Defaults[.notificationFromDatabase],
+              Defaults[.notificationEarlyPlaceholder],
+              let rawBundleID = nonEmpty(payload["bundleID"]),
+              let uuid = nonEmpty(payload["recordUUID"]) else { return }
+
+        let signalTime = Date()
+        // The identifier may differ in case from the installed app's.
+        let info = Self.appInfo(forBundleID: rawBundleID)
+        Task { [weak self] in
+            try? await Task.sleep(for: .seconds(Self.placeholderDelay))
+            await self?.showPlaceholder(bundleID: info.bundleID, appName: info.name, uuid: uuid, signalTime: signalTime)
+        }
+    }
+
+    private static func appInfo(forBundleID rawBundleID: String) -> (bundleID: String, name: String) {
+        if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: rawBundleID),
+           let bundle = Bundle(url: url) {
+            let name = (bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String)
+                ?? (bundle.object(forInfoDictionaryKey: "CFBundleName") as? String)
+                ?? url.deletingPathExtension().lastPathComponent
+            return (bundle.bundleIdentifier ?? normalizeBundleIdentifier(rawBundleID), name)
+        }
+        let normalized = normalizeBundleIdentifier(rawBundleID)
+        return (normalized, normalized.split(separator: ".").last.map(String.init) ?? normalized)
+    }
+
+    private func showPlaceholder(bundleID: String, appName: String, uuid: String, signalTime: Date) {
+        guard !dismissedPlaceholders.contains(uuid), placeholderIDs[uuid] == nil else { return }
+        let id = Self.normalizedID(bundleID)
+        let name = Self.normalizedID(appName)
+        // Real content for this app already arrived (banner reader, or the
+        // database was early this time): nothing to hold the place for.
+        let alreadyHere = recentArrivals.contains { arrival in
+            arrival.date >= signalTime.addingTimeInterval(-0.3)
+                && (arrival.bundleID == id || arrival.appName == name || arrival.appName == id)
+        }
+        guard !alreadyHere else { return }
+
+        let placeholder = SystemNotification(
+            id: "early-\(uuid)",
+            appName: appName,
+            bundleID: bundleID,
+            title: String(localized: "New notification"),
+            subtitle: nil,
+            body: nil,
+            receivedAt: signalTime,
+            recordUUID: uuid,
+            isPlaceholder: true
+        )
+        guard isAllowed(placeholder) else { return }
+        placeholderIDs[uuid] = placeholder.id
+
+        guard activeNotification == nil else {
+            guard isUserPresent else {
+                show(placeholder)
+                return
+            }
+            queuedNotifications.append(placeholder)
+            if queuedNotifications.count > queueLimit { queuedNotifications.removeFirst() }
+            return
+        }
+        show(placeholder)
+    }
+
+    /// Puts the real text into the placeholder's slot without re-animating it.
+    private func upgradePlaceholder(_ placeholderID: String, to real: SystemNotification, uuid: String) -> Bool {
+        let upgraded = SystemNotification(
+            id: placeholderID, appName: real.appName ?? nil, bundleID: real.bundleID,
+            title: real.title, subtitle: real.subtitle, body: real.body,
+            receivedAt: real.receivedAt, recordUUID: uuid, isPlaceholder: false
+        )
+        _ = isRecentDuplicate(real)   // remember the text so a late copy isn't shown again
+
+        if activeNotification?.id == placeholderID {
+            activeNotification = upgraded
+            // Give the text its full time on screen, counted from now.
+            if !isUserPresent {
+                dismissTask?.cancel()
+                scheduleDismiss(for: placeholderID)
+            }
+            return true
+        }
+        if let index = queuedNotifications.firstIndex(where: { $0.id == placeholderID }) {
+            queuedNotifications[index] = upgraded
+            return true
+        }
+        return false
+    }
+
+    /// The same notification can arrive from both sources: the banner reader
+    /// is immediate, the database copy lands several seconds later. Match on
+    /// title and the start of the text, over a window long enough to cover
+    /// that delay, and show it once.
     private func isRecentDuplicate(_ notification: SystemNotification) -> Bool {
-        let key = [notification.bundleID ?? notification.appName ?? "", notification.title ?? "", notification.body ?? ""]
+        let key = [notification.title ?? "", String((notification.body ?? "").prefix(40))]
             .joined(separator: "\u{1F}")
         let now = Date()
-        recentKeys = recentKeys.filter { now.timeIntervalSince($0.value) < 3 }
+        recentKeys = recentKeys.filter { now.timeIntervalSince($0.value) < Self.duplicateWindow }
         if recentKeys[key] != nil { return true }
         recentKeys[key] = now
         return false
     }
+
+    private static let duplicateWindow: TimeInterval = 12
+    private static let placeholderMinimumDuration: TimeInterval = 9
+    /// How long to wait for the banner reader or the database to produce
+    /// the real notification before showing a placeholder for it.
+    private static let placeholderDelay: TimeInterval = 0.6
 
     private func show(_ notification: SystemNotification) {
         dismissTask?.cancel()
@@ -198,10 +354,15 @@ final class SystemNotificationManager: ObservableObject {
     }
 
     private func scheduleDismiss(for token: String) {
+        // The database delivers the text about five seconds after the
+        // notification, so a placeholder must outlive that, whatever the
+        // display time is set to.
+        let isPlaceholder = activeNotification?.id == token && activeNotification?.isPlaceholder == true
+        let duration = isPlaceholder ? max(displayDuration, Self.placeholderMinimumDuration) : displayDuration
         dismissTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(self?.displayDuration ?? 8))
+            try? await Task.sleep(for: .seconds(duration))
             guard !Task.isCancelled else { return }
-            await self?.dismissActive(token: token)
+            await self?.dismissActive(token: token, byUser: false)
         }
     }
 

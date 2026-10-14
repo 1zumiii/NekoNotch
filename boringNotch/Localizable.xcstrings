@@ -34635,6 +34635,54 @@
           }
         }
       }
+    },
+    "New notification" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New notification"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新通知"
+          }
+        }
+      }
+    },
+    "Show the app at once" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show the app at once"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "立即显示来源应用"
+          }
+        }
+      }
+    },
+    "For apps whose banners are off, the notch shows the app the moment its notification arrives, and fills in the text about five seconds later when the system provides it." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For apps whose banners are off, the notch shows the app the moment its notification arrives, and fills in the text about five seconds later when the system provides it."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "对于关闭了横幅的应用，通知一到刘海就先显示这个应用，约 5 秒后系统提供内容时再补上文字。"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

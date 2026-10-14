@@ -83,7 +83,7 @@ final class NotificationDatabaseWatcher: @unchecked Sendable {
         guard let database else { return }
         var statement: OpaquePointer?
         defer { sqlite3_finalize(statement) }
-        let sql = "SELECT rec_id, app_id, data FROM record WHERE rec_id > ? ORDER BY rec_id"
+        let sql = "SELECT rec_id, app_id, data, uuid FROM record WHERE rec_id > ? ORDER BY rec_id"
         guard sqlite3_prepare_v2(database, sql, -1, &statement, nil) == SQLITE_OK else { return }
         sqlite3_bind_int64(statement, 1, lastRecordID)
 
@@ -94,11 +94,17 @@ final class NotificationDatabaseWatcher: @unchecked Sendable {
 
             guard let bytes = sqlite3_column_blob(statement, 2) else { continue }
             let data = Data(bytes: bytes, count: Int(sqlite3_column_bytes(statement, 2)))
-            publish(recordID: recordID, appID: appID, data: data)
+            // The first four bytes of the record's UUID: the same eight hex
+            // digits the early log signal reports for this notification.
+            var uuidPrefix: String?
+            if let uuidBytes = sqlite3_column_blob(statement, 3), sqlite3_column_bytes(statement, 3) >= 4 {
+                uuidPrefix = (0..<4).map { String(format: "%02X", uuidBytes.load(fromByteOffset: $0, as: UInt8.self)) }.joined()
+            }
+            publish(recordID: recordID, appID: appID, data: data, uuidPrefix: uuidPrefix)
         }
     }
 
-    private func publish(recordID: Int64, appID: Int64, data: Data) {
+    private func publish(recordID: Int64, appID: Int64, data: Data, uuidPrefix: String?) {
         guard let plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any],
               let request = plist["req"] as? [String: Any] else { return }
 
@@ -114,6 +120,7 @@ final class NotificationDatabaseWatcher: @unchecked Sendable {
         let app = identifier.map(resolveApp(identifier:))
 
         var payload: [String: String] = ["token": "db-\(recordID)"]
+        if let uuidPrefix { payload["recordUUID"] = uuidPrefix }
         if let name = app?.name { payload["appName"] = name }
         if let bundleID = app?.bundleID ?? identifier { payload["bundleID"] = bundleID }
         if let title { payload["title"] = title }
