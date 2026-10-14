@@ -218,6 +218,7 @@ final class BoringViewCoordinator: ObservableObject {
             }
             // Instantiating the manager starts clipboard tracking when enabled.
             _ = ClipboardManager.shared
+            AppNameIndex.shared.warmUp()
             AudioMixerEngine.shared.startIfEnabled()
             self.applyOSDSources()
         }

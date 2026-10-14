@@ -86,7 +86,7 @@ final class NotificationWatcher {
     private var parkedWindows: [Int: (window: AXUIElement, origin: CGPoint)] = [:]
     private var bundleIDCache: [String: String] = [:]
 
-    private static let maxBannerWindowHeight: CGFloat = 320
+    private var handledTokens: [String: Date] = [:]
 
     var isRunning: Bool { appElement != nil }
 
@@ -97,6 +97,7 @@ final class NotificationWatcher {
 
     @discardableResult
     func start() -> Bool {
+        AppNameIndex.shared.warmUp()
         guard AXIsProcessTrusted(), !isRunning,
               let application = NSRunningApplication.runningApplications(
                 withBundleIdentifier: notificationCenterBundleID
@@ -282,6 +283,14 @@ final class NotificationWatcher {
                     seen.insert(token)
                     guard !liveTokens.contains(token) else { continue }
 
+                    // A notification keeps its identifier when it later shows
+                    // up in the side panel, so an identifier handled once is
+                    // never news again. (Otherwise opening the panel looked
+                    // like a stream of new banners and kept hiding the panel.)
+                    guard handledTokens[token] == nil else { continue }
+                    handledTokens[token] = Date()
+                    pruneHandledTokens()
+
                     // Hide the banner as early as possible: the system has
                     // already drawn it, so every AX round trip or app lookup
                     // spent before moving it is time it flashes on screen.
@@ -314,20 +323,18 @@ final class NotificationWatcher {
         }
     }
 
+    private func pruneHandledTokens() {
+        guard handledTokens.count > 400 else { return }
+        let cutoff = Date().addingTimeInterval(-3600)
+        handledTokens = handledTokens.filter { $0.value > cutoff }
+    }
+
     private enum WindowContents {
         case ignored
         case banners([AXUIElement])
     }
 
     private func inspect(_ root: AXUIElement) -> WindowContents {
-        // Banners are short. The notification side panel is a full-height
-        // window, so a tall window is never a banner, whatever the system
-        // calls its parts this release. (macOS 27 stopped matching the
-        // identifier-based panel checks below, and the panel got parked off
-        // screen and its notifications re-captured over and over.)
-        if let size = root.size(kAXSizeAttribute), size.height > Self.maxBannerWindowHeight {
-            return .ignored
-        }
         var pending: [(element: AXUIElement, insideBanner: Bool, insideList: Bool)] = [
             (root, false, false)
         ]
@@ -541,27 +548,10 @@ final class NotificationWatcher {
             }
         }
 
-        for directory in directories {
-            guard let entries = try? FileManager.default.contentsOfDirectory(
-                at: directory,
-                includingPropertiesForKeys: nil,
-                options: [.skipsSubdirectoryDescendants, .skipsHiddenFiles]
-            ) else { continue }
-
-            for entry in entries where entry.pathExtension == "app" {
-                guard let bundle = Bundle(url: entry), let bundleID = bundle.bundleIdentifier else { continue }
-                let names = [
-                    entry.deletingPathExtension().lastPathComponent,
-                    bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String,
-                    bundle.object(forInfoDictionaryKey: "CFBundleName") as? String
-                ]
-                if names.contains(where: { name in
-                    guard let name else { return false }
-                    return Self.normalizedAppName(name) == target
-                }) {
-                    return normalizedBundleIdentifier(bundleID)
-                }
-            }
+        // Not running and not at the obvious path: ask the index (built in the
+        // background; never scan the disk on the way to showing a notification).
+        if let bundleID = AppNameIndex.shared.bundleID(whereName: { Self.normalizedAppName($0) == target }) {
+            return normalizedBundleIdentifier(bundleID)
         }
         return nil
     }
