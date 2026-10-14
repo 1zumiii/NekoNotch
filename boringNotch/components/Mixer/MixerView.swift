@@ -42,26 +42,32 @@ struct MixerView: View {
                 .frame(height: 18)
                 .padding(.horizontal, 4)
 
-                ScrollView(.vertical) {
-                    VStack(spacing: 5) {
-                        ForEach(engine.sources) { source in
-                            AppRow(source: source, isExpanded: expanded == source.id) {
-                                withAnimation(.smooth(duration: 0.2)) {
-                                    expanded = expanded == source.id ? nil : source.id
+                if engine.sources.isEmpty {
+                    // A single centred line. (As an overlay on the scroll view
+                    // the text was squeezed to the width of its empty content
+                    // and wrapped one character per line.)
+                    HStack(spacing: 8) {
+                        Image(systemName: "waveform").font(.system(size: 16))
+                        Text("No apps are playing sound")
+                            .font(.system(size: 12))
+                            .lineLimit(1)
+                    }
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    ScrollView(.vertical) {
+                        VStack(spacing: 5) {
+                            ForEach(engine.sources) { source in
+                                AppRow(source: source, isExpanded: expanded == source.id) {
+                                    withAnimation(.smooth(duration: 0.2)) {
+                                        expanded = expanded == source.id ? nil : source.id
+                                    }
                                 }
                             }
                         }
                     }
-                }
-                .scrollIndicators(.never)
-                .overlay {
-                    if engine.sources.isEmpty {
-                        VStack(spacing: 6) {
-                            Image(systemName: "waveform").font(.system(size: 18))
-                            Text("No apps are playing sound").font(.system(size: 11))
-                        }
-                        .foregroundStyle(.secondary)
-                    }
+                    .scrollIndicators(.never)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)

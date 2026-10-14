@@ -147,6 +147,7 @@ struct OSDSettings: View {
         }
         .formStyle(.grouped)
         .accentColor(.effectiveAccent)
+        .navigationTitle("OSD")
         .task(id: osdReplacementDefault) {
             guard osdReplacementDefault else { return }
             isAccessibilityAuthorized = await XPCHelperClient.shared.isAccessibilityAuthorized()
