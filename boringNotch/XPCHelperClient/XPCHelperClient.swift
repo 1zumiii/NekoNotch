@@ -467,6 +467,32 @@ extension XPCHelperClient {
         }
     }
 
+    /// The helper's own report on its notification services, or nil when it
+    /// does not answer within a few seconds.
+    nonisolated func serviceStatus() async -> [String: NSNumber]? {
+        await withTaskGroup(of: [String: NSNumber]?.self) { group in
+            group.addTask {
+                do {
+                    let service = await MainActor.run { self.ensureRemoteService() }
+                    return try await service.withContinuation { service, continuation in
+                        service.serviceStatus { status in
+                            continuation.resume(returning: status)
+                        }
+                    }
+                } catch {
+                    return nil
+                }
+            }
+            group.addTask {
+                try? await Task.sleep(for: .seconds(3))
+                return nil
+            }
+            let first = await group.next() ?? nil
+            group.cancelAll()
+            return first
+        }
+    }
+
     nonisolated func stopNotificationWatching() {
         Task {
             let service = await MainActor.run { ensureRemoteService() }

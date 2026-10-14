@@ -90,6 +90,10 @@ final class NotificationWatcher {
 
     var isRunning: Bool { appElement != nil }
 
+    /// The Notification Center process this watcher is attached to. If that
+    /// process restarts, the watcher keeps running but hears nothing.
+    private(set) var observedProcessIdentifier: pid_t?
+
     func configureFilter(bundleIDs: Set<String>, allApps: Bool) {
         allowedBundleIDs = bundleIDs
         mirrorAllApps = allApps
@@ -110,6 +114,7 @@ final class NotificationWatcher {
             appElement = nil
             return false
         }
+        observedProcessIdentifier = application.processIdentifier
 
         refreshObservedWindows()
         scan()
@@ -136,6 +141,7 @@ final class NotificationWatcher {
         liveTokens.removeAll()
         restoreAllWindows()
         appElement = nil
+        observedProcessIdentifier = nil
     }
 
     private func addObserverNotifications(to element: AXUIElement) -> Bool {
