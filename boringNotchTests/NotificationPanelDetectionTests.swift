@@ -23,6 +23,19 @@ final class NotificationPanelDetectionTests: XCTestCase {
         ))
     }
 
+    func testPanelEntriesAreBannerStacksNotLiveBanners() {
+        // macOS 27 lists side-panel entries as stacks; a live banner is not one.
+        XCTAssertTrue(NotificationPanelDetection.isPanel(
+            subrole: "AXNotificationCenterBannerStack",
+            identifier: nil
+        ))
+        XCTAssertFalse(NotificationPanelDetection.isBanner(subrole: "AXNotificationCenterBannerStack"))
+        XCTAssertFalse(NotificationPanelDetection.isPanel(
+            subrole: "AXNotificationCenterBanner",
+            identifier: nil
+        ))
+    }
+
     func testDesktopWidgetIsNotALiveBanner() {
         XCTAssertTrue(NotificationPanelDetection.isDesktopWidget(identifier: "widget-local:calendar"))
         XCTAssertFalse(NotificationPanelDetection.isDesktopWidget(identifier: "notification-id"))
