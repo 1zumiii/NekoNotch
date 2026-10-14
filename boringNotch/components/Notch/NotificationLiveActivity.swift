@@ -23,6 +23,26 @@ private struct NotificationSourceIcon: View {
     }
 }
 
+/// A slowly turning rainbow outline around the notch, for high-priority
+/// notifications. Only on screen while one is.
+private let priorityGlowColors: [Color] = [.red, .orange, .yellow, .green, .cyan, .blue, .purple, .pink, .red]
+
+struct PriorityGlowBorder<S: Shape>: View {
+    let shape: S
+
+    var body: some View {
+        TimelineView(.animation) { context in
+            let angle = context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 4) / 4 * 360
+            let gradient = AngularGradient(colors: priorityGlowColors, center: .center, angle: .degrees(angle))
+            ZStack {
+                shape.stroke(gradient, style: StrokeStyle(lineWidth: 5, lineCap: .round)).blur(radius: 6).opacity(0.7)
+                shape.stroke(gradient, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+            }
+        }
+        .allowsHitTesting(false)
+    }
+}
+
 struct NotificationLiveActivity: View {
     @EnvironmentObject private var vm: BoringViewModel
     let notification: SystemNotification

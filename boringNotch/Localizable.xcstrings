@@ -34683,6 +34683,306 @@
           }
         }
       }
+    },
+    "Service status" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "服务状态"
+          }
+        }
+      }
+    },
+    "Helper process" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "后台助手进程"
+          }
+        }
+      }
+    },
+    "Banner reader" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "横幅读取"
+          }
+        }
+      }
+    },
+    "Database reader" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "数据库读取"
+          }
+        }
+      }
+    },
+    "Early signal" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "早期信号"
+          }
+        }
+      }
+    },
+    "Running" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "运行中"
+          }
+        }
+      }
+    },
+    "Off" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已关闭"
+          }
+        }
+      }
+    },
+    "Stopped" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已停止"
+          }
+        }
+      }
+    },
+    "Checking…" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "检测中…"
+          }
+        }
+      }
+    },
+    "Not responding" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无响应"
+          }
+        }
+      }
+    },
+    "Helper not responding" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "助手进程无响应"
+          }
+        }
+      }
+    },
+    "No Accessibility access" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未授予辅助功能权限"
+          }
+        }
+      }
+    },
+    "No Full Disk Access" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未授予完全磁盘访问权限"
+          }
+        }
+      }
+    },
+    "Cannot read the database" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法读取数据库"
+          }
+        }
+      }
+    },
+    "Notification Center restarted; restart the services" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通知中心已重启，请重启服务"
+          }
+        }
+      }
+    },
+    "Restart services" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重启服务"
+          }
+        }
+      }
+    },
+    "Last event %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近一次：%@"
+          }
+        }
+      }
+    },
+    "If notifications stop showing up in the notch, check which line is red or orange here." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果通知不再出现在刘海里，看看这里哪一行是红色或橙色。"
+          }
+        }
+      }
+    },
+    "Highlight time-sensitive notifications" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "突出显示时间敏感通知"
+          }
+        }
+      }
+    },
+    "They get a rainbow outline, stay twice as long, and are not pushed off by ordinary ones. The importance comes from the database, so it needs the database reader." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "它们会有炫彩描边、停留时间翻倍，也不会被普通通知顶掉。重要程度来自通知数据库，所以需要开启数据库读取。"
+          }
+        }
+      }
+    },
+    "Test" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "测试"
+          }
+        }
+      }
+    },
+    "Type" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "类型"
+          }
+        }
+      }
+    },
+    "Real system notification" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "真实系统通知"
+          }
+        }
+      }
+    },
+    "Ordinary (notch only)" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "普通（仅刘海）"
+          }
+        }
+      }
+    },
+    "Time-sensitive (notch only)" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "时间敏感（仅刘海）"
+          }
+        }
+      }
+    },
+    "Send test notification" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发送测试通知"
+          }
+        }
+      }
+    },
+    "Test notification" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "测试通知"
+          }
+        }
+      }
+    },
+    "If you can read this, notifications reach the notch." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "如果你能看到这行字，说明通知已经送到刘海。"
+          }
+        }
+      }
+    },
+    "Notifications from Boring Notch are turned off in System Settings." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系统设置里已关闭 Boring Notch 的通知权限。"
+          }
+        }
+      }
+    },
+    "A real system notification goes through the whole chain and may show a system banner. The notch-only kinds skip the system, which is the only way to try the time-sensitive look." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "真实系统通知会走完整条链路，可能会闪一下系统横幅；“仅刘海”的类型会跳过系统，这是唯一能试看时间敏感效果的办法。"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"
