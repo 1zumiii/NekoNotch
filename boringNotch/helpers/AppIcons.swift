@@ -182,7 +182,13 @@ final class BundleIDResolver: @unchecked Sendable {
             }
         }
 
-        // 3. One bounded listing per directory — no recursion into subfolders.
+        // 3. The default locations come from the background-built index (which
+        //    also knows localised names); only an injected directory (tests)
+        //    is listed directly.
+        if searchDirectories == Self.defaultSearchDirectories {
+            return AppNameIndex.shared.bundleID(whereName: { Self.normalizedAppName($0) == target })
+                .map(normalizeBundleIdentifier)
+        }
         for directory in searchDirectories {
             guard let entries = try? FileManager.default.contentsOfDirectory(
                 at: directory,

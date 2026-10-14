@@ -24,6 +24,9 @@ enum NotificationPanelDetection {
         insideNotificationList: Bool = false
     ) -> Bool {
         subrole == "AXNotificationCenterPanel"
+            // macOS 27: the side panel lists its entries as banner *stacks*;
+            // a live banner is a plain AXNotificationCenterBanner.
+            || subrole == "AXNotificationCenterBannerStack"
             || identifier == "widget-editor-button"
             || (insideNotificationList
                 && subrole == "AXButton"
