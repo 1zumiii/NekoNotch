@@ -1,205 +1,132 @@
-<h1 align="center">
-  <br>
-  <a href="http://theboring.name"><img src="https://framerusercontent.com/images/RFK4vs0kn8pRMuOO58JeyoemXA.png?scale-down-to=256" alt="Boring Notch" width="150"></a>
-  <br>
-  Boring Notch
-  <br>
-</h1>
+<h1 align="center">Boring Notch · Izumi Edition</h1>
 
+<p align="center">简体中文 · <a href="README.en.md">English</a></p>
 
 <p align="center">
-  <a title="Crowdin" target="_blank" href="https://crowdin.com/project/boring-notch"><img src="https://badges.crowdin.net/boring-notch/localized.svg"></a>
-  <img src="https://github.com/TheBoredTeam/boring.notch/actions/workflows/cicd.yml/badge.svg" alt="TheBoringNotch Build & Test" style="margin-right: 10px;" />
-  <a href="https://discord.gg/c8JXA7qrPm">
-    <img src="https://dcbadge.limes.pink/api/server/https://discord.gg/c8JXA7qrPm?style=flat" alt="Discord Badge" />
-  </a>
-  <a href="https://www.ko-fi.com/alexander5015">
-    <img src="https://srv-cdn.himpfen.io/badges/kofi/kofi-flat.svg" alt="Ko-Fi" />
-  </a>
+  基于 <a href="https://github.com/TheBoredTeam/boring.notch">Boring Notch</a> 的个人定制版本，在刘海中加入通知、仪表盘和应用混音器。<br>
+  上游原版的说明保留在 <a href="README.upstream.md">README.upstream.md</a>。
 </p>
-
-<p align="center">
-  <a href="https://trendshift.io/repositories/14815?utm_source=repository-badge&amp;utm_medium=badge&amp;utm_campaign=badge-repository-14815" target="_blank" rel="noopener noreferrer"><img src="https://trendshift.io/api/badge/repositories/14815" alt="TheBoredTeam%2Fboring.notch |    Trendshift" width="250" height="55"/></a>
-</p>
-<!--Welcome to **Boring.Notch**, the coolest way to make your MacBook's notch the star of the show! Forget about those boring status bars—our notch turns into a dynamic music control center, complete with a snazzy visualizer and all the music controls you need. It's like having a mini concert right at the top of your screen! -->
-
-Say hello to **Boring Notch**, the coolest way to make your MacBook’s notch the star of the show! Say goodbye to boring status bars: with Boring Notch, your notch transforms into a dynamic music control center, complete with a vibrant visualizer and all the essential music controls you need. But that’s just the start! Boring Notch also offers calendar integration, a handy file shelf with sharing support, a complete MacOS OSD replacement and more!
-
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/2d5f69c1-6e7b-4bc2-a6f1-bb9e27cf88a8" alt="Demo GIF" />
-</p>
-
-<!--https://github.com/user-attachments/assets/19b87973-4b3a-4853-b532-7e82d1d6b040-->
----
-<!--## Table of Contents
-- [Installation](#installation)
-- [Usage](#usage)
-- [Roadmap](#-roadmap)
-- [Building from Source](#building-from-source)
-- [Contributing](#-contributing)
-- [Join our Discord Server](#join-our-discord-server)
-- [Star History](#star-history)
-- [Buy us a coffee!](#buy-us-a-coffee)
-- [Acknowledgments](#-acknowledgments)-->
-
-## Installation
-
-**System Requirements:**
-- macOS **14 Sonoma** or later
-- Apple Silicon or Intel Mac
 
 ---
 
-### Option 1: Download and Install Manually
+## 项目说明
 
-<a href="https://github.com/TheBoredTeam/boring.notch/releases/latest/download/Boring%20Notch.dmg" target="_self"><img width="200" src="https://github.com/user-attachments/assets/e3179be1-8416-4b8a-b417-743e1ecc67d6" alt="Download for macOS" /></a>
+这个 fork 基于 [TheBoredTeam/boring.notch](https://github.com/TheBoredTeam/boring.notch) 的 `v2.8-rc.2`。我在日常使用中加了一些自己需要的功能，也修复了在 macOS 26 和 27 上遇到的问题。
 
-1. Open the downloaded `Boring Notch.dmg` file.
-2. Drag **Boring Notch** onto the **Applications** folder in the installer window.
-3. Wait for the copy to finish.
-4. Eject the Boring Notch disk image in Finder.
-5. Open **Boring Notch** from your **Applications** folder.
+- 默认分支为 `custom-main`，只从上游合并更新，不向上游推送或提交 PR。
+- 已关闭应用内更新（Sparkle），防止官方版本覆盖自定义改动。“关于”页显示 `Izumi Edition ✨ 1.1.0`。跟进上游更新时，需要将上游改动合并到 `custom-main`，再重新编译。
+- 日常使用和测试主要在 macOS 27 上完成。系统要求沿用上游的 macOS 14+，其中混音器依赖的 Core Audio 进程 tap 需要 macOS 14.2 及以上。
 
-The installed app stays available after you eject the disk image. Opening the app inside the installer does not install it.
+## 新增功能
 
-> [!IMPORTANT]
-> Release builds are not notarized with Apple (macOS will warn you that Boring Notch is from an unidentified developer on first launch). This is expected behavior.
->
-> You'll need to bypass this before the app will open. You only need to do this once. Use one of the methods below.
+### 通知接管
 
----
+通知可以直接显示在刘海里。你也可以关闭应用的系统横幅，只保留刘海中的通知。
 
-#### Recommended: Terminal (Always Works)
+- 横幅读取：通过辅助功能读取系统通知横幅，将横幅移到屏幕外，再在刘海中显示。
+- 自动展开：收到通知时自动展开刘海，无需移入鼠标。停留时间可设为 2～30 秒，结束后自动收起。
+- 应用过滤：显示所有应用的通知，或只显示你选中的应用。
+- 数据库读取：直接读取通知中心数据库，需要完全磁盘访问权限。开启后，即使你在系统设置中关闭了某个应用的横幅，它的通知仍会显示在刘海中，也能避免系统横幅短暂闪现。
+- 来源应用预览：关闭横幅的应用收到通知时，先显示应用图标。约 5 秒后，系统将正文写入数据库，再在原位置补上文字。提前显示图标所用的信号，来自系统日志中 `usernoted` 的“通知已入库”记录。
+- 时间敏感通知：数据库中标记为“时间敏感”或“紧急”的通知，会在两侧和底部显示旋转彩虹描边，停留时间翻倍。普通通知会排队，等这条通知收起后再显示。判定依据是数据库记录中的 `intrp` 字段：“被动”级别已用实测验证，“时间敏感”和“紧急”级别按系统的等级定义推断，尚未用真实通知验证。
+- 服务状态：通知设置页顶部列出后台助手、横幅读取、数据库读取和早期信号的运行状态，以及最近一次事件的时间。通知没有出现时，可以在这里检查状态或点击“重启服务”。
+- 测试通知：在下拉框中选择真实系统通知、普通通知或时间敏感通知，然后发送。
 
-This is the quickest and easiest method. It only requires a single command and works consistently for all users. System Settings can sometimes fail and won't work for non-admin users.
+应用图标查找也覆盖了 `/System/Applications/Utilities`。应用名与 Bundle ID 的映射改为在后台建立索引，避免查找时卡顿 1～2 秒。
 
-After moving Boring Notch to your Applications folder, run:
+### 仪表盘（Dashboard）
+
+仪表盘采用网格布局。你可以在设置中调整每张卡片的位置和尺寸，例如 2×3 或 1×2。
+
+- Claude 和 Codex 用量：读取 RunCat 集成脚本生成的快照，路径分别为 `~/Library/Application Support/RunCatIntegrations/claude-usage.json` 和 `~/.codex/runcat-usage.json`。
+- 存储空间：用环形图和文字显示磁盘用量，图表与文字均匀排列。
+
+各张卡片共用同一套卡片和仪表组件。
+
+### 混音器（Mixer）
+
+混音器提供类似 SoundSource 的应用音量控制，基于 Core Audio 进程 tap 实现。
+
+- 单独调整每个正在播放音频的应用的音量，支持静音和独奏。
+- 调整左右声道平衡，或切换为单声道。
+- 为每个应用选择输出设备。
+- 显示实时电平，仅在页面可见时计算。混音器已启用但页面不可见时，CPU 占用约为单核的 0.2%～0.3%。
+
+没有应用播放音频时，页面中央会显示一行提示。首次使用需要按提示授予“系统音频录制”类权限。
+
+### 剪贴板临时区
+
+Shelf（文件架）中加入了剪贴板临时区。内容按列表纵向排列，每条显示一行，超出部分用省略号截断。支持一键清空，也可以在设置中关闭整个临时区。
+
+### 电池与充电提醒
+
+- 低电量提醒支持多个阈值，默认提供 20%、10% 和 5%，可在设置中勾选。提醒不会反复弹出。
+- 充电提示改为居中的圆角面板，断开电源时只提示一次，状态文字支持中文。
+
+### 音乐波形
+
+新增“炫彩波形”选项，使用 Core Animation 播放循环动画，CPU 占用很低。颜色变化速度可通过滑块调整，设为 0 时颜色保持静止。
+
+音频电平按像素量化后再发布，没有组件使用音频数据时停止 FFT 计算。
+
+## 修复与优化
+
+- macOS 27 通知接管：新系统将所有横幅放在一个全屏窗口中，原先按窗口高度过滤的逻辑会忽略这些横幅。现在改为识别横幅元素，并区分侧边通知栏条目与实时横幅。打开通知栏时，不再错误移动窗口或反复弹出通知。
+- 通知正文补全：连续收到两条通知时，前一条的图标占位可能被后一条替换，随后到达的正文又会被当作重复通知丢弃。已修复这一问题。
+- 刘海底部缝隙：macOS 27 的菜单栏比刘海高 1～2 pt，现在刘海高度会跟随菜单栏调整。
+- OSD 设置页：补上页面标题，避免沿用上一页的标题。
+- 日历：打开刘海时，事件列表只加载一次。日历数据稳定之前显示骨架屏，且这段等待不会被提前截断。
+- 通知收起：修复自动展开后误判鼠标悬停、导致通知一直停留的问题。刘海自动关闭时，通知视图也不会提前消失。
+- 助手启动：清理上次强制终止后残留的 `log stream` 孤儿进程。
+- 简体中文：补全了大部分未翻译的文字，自定义功能的界面也提供了中文翻译。
+
+## 编译与安装
+
+需要 macOS 15.6+ 和 Xcode 26+。
 
 ```bash
-xattr -dr com.apple.quarantine "/Applications/Boring Notch.app"
+git clone https://github.com/1zumiii/BoringNotch-Custom.git
+cd BoringNotch-Custom
+git checkout custom-main
+open boringNotch.xcodeproj
 ```
 
-Then open the app normally.
-
----
-
-#### Alternative: System Settings
-
-> [!NOTE]
-> This method doesn't work for all users. If this doesn't work, use the Terminal method above.
-
-1. Try to open the app — you'll see a security warning.
-2. Click **OK** to dismiss it.
-3. Open **System Settings** > **Privacy & Security**.
-4. Scroll to the bottom and click **Open Anyway** next to the Boring Notch warning.
-5. Confirm if prompted.
-
----
-
-### Option 2: Install via Homebrew
-
-You can also install using [Homebrew](https://brew.sh). The Homebrew installation automatically bypasses the macOS security warning described above.
+在 Xcode 中打开项目后即可运行。如果需要在重新构建后保留辅助功能和完全磁盘访问授权，每次构建后都要使用固定的代码签名要求重新签名：
 
 ```bash
-brew install --cask TheBoredTeam/boring-notch/boring-notch
+xcodebuild -project boringNotch.xcodeproj -scheme boringNotch -configuration Release \
+  -derivedDataPath build CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO build
+
+codesign --force --sign - --preserve-metadata=entitlements,flags,runtime \
+  -r='designated => identifier "theboringteam.boringnotch"' \
+  "build/Build/Products/Release/Boring Notch.app"
 ```
 
-## Usage
+**只对最外层 App 签名，不要加 `--deep`。** `--deep` 会破坏 XPC 助手的签名，导致通知接管提示缺少辅助功能权限。
 
-- Launch the app, and voilà—your notch is now the coolest part of your screen.
-- Hover over the notch to see it expand and reveal all its secrets.
-- Use the controls to manage your music like a rockstar.
-- Click the star in your menu bar to customize your notch to your heart's content.
+## 需要的权限
 
-## 📋 Roadmap
-- [x] Playback live activity 🎧
-- [x] Calendar integration 📆
-- [x] Reminders integration ☑️
-- [x] Mirror 📷
-- [x] Charging indicator and current percentage 🔋
-- [x] Customizable gesture control 👆🏻
-- [x] Shelf functionality with AirDrop 📚
-- [x] Notch sizing customization, finetuning on different display sizes 🖥️
-- [x] System OSD replacements (volume, brightness, backlight) 🎚️💡⌨️
-- [ ] Bluetooth Live Activity (connect/disconnect for bluetooth devices) 
-- [ ] Weather integration ⛅️
-- [ ] Customizable Layout options 🛠️
-- [ ] Lock Screen Widgets 🔒
-- [ ] Extension system 🧩
-- [ ] Notifications (under consideration) 🔔
-<!-- - [ ] Clipboard history manager 📌 `Extension` -->
-<!-- - [ ] Download indicator of different browsers (Safari, Chromium browsers, Firefox) 🌍 `Extension`-->
-<!-- - [ ] Customizable function buttons 🎛️ -->
-<!-- - [ ] App switcher 🪄 -->
+| 权限 | 用途 |
+| --- | --- |
+| 辅助功能 | 读取系统通知横幅，并将横幅移到屏幕外 |
+| 完全磁盘访问 | 读取通知数据库，用于关闭横幅后的通知展示、来源应用预览和时间敏感通知识别 |
+| 系统音频录制 | 控制各应用的音量，读取音频电平 |
+| 日历、提醒事项和相机等 | 用于上游已有功能 |
 
-<!-- ## 🧩 Extensions
-> [!NOTE]
-> We’re hard at work on some awesome extensions! Stay tuned, and we’ll keep you updated as soon as they’re released. -->
+## 自定义功能的代码位置
 
-## Building from Source
+| 位置 | 内容 |
+| --- | --- |
+| `boringNotch/managers/SystemNotificationManager.swift` | 通知展示、队列、占位符和优先级 |
+| `boringNotch/managers/NotificationDatabaseWatcher.swift` | 读取通知数据库 |
+| `BoringNotchXPCHelper/NotificationWatcher.swift`、`EarlyNotificationSource.swift` | 横幅读取和早期信号，在 XPC 助手中运行 |
+| `boringNotch/components/Dashboard/`、`components/Usage/` | 仪表盘与用量 |
+| `boringNotch/components/Mixer/`、`managers/AudioCaptureManager.swift` | 混音器与音频采集 |
+| `boringNotch/models/BatteryAlertTracker.swift` | 电量提醒 |
+| `boringNotch/CustomBuild.swift` | 关闭更新、自定义版本号 |
 
-### Prerequisites
+## 致谢与许可
 
-- **macOS 15.6 or later**
-- **Xcode 26 or later**
+感谢上游项目 [Boring Notch](https://github.com/TheBoredTeam/boring.notch) 及其贡献者，以及 [MediaRemoteAdapter](https://github.com/ungive/mediaremote-adapter)、[NotchDrop](https://github.com/Lakr233/NotchDrop) 等依赖的作者。图标由 [@maxtron95](https://github.com/maxtron95) 制作。
 
-### Installation
-
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/TheBoredTeam/boring.notch.git
-   cd boring.notch
-   ```
-
-2. **Open the Project in Xcode**:
-   ```bash
-   open boringNotch.xcodeproj
-   ```
-
-3. **Build and Run**:
-    - Click the "Run" button or press `Cmd + R`. Watch the magic unfold!
-
-## 🤝 Contributing
-
-We’re all about good vibes and awesome contributions! Read [CONTRIBUTING.md](CONTRIBUTING.md) to learn how you can join the fun!
-
-## Join our Discord Server
-
-<a href="https://discord.gg/GvYcYpAKTu" target="_blank"><img src="https://iili.io/28m3GHv.png" alt="Join The Boring Server!" style="height: 60px !important;width: 217px !important;" ></a>
-
-## Star History
-<!-- BROKEN: GitHub now restricts the stargazer API for privacy reasons
-<a href="https://www.star-history.com/#TheBoredTeam/boring.notch&Timeline">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=TheBoredTeam/boring.notch&type=Timeline&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=TheBoredTeam/boring.notch&type=Timeline" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=TheBoredTeam/boring.notch&type=Timeline" />
- </picture>
-</a>
--->
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/TheBoredTeam/org-star-chart-updater/main/projects/boring.notch/chart-dark.svg">
-   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/TheBoredTeam/org-star-chart-updater/main/projects/boring.notch/chart-light.svg">
-   <img src="https://raw.githubusercontent.com/TheBoredTeam/org-star-chart-updater/main/projects/boring.notch/chart-light.svg" alt="TheBoredTeam/boring.notch GitHub star history">
- </picture>
-
-## Support us on Ko-fi!
-<!-- <a href="https://www.buymeacoffee.com/jfxh67wvfxq" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-red.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a> -->
-<a href="https://www.ko-fi.com/alexander5015" target="_blank"><img src="https://github.com/user-attachments/assets//a76175ef-7e93-475a-8b67-4922ba5964c2" alt="Support us on Ko-fi" style="height: 70px !important;width: 346px !important;" ></a>
-
-## 🎉 Acknowledgments
-
-We would like to express our gratitude to the authors and maintainers of the open-source projects that made this possible. 
-
-## Notable Projects
-- **[MediaRemoteAdapter](https://github.com/ungive/mediaremote-adapter)** –  An open-source project that allowed us to use the Now Playing source in macOS 15.4+
-- **[NotchDrop](https://github.com/Lakr233/NotchDrop)** – An open-source project that has been instrumental in developing the first version of the "Shelf" feature in Boring Notch.
-
-For a full list of licenses and attributions, please see the [Third-Party Licenses](./THIRD_PARTY_LICENSES) file.
-
-### Icon credits: [@maxtron95](https://github.com/maxtron95)
-### Website credits: [@himanshhhhuv](https://github.com/himanshhhhuv)
-
-- **SwiftUI**: For making us look like coding wizards.
-- **You**: For being awesome and checking out **boring.notch**!
-
+本 fork 沿用上游许可证，见 [LICENSE](LICENSE) 和 [THIRD_PARTY_LICENSES](THIRD_PARTY_LICENSES)。
