@@ -180,6 +180,26 @@ class BoringNotchXPCHelper: NSObject, BoringNotchXPCHelperProtocol {
         Self.earlySource.stop()
     }
 
+    /// What the helper's notification services are doing right now, for the
+    /// status panel in the settings.
+    @objc func serviceStatus(with reply: @escaping ([String: NSNumber]) -> Void) {
+        let early = Self.earlySource.status
+        DispatchQueue.main.async {
+            let center = NSRunningApplication.runningApplications(
+                withBundleIdentifier: "com.apple.notificationcenterui"
+            ).first?.processIdentifier ?? 0
+            reply([
+                "helperPID": NSNumber(value: ProcessInfo.processInfo.processIdentifier),
+                "axTrusted": NSNumber(value: AXIsProcessTrusted()),
+                "bannerRunning": NSNumber(value: Self.watcher.isRunning),
+                "bannerPID": NSNumber(value: Self.watcher.observedProcessIdentifier ?? 0),
+                "notificationCenterPID": NSNumber(value: center),
+                "earlyRunning": NSNumber(value: early.running),
+                "earlyPID": NSNumber(value: early.pid)
+            ])
+        }
+    }
+
     @objc func stopNotificationWatching() {
         DispatchQueue.main.async { Self.watcher.stop() }
     }
