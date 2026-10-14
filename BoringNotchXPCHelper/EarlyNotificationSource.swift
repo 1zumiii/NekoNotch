@@ -25,6 +25,14 @@ final class EarlyNotificationSource {
     private static let appPattern = try? NSRegularExpression(pattern: #"app:"([^"]+)""#)
     private static let uuidPattern = try? NSRegularExpression(pattern: #"uuid:"([0-9A-Fa-f]+)""#)
 
+    /// Whether the `log stream` process is alive right now, and its pid.
+    var status: (running: Bool, pid: Int32) {
+        queue.sync {
+            guard let process, process.isRunning else { return (false, 0) }
+            return (true, process.processIdentifier)
+        }
+    }
+
     @discardableResult
     func start() -> Bool {
         queue.sync {
@@ -42,8 +50,22 @@ final class EarlyNotificationSource {
         }
     }
 
+    /// A `log stream` left behind by an earlier helper that was killed would
+    /// otherwise linger until the next notification makes it write to its
+    /// closed pipe. Done once per helper process.
+    private static let reapedLeftovers: Void = {
+        let reaper = Process()
+        reaper.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
+        reaper.arguments = ["-f", #"log stream .*Added request <NotificationRecord"#]
+        reaper.standardOutput = FileHandle.nullDevice
+        reaper.standardError = FileHandle.nullDevice
+        try? reaper.run()
+        reaper.waitUntilExit()
+    }()
+
     private func launch() -> Bool {
         guard process == nil else { return true }
+        _ = Self.reapedLeftovers
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/log")
         process.arguments = ["stream", "--style", "ndjson", "--level", "info", "--predicate", Self.predicate]
