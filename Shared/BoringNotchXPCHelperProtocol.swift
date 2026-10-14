@@ -60,6 +60,8 @@ final class BNLunarBrightnessEvent: NSObject, NSSecureCoding {
     func startNotificationWatching(with reply: @escaping (Bool) -> Void)
     func stopNotificationWatching()
     func setNotificationFilter(_ bundleIDs: [String], allApps: Bool)
+    func startEarlyNotificationSignal(with reply: @escaping (Bool) -> Void)
+    func stopEarlyNotificationSignal()
 }
 
 @objc protocol BoringNotchXPCHelperDelegate {
