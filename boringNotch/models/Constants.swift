@@ -526,6 +526,9 @@ extension Defaults.Keys {
     /// For apps whose banners are off, show the app the moment its notification
     /// arrives and fill in the text when the database delivers it.
     static let notificationEarlyPlaceholder = Key<Bool>("notificationEarlyPlaceholder", default: false)
+    /// Give time-sensitive notifications a rainbow outline, a longer stay, and
+    /// priority over ordinary ones (the database reader supplies the level).
+    static let notificationPriorityHighlight = Key<Bool>("notificationPriorityHighlight", default: true)
     /// Seconds a mirrored notification stays before it is dismissed.
     static let notificationDisplayDuration = Key<Double>("notificationDisplayDuration", default: 8)
     static let notificationAllowedApps = Key<Set<String>>(

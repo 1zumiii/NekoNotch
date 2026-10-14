@@ -119,6 +119,43 @@ struct NotchShape: Shape {
     }
 }
 
+extension NotchShape {
+    /// Just the side and bottom edges, without the flared corners at the top.
+    var sidesOnly: NotchSidesShape {
+        NotchSidesShape(topCornerRadius: topCornerRadius, bottomCornerRadius: bottomCornerRadius)
+    }
+}
+
+struct NotchSidesShape: Shape {
+    var topCornerRadius: CGFloat
+    var bottomCornerRadius: CGFloat
+
+    var animatableData: AnimatablePair<CGFloat, CGFloat> {
+        get { .init(topCornerRadius, bottomCornerRadius) }
+        set {
+            topCornerRadius = newValue.first
+            bottomCornerRadius = newValue.second
+        }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX + topCornerRadius, y: rect.minY + topCornerRadius))
+        path.addLine(to: CGPoint(x: rect.minX + topCornerRadius, y: rect.maxY - bottomCornerRadius))
+        path.addQuadCurve(
+            to: CGPoint(x: rect.minX + topCornerRadius + bottomCornerRadius, y: rect.maxY),
+            control: CGPoint(x: rect.minX + topCornerRadius, y: rect.maxY)
+        )
+        path.addLine(to: CGPoint(x: rect.maxX - topCornerRadius - bottomCornerRadius, y: rect.maxY))
+        path.addQuadCurve(
+            to: CGPoint(x: rect.maxX - topCornerRadius, y: rect.maxY - bottomCornerRadius),
+            control: CGPoint(x: rect.maxX - topCornerRadius, y: rect.maxY)
+        )
+        path.addLine(to: CGPoint(x: rect.maxX - topCornerRadius, y: rect.minY + topCornerRadius))
+        return path
+    }
+}
+
 #Preview {
     NotchShape(topCornerRadius: 6, bottomCornerRadius: 14)
         .frame(width: 200, height: 32)
