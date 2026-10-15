@@ -23,6 +23,8 @@ final class EarlyNotificationSource {
 
     private static let predicate = #"process == "usernoted" AND eventMessage BEGINSWITH "Added request <NotificationRecord""#
     private static let appPattern = try? NSRegularExpression(pattern: #"app:"([^"]+)""#)
+    private static let requestPattern = try? NSRegularExpression(pattern: #"req:"([^"]*)""#)
+    private static let categoryPattern = try? NSRegularExpression(pattern: #"category:"([^"]*)""#)
     private static let uuidPattern = try? NSRegularExpression(pattern: #"uuid:"([0-9A-Fa-f]+)""#)
 
     /// Whether the `log stream` process is alive right now, and its pid.
@@ -120,6 +122,11 @@ final class EarlyNotificationSource {
               let message = object["eventMessage"] as? String,
               let bundleID = Self.firstMatch(Self.appPattern, in: message),
               let uuid = Self.firstMatch(Self.uuidPattern, in: message) else { return }
+        // Badge-only updates (Reminders sends one every midnight) are logged
+        // like any other notification but have no text and are never shown.
+        let identifiers = [Self.firstMatch(Self.requestPattern, in: message),
+                           Self.firstMatch(Self.categoryPattern, in: message)]
+        if identifiers.contains(where: { $0?.localizedCaseInsensitiveContains("badge") == true }) { return }
         DispatchQueue.main.async { [weak self] in
             self?.onSignal?(bundleID, uuid.uppercased())
         }
