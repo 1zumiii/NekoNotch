@@ -112,6 +112,7 @@ struct NotificationSettingsView: View {
         guard let date else { return nil }
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .short
+        formatter.locale = Locale(identifier: Bundle.main.preferredLocalizations.first ?? "en")
         return String(localized: "Last event \(formatter.localizedString(for: date, relativeTo: Date()))")
     }
 

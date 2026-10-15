@@ -78,6 +78,7 @@ final class XPCHelperClient: NSObject, ObservableObject {
                 self.remoteService = nil
                 self.helperAvailable = false
                 self.lastError = .unavailable
+                NotificationCenter.default.post(name: .xpcHelperInterrupted, object: nil)
             }
         }
 
@@ -88,6 +89,7 @@ final class XPCHelperClient: NSObject, ObservableObject {
                 self.remoteService = nil
                 self.helperAvailable = false
                 self.lastError = .unavailable
+                NotificationCenter.default.post(name: .xpcHelperInterrupted, object: nil)
             }
         }
 
@@ -508,4 +510,7 @@ extension XPCHelperClient {
 extension Notification.Name {
     static let systemNotificationDidAppear = Notification.Name("systemNotificationDidAppear")
     static let systemNotificationEarlySignal = Notification.Name("systemNotificationEarlySignal")
+    /// The helper's connection was interrupted or invalidated (it crashed or
+    /// was restarted by the system); whatever it was running is gone.
+    static let xpcHelperInterrupted = Notification.Name("xpcHelperInterrupted")
 }
