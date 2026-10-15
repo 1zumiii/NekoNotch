@@ -40,6 +40,10 @@ final class SystemNotificationManager: ObservableObject {
     private var isUserPresent = false
     private var recentKeys: [String: Date] = [:]
     private var earlyObserver: NSObjectProtocol?
+    private var wakeObserver: NSObjectProtocol?
+    private var interruptionObserver: NSObjectProtocol?
+    private var watchdogTask: Task<Void, Never>?
+    private var isEnsuringServices = false
 
     /// When each source last delivered something, for the settings status panel.
     @Published private(set) var lastBannerAt: Date?
@@ -80,8 +84,66 @@ final class SystemNotificationManager: ObservableObject {
     }
 
     func start() async {
+        startWatchdog()
         updateDatabaseWatcher()
         guard await XPCHelperClient.shared.isAccessibilityAuthorized() else { return }
+        updateFilter()
+        _ = await XPCHelperClient.shared.startNotificationWatching()
+    }
+
+    // MARK: Keeping the helper's services alive
+
+    /// The helper process can be restarted by the system, most often around
+    /// sleep, and takes the banner reader and the early signal with it. Check
+    /// after wake, after a dropped connection, and every half minute.
+    private func startWatchdog() {
+        guard watchdogTask == nil else { return }
+        wakeObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(3))
+                await self?.ensureServices(restartBanner: true)
+            }
+        }
+        interruptionObserver = NotificationCenter.default.addObserver(
+            forName: .xpcHelperInterrupted, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(1))
+                await self?.ensureServices()
+            }
+        }
+        watchdogTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(30))
+                await self?.ensureServices()
+            }
+        }
+    }
+
+    /// Starts whatever should be running in the helper but is not. With
+    /// `restartBanner` the banner reader is restarted even when it looks fine
+    /// (after wake its Accessibility observer may have gone stale).
+    func ensureServices(restartBanner: Bool = false) async {
+        guard !isEnsuringServices, Defaults[.notificationLiveActivity] else { return }
+        isEnsuringServices = true
+        defer { isEnsuringServices = false }
+
+        updateDatabaseWatcher()
+        guard let status = await XPCHelperClient.shared.serviceStatus() else { return }
+
+        let trusted = status["axTrusted"]?.boolValue == true
+        let running = status["bannerRunning"]?.boolValue == true
+        let attached = status["bannerPID"]?.intValue ?? 0
+        let current = status["notificationCenterPID"]?.intValue ?? 0
+        let stale = running && current != 0 && attached != current
+        guard trusted, !running || stale || restartBanner else { return }
+
+        if running {
+            XPCHelperClient.shared.stopNotificationWatching()
+            try? await Task.sleep(for: .milliseconds(400))
+        }
         updateFilter()
         _ = await XPCHelperClient.shared.startNotificationWatching()
     }
