@@ -377,7 +377,10 @@ struct ContentView: View {
                             // `openNotification` still returns the last one.
                             // A pointer that isn't over the notch (or hasn't
                             // really moved) isn't a reason to stay open.
-                            if pointerIdle || !isHovering {
+                            // The close button sits inside the open notch, so the
+                            // pointer is still over it after a click: closing is
+                            // what the user asked for, hovering or not.
+                            if pointerIdle || !isHovering || notificationManager.lastDismissByUser {
                                 isHovering = false
                                 if vm.notchState == .open, !vm.isPopoverActive {
                                     vm.close()
@@ -386,9 +389,15 @@ struct ContentView: View {
                             openedForNotification = false
                             autoOpenPointerLocation = nil
                             autoOpenNotification = nil
-                            if !(pointerIdle || !wasHovering) {
+                            if !(pointerIdle || !wasHovering || notificationManager.lastDismissByUser) {
                                 scheduleCloseIfNotHovering(overNotch: vm)
                             }
+                        } else if notificationManager.lastDismissByUser,
+                                  vm.notchState == .open, !vm.isPopoverActive {
+                            // A notch the user opened to read the notification:
+                            // dismissing it should not leave the home view behind.
+                            isHovering = false
+                            vm.close()
                         }
                     }
                     .onChange(of: vm.notchState) { _, state in
