@@ -49,6 +49,9 @@ final class SystemNotificationManager: ObservableObject {
     @Published private(set) var lastBannerAt: Date?
     @Published private(set) var lastDatabaseAt: Date?
     @Published private(set) var lastEarlyAt: Date?
+    /// Whether the most recent dismissal was the user's (close button, or
+    /// opening the app) rather than the notification expiring.
+    private(set) var lastDismissByUser = false
     /// Placeholder id by notification UUID, so the real text can replace it in place.
     private var placeholderIDs: [String: String] = [:]
     /// UUIDs of placeholders the user closed: their text must not pop back up.
@@ -200,6 +203,7 @@ final class SystemNotificationManager: ObservableObject {
         }
         dismissTask?.cancel()
         dismissTask = nil
+        lastDismissByUser = byUser
         activeNotification = nil
         if isUserPresent {
             promoteNext()
