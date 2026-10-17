@@ -27,6 +27,7 @@ struct ContentView: View {
     @State private var hoverTask: Task<Void, Never>?
     @State private var isHovering: Bool = false
     @State private var openedForNotification = false
+    @State private var dragWatchTask: Task<Void, Never>?
     /// Where the pointer was when a notification opened the notch. A notch
     /// that grows under a resting pointer isn't the user hovering on purpose.
     @State private var autoOpenPointerLocation: CGPoint?
@@ -454,6 +455,7 @@ struct ContentView: View {
                 if Defaults[.boringShelf] && vm.notchState == .closed {
                     if doOpen() {
                         coordinator.currentView = .shelf
+                        watchDragOpenedNotch()
                     }
                 }
                 return
@@ -887,6 +889,38 @@ struct ContentView: View {
 // MARK: - Gesture & Hover Handling
 
 extension ContentView {
+    /// A drag opens the notch from the closed state, which removes the closed
+    /// drop detector while it still reports "targeted". That flag then never
+    /// goes false, so the usual close-after-the-drag-leaves never happens, and
+    /// hover events do not arrive during a drag either. Once the drag is over,
+    /// close the notch unless the pointer is on it.
+    private func watchDragOpenedNotch() {
+        dragWatchTask?.cancel()
+        dragWatchTask = Task { @MainActor in
+            while !Task.isCancelled, NSEvent.pressedMouseButtons & 1 != 0 {
+                try? await Task.sleep(for: .milliseconds(200))
+            }
+            try? await Task.sleep(for: .milliseconds(1500))
+            guard !Task.isCancelled, vm.notchState == .open, !pointerIsOverOpenNotch() else { return }
+            vm.close()
+            vm.dropInteraction.dragDetectorTargeting = false
+            vm.dropInteraction.generalDropTargeting = false
+            vm.dropInteraction.dropZoneTargeting = false
+        }
+    }
+
+    private func pointerIsOverOpenNotch() -> Bool {
+        guard let screen = vm.screenUUID.flatMap({ NSScreen.screen(withUUID: $0) }) ?? NSScreen.main else { return false }
+        let size = vm.notchSize
+        let rect = CGRect(
+            x: screen.frame.midX - size.width / 2 - 12,
+            y: screen.frame.maxY - size.height - 12,
+            width: size.width + 24,
+            height: size.height + 12
+        )
+        return rect.contains(NSEvent.mouseLocation)
+    }
+
     @discardableResult
     private func doOpen() -> Bool {
         var didOpen = false
