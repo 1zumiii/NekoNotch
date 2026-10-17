@@ -227,6 +227,14 @@ final class SystemNotificationManager: ObservableObject {
     func open(_ notification: SystemNotification) async -> Bool {
         let workspace = NSWorkspace.shared
 
+        // A notification read from its banner can be clicked for real: the
+        // app then opens the conversation, message or event itself.
+        let id = notification.id
+        if !id.hasPrefix("db-"), !id.hasPrefix("early-"), !id.hasPrefix("test-"),
+           await XPCHelperClient.shared.pressNotification(token: id) {
+            return true
+        }
+
         for bundleID in candidateBundleIDs(for: notification) {
             let running = workspace.runningApplications.first { application in
                 guard !application.isTerminated,

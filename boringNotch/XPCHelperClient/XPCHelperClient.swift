@@ -495,6 +495,21 @@ extension XPCHelperClient {
         }
     }
 
+    /// Clicks the system banner behind a mirrored notification. False when
+    /// the banner is gone (it times out a few seconds after it appears).
+    nonisolated func pressNotification(token: String) async -> Bool {
+        do {
+            let service = await MainActor.run { ensureRemoteService() }
+            return try await service.withContinuation { service, continuation in
+                service.pressNotification(token) { pressed in
+                    continuation.resume(returning: pressed)
+                }
+            }
+        } catch {
+            return false
+        }
+    }
+
     nonisolated func stopNotificationWatching() {
         Task {
             let service = await MainActor.run { ensureRemoteService() }
