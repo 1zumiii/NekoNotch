@@ -381,6 +381,21 @@ final class NotificationWatcher {
         return banners.isEmpty ? .ignored : .banners(banners)
     }
 
+    /// Presses the system banner with this token, which is what a click on it
+    /// does: Notification Center hands the click to the app, and the app
+    /// opens whatever the notification is about. Works while the banner
+    /// still exists, even though its window is parked off screen.
+    func press(token wanted: String) -> Bool {
+        guard let appElement else { return false }
+        for window in (appElement[kAXWindowsAttribute] as? [AXUIElement]) ?? [] {
+            guard case .banners(let banners) = inspect(window) else { continue }
+            for banner in banners where token(for: banner) == wanted {
+                return AXUIElementPerformAction(banner, kAXPressAction as CFString) == .success
+            }
+        }
+        return false
+    }
+
     private func token(for banner: AXUIElement) -> String {
         if let identifier = banner.string(kAXIdentifierAttribute),
            !identifier.isEmpty,

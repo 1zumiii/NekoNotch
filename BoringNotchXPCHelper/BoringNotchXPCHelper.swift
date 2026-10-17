@@ -200,6 +200,10 @@ class BoringNotchXPCHelper: NSObject, BoringNotchXPCHelperProtocol {
         }
     }
 
+    @objc func pressNotification(_ token: String, with reply: @escaping (Bool) -> Void) {
+        DispatchQueue.main.async { reply(Self.watcher.press(token: token)) }
+    }
+
     @objc func stopNotificationWatching() {
         DispatchQueue.main.async { Self.watcher.stop() }
     }
