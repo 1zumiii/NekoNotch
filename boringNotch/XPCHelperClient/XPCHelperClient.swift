@@ -444,6 +444,17 @@ extension XPCHelperClient {
         }
     }
 
+    nonisolated func setNotificationExclusions(bundleIDs: Set<String>) {
+        Task {
+            let service = await MainActor.run { ensureRemoteService() }
+            do {
+                try await service.withService { $0.setNotificationExclusions(Array(bundleIDs)) }
+            } catch {
+                await MainActor.run { self.lastError = .transport(underlying: error) }
+            }
+        }
+    }
+
     nonisolated func startEarlyNotificationSignal() async -> Bool {
         do {
             let service = await MainActor.run { ensureRemoteService() }

@@ -10,7 +10,13 @@ private struct NotificationSourceIcon: View {
     let size: CGFloat
 
     var body: some View {
-        if let bundleID {
+        if let agent = SystemNotificationAgents.info(bundleID: bundleID) {
+            Image(systemName: agent.symbol)
+                .font(.system(size: size * 0.55))
+                .foregroundStyle(.white.opacity(0.85))
+                .frame(width: size, height: size)
+                .background(.white.opacity(0.14), in: RoundedRectangle(cornerRadius: size * 0.2))
+        } else if let bundleID {
             appIcon(for: bundleID)
                 .resizable().scaledToFit()
                 .frame(width: size, height: size)

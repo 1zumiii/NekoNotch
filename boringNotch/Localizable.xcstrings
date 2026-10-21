@@ -34983,6 +34983,106 @@
           }
         }
       }
+    },
+    "Background Items" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "后台项目"
+          }
+        }
+      }
+    },
+    "Excluded apps" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "排除的应用"
+          }
+        }
+      }
+    },
+    "No excluded apps" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有排除的应用"
+          }
+        }
+      }
+    },
+    "Recent senders" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近发过通知的应用"
+          }
+        }
+      }
+    },
+    "Exclude" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "排除"
+          }
+        }
+      }
+    },
+    "Notifications from these apps are left to the system: nothing appears in the notch and their banners are not hidden. Apps without an app bundle, such as Background Items, can only be added from the recent senders." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这些应用的通知交给系统处理：刘海里不显示，系统横幅也不会被隐藏。后台项目这类没有 .app 的系统代理，只能从“最近发过通知的应用”里添加。"
+          }
+        }
+      }
+    },
+    "Total tokens" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "总 Token 数"
+          }
+        }
+      }
+    },
+    "7d" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "7 天"
+          }
+        }
+      }
+    },
+    "Show the charge as a line under the closed notch" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在收起的刘海底部用细线显示电量"
+          }
+        }
+      }
+    },
+    "A thin line along the bottom edge fills from the left with the charge: green while charging, red at 20% or less." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沿底边的一条细线，从左向右按电量填充：充电时为绿色，电量在 20% 及以下时为红色。"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"
