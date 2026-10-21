@@ -18,6 +18,14 @@ struct BatterySettingsView: View {
                 Defaults.Toggle(key: .showPowerStatusNotifications) {
                     Text("Show power status notifications")
                 }
+                Defaults.Toggle(key: .batteryEdgeLine) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Show the charge as a line under the closed notch")
+                        Text("A thin line along the bottom edge fills from the left with the charge: green while charging, red at 20% or less.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             } header: {
                 Text("General")
             }
