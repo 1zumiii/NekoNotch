@@ -281,6 +281,19 @@ struct ContentView: View {
                     .padding([.horizontal, .bottom], vm.notchState == .open ? 12 : 0)
                     .background(.black)
                     .clipShape(currentNotchShape)
+                    // Outside the clip on purpose: see BatteryEdgeLine.
+                    .overlay {
+                        if Defaults[.batteryEdgeLine], vm.notchState == .closed,
+                           displayClosedNotchHeight > 0, batteryModel.levelBattery > 0 {
+                            BatteryEdgeLine(
+                                outline: currentNotchShape,
+                                shape: currentNotchShape.bottomOnly,
+                                level: Double(batteryModel.levelBattery) / 100,
+                                charging: batteryModel.isCharging
+                            )
+                            .transition(.opacity)
+                        }
+                    }
                     .overlay {
                         if Defaults[.notificationPriorityHighlight],
                            notificationManager.activeNotification?.priority == .high {
