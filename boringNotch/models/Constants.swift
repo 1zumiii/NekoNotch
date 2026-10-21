@@ -490,6 +490,8 @@ extension Defaults.Keys {
     // MARK: Battery
     static let showPowerStatusNotifications = Key<Bool>("showPowerStatusNotifications", default: true)
     /// Announce in the notch when the battery drops to each chosen level.
+    /// A thin line along the bottom of the closed notch that shows the charge.
+    static let batteryEdgeLine = Key<Bool>("batteryEdgeLine", default: false)
     static let batteryAlertsEnabled = Key<Bool>("batteryAlertsEnabled", default: false)
     static let batteryAlertThresholds = Key<[Int]>("batteryAlertThresholds", default: [20, 10, 5])
     static let showBatteryIndicator = Key<Bool>("showBatteryIndicator", default: true)
@@ -531,6 +533,12 @@ extension Defaults.Keys {
     static let notificationPriorityHighlight = Key<Bool>("notificationPriorityHighlight", default: true)
     /// Seconds a mirrored notification stays before it is dismissed.
     static let notificationDisplayDuration = Key<Double>("notificationDisplayDuration", default: 8)
+    /// Apps whose notifications are left to the system: not mirrored, and
+    /// their banners are not hidden. Lower-cased bundle identifiers.
+    static let notificationExcludedApps = Key<Set<String>>("notificationExcludedApps", default: [])
+    /// The apps that notified most recently, newest first, as "bundle id|name",
+    /// so they can be excluded from the settings without having an .app.
+    static let notificationRecentSources = Key<[String]>("notificationRecentSources", default: [])
     static let notificationAllowedApps = Key<Set<String>>(
         "notificationAllowedApps",
         default: []
