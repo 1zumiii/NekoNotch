@@ -94,6 +94,25 @@ final class NotificationWatcher {
     /// process restarts, the watcher keeps running but hears nothing.
     private(set) var observedProcessIdentifier: pid_t?
 
+    private var excludedBundleIDs = Set<String>()
+
+    func configureExclusions(_ bundleIDs: Set<String>) {
+        excludedBundleIDs = Set(bundleIDs.map { $0.lowercased() })
+    }
+
+    /// An excluded app's banner is left alone: not hidden, not reported.
+    private func isExcluded(_ notification: CapturedNotification) -> Bool {
+        guard !excludedBundleIDs.isEmpty else { return false }
+        if let bundleID = notification.bundleID, excludedBundleIDs.contains(bundleID.lowercased()) {
+            return true
+        }
+        guard let appName = notification.appName, !appName.isEmpty else { return false }
+        return excludedBundleIDs.contains { bundleID in
+            guard let lastComponent = bundleID.split(separator: ".").last else { return false }
+            return Self.normalizedAppName(appName) == Self.normalizedAppName(String(lastComponent))
+        }
+    }
+
     func configureFilter(bundleIDs: Set<String>, allApps: Bool) {
         allowedBundleIDs = bundleIDs
         mirrorAllApps = allApps
@@ -302,7 +321,7 @@ final class NotificationWatcher {
                     // spent before moving it is time it flashes on screen.
                     // Only a per-app filter needs the app identity first.
                     let header: CapturedNotification
-                    if mirrorAllApps {
+                    if mirrorAllApps && excludedBundleIDs.isEmpty {
                         guard park(window, for: token) else {
                             NSLog("[boringNotch] could not hide notification banner \(token)")
                             continue
@@ -310,7 +329,7 @@ final class NotificationWatcher {
                         header = captureHeader(banner, token: token)
                     } else {
                         header = captureHeader(banner, token: token)
-                        guard isAllowed(header) else { continue }
+                        guard (mirrorAllApps || isAllowed(header)), !isExcluded(header) else { continue }
                         guard park(window, for: token) else {
                             NSLog("[boringNotch] could not hide notification banner \(token)")
                             continue

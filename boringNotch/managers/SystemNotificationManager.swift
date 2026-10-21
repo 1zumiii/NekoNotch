@@ -264,7 +264,7 @@ final class SystemNotificationManager: ObservableObject {
     private func add(_ payload: [String: String]) {
         guard let token = payload["token"], !token.isEmpty else { return }
         if token.hasPrefix("db-") { lastDatabaseAt = Date() } else { lastBannerAt = Date() }
-        let appName = nonEmpty(payload["appName"])
+        var appName = nonEmpty(payload["appName"])
         var bundleID = nonEmpty(payload["bundleID"]).map {
             normalizeBundleIdentifier($0.trimmingCharacters(in: .whitespacesAndNewlines))
         }
@@ -279,6 +279,10 @@ final class SystemNotificationManager: ObservableObject {
             bundleID = resolved
         }
 
+        if let agent = SystemNotificationAgents.info(bundleID: bundleID, name: appName) {
+            appName = agent.name
+        }
+
         let notification = SystemNotification(
             id: token,
             appName: appName,
@@ -289,6 +293,7 @@ final class SystemNotificationManager: ObservableObject {
             receivedAt: Date(),
             priority: NotificationPriority(rawValue: payload["priority"] ?? "") ?? .normal
         )
+        if !token.hasPrefix("test-") { noteSource(bundleID: bundleID, name: appName) }
         // Test notifications from the settings page ignore the app filter.
         guard token.hasPrefix("test-") || isAllowed(notification) else { return }
         noteArrival(notification)
@@ -351,6 +356,7 @@ final class SystemNotificationManager: ObservableObject {
         let signalTime = Date()
         // The identifier may differ in case from the installed app's.
         let info = Self.appInfo(forBundleID: rawBundleID)
+        noteSource(bundleID: info.bundleID, name: info.name)
         Task { [weak self] in
             try? await Task.sleep(for: .seconds(Self.placeholderDelay))
             await self?.showPlaceholder(bundleID: info.bundleID, appName: info.name, uuid: uuid, signalTime: signalTime)
@@ -358,6 +364,9 @@ final class SystemNotificationManager: ObservableObject {
     }
 
     private static func appInfo(forBundleID rawBundleID: String) -> (bundleID: String, name: String) {
+        if let agent = SystemNotificationAgents.info(bundleID: rawBundleID) {
+            return (normalizeBundleIdentifier(rawBundleID), agent.name)
+        }
         if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: rawBundleID),
            let bundle = Bundle(url: url) {
             let name = (bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String)
@@ -517,9 +526,32 @@ final class SystemNotificationManager: ObservableObject {
             bundleIDs: Defaults[.notificationAllowedApps],
             allApps: Defaults[.notificationsFromAllApps]
         )
+        XPCHelperClient.shared.setNotificationExclusions(bundleIDs: Defaults[.notificationExcludedApps])
+    }
+
+    /// Remembers an app that just notified, newest first, for the exclusion list.
+    private func noteSource(bundleID: String?, name: String?) {
+        guard let bundleID, !bundleID.isEmpty else { return }
+        let entry = "\(bundleID.lowercased())|\(name ?? bundleID)"
+        var sources = Defaults[.notificationRecentSources]
+        sources.removeAll { $0.hasPrefix(bundleID.lowercased() + "|") }
+        sources.insert(entry, at: 0)
+        Defaults[.notificationRecentSources] = Array(sources.prefix(12))
+    }
+
+    private func isExcluded(bundleID: String?, appName: String?) -> Bool {
+        let excluded = Defaults[.notificationExcludedApps]
+        guard !excluded.isEmpty else { return false }
+        if let bundleID, excluded.contains(bundleID.lowercased()) { return true }
+        guard let appName = appName.map(BundleIDResolver.normalizedAppName), !appName.isEmpty else { return false }
+        return excluded.contains { id in
+            guard let last = id.split(separator: ".").last else { return false }
+            return appName == BundleIDResolver.normalizedAppName(String(last))
+        }
     }
 
     private func isAllowed(_ notification: SystemNotification) -> Bool {
+        if isExcluded(bundleID: notification.bundleID, appName: notification.appName) { return false }
         if Defaults[.notificationsFromAllApps] { return true }
         if let bundleID = notification.bundleID {
             return Defaults[.notificationAllowedApps].contains(bundleID)
@@ -584,6 +616,27 @@ final class SystemNotificationManager: ObservableObject {
     private func nonEmpty(_ value: String?) -> String? {
         guard let value, !value.isEmpty else { return nil }
         return value
+    }
+}
+
+// MARK: - System agents without an app
+
+/// Notifications from macOS's own background agents. They have no .app, so
+/// there is no icon and the only name is the identifier's last part, which
+/// reads differently from source to source. Give them one name and a symbol.
+enum SystemNotificationAgents {
+    struct Info {
+        let name: String
+        let symbol: String
+    }
+
+    static func info(bundleID: String?, name: String? = nil) -> Info? {
+        let id = bundleID?.lowercased()
+        let label = name?.lowercased()
+        if id == "com.apple.btmnotificationagent" || label == "btmnotificationagent" {
+            return Info(name: String(localized: "Background Items"), symbol: "gearshape.2.fill")
+        }
+        return nil
     }
 }
 

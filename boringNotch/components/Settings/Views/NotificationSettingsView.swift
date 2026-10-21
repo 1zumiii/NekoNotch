@@ -38,6 +38,8 @@ struct NotificationSettingsView: View {
     @Default(.notificationLiveActivity) private var notificationLiveActivity
     @Default(.notificationsFromAllApps) private var notificationsFromAllApps
     @Default(.notificationAllowedApps) private var allowedApps
+    @Default(.notificationExcludedApps) private var excludedApps
+    @Default(.notificationRecentSources) private var recentSources
     @Default(.notificationDisplayDuration) private var displayDuration
     @Default(.notificationFromDatabase) private var fromDatabase
     @Default(.notificationEarlyPlaceholder) private var earlyPlaceholder
@@ -374,6 +376,8 @@ struct NotificationSettingsView: View {
                 }
             }
             .disabled(!notificationLiveActivity)
+
+            excludedSection
         }
         .formStyle(.grouped)
         .navigationTitle("Notifications")
@@ -404,8 +408,114 @@ struct NotificationSettingsView: View {
         .onChange(of: allowedApps) { _, _ in
             SystemNotificationManager.shared.updateFilter()
         }
+        .onChange(of: excludedApps) { _, _ in
+            SystemNotificationManager.shared.updateFilter()
+        }
         .onChange(of: notificationsFromAllApps) { _, _ in
             SystemNotificationManager.shared.updateFilter()
+        }
+    }
+
+    // MARK: Excluded apps
+
+    private struct SourceEntry: Identifiable {
+        let id: String
+        let name: String
+    }
+
+    private func sourceName(for id: String) -> String {
+        if let agent = SystemNotificationAgents.info(bundleID: id) { return agent.name }
+        if let entry = recentSources.first(where: { $0.hasPrefix(id + "|") }) {
+            return String(entry.dropFirst(id.count + 1))
+        }
+        return displayName(for: id)
+    }
+
+    @ViewBuilder
+    private func sourceIcon(for id: String) -> some View {
+        if let agent = SystemNotificationAgents.info(bundleID: id) {
+            Image(systemName: agent.symbol)
+                .font(.system(size: 11))
+                .frame(width: 20, height: 20)
+                .background(.secondary.opacity(0.2), in: RoundedRectangle(cornerRadius: 5))
+        } else {
+            appIcon(for: id)
+                .resizable().scaledToFit()
+                .frame(width: 20, height: 20)
+                .clipShape(RoundedRectangle(cornerRadius: 5))
+        }
+    }
+
+    private var excludedSection: some View {
+        let excluded = excludedApps
+            .map { SourceEntry(id: $0, name: sourceName(for: $0)) }
+            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        let recent = recentSources.compactMap { entry -> SourceEntry? in
+            guard let separator = entry.firstIndex(of: "|") else { return nil }
+            let id = String(entry[..<separator])
+            guard !excludedApps.contains(id) else { return nil }
+            return SourceEntry(id: id, name: sourceName(for: id))
+        }
+        return Section {
+            if excluded.isEmpty {
+                Text("No excluded apps")
+                    .foregroundStyle(.secondary)
+            }
+            ForEach(excluded) { app in
+                HStack {
+                    sourceIcon(for: app.id)
+                    Text(app.name)
+                    Spacer()
+                    Button("Remove", role: .destructive) {
+                        excludedApps.remove(app.id)
+                    }
+                    .buttonStyle(.borderless)
+                }
+            }
+            if !recent.isEmpty {
+                Text("Recent senders")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                ForEach(recent) { app in
+                    HStack {
+                        sourceIcon(for: app.id)
+                        Text(app.name)
+                        Spacer()
+                        Button("Exclude") {
+                            excludedApps.insert(app.id)
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                }
+            }
+            Button {
+                chooseExcludedApplication()
+            } label: {
+                Label("Add Application…", systemImage: "plus")
+            }
+        } header: {
+            Text("Excluded apps")
+        } footer: {
+            Text("Notifications from these apps are left to the system: nothing appears in the notch and their banners are not hidden. Apps without an app bundle, such as Background Items, can only be added from the recent senders.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .disabled(!notificationLiveActivity)
+    }
+
+    private func chooseExcludedApplication() {
+        let panel = NSOpenPanel()
+        panel.allowedFileTypes = ["app"]
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.begin { response in
+            guard response == .OK else { return }
+            let bundleIDs = panel.urls.compactMap { Bundle(url: $0)?.bundleIdentifier?.lowercased() }
+            guard !bundleIDs.isEmpty else { return }
+            DispatchQueue.main.async {
+                excludedApps.formUnion(bundleIDs)
+            }
         }
     }
 

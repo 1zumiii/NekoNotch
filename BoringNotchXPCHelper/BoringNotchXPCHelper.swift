@@ -208,6 +208,12 @@ class BoringNotchXPCHelper: NSObject, BoringNotchXPCHelperProtocol {
         DispatchQueue.main.async { Self.watcher.stop() }
     }
 
+    @objc func setNotificationExclusions(_ bundleIDs: [String]) {
+        DispatchQueue.main.async {
+            Self.watcher.configureExclusions(Set(bundleIDs))
+        }
+    }
+
     @objc func setNotificationFilter(_ bundleIDs: [String], allApps: Bool) {
         DispatchQueue.main.async {
             Self.watcher.configureFilter(bundleIDs: Set(bundleIDs), allApps: allApps)
