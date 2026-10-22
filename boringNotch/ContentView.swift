@@ -22,6 +22,7 @@ struct ContentView: View {
     @ObservedObject var brightnessManager = BrightnessManager.shared
     @ObservedObject var volumeManager = VolumeManager.shared
     @ObservedObject var notificationManager = SystemNotificationManager.shared
+    @ObservedObject var batteryLinePreview = BatteryEdgeLinePreview.shared
     /// Which entry of the closed-notch activity stack is on top.
     @State private var activityIndex: Int = 0
     @State private var hoverTask: Task<Void, Never>?
@@ -286,13 +287,14 @@ struct ContentView: View {
                     .clipShape(currentNotchShape)
                     // Outside the clip on purpose: see BatteryEdgeLine.
                     .overlay {
+                        let preview = batteryLinePreview.mode
                         if Defaults[.batteryEdgeLine], vm.notchState == .closed,
-                           displayClosedNotchHeight > 0, batteryModel.levelBattery > 0 {
+                           displayClosedNotchHeight > 0, preview != nil || batteryModel.levelBattery > 0 {
                             BatteryEdgeLine(
                                 outline: currentNotchShape,
                                 shape: currentNotchShape.bottomOnly,
-                                level: Double(batteryModel.levelBattery) / 100,
-                                charging: batteryModel.isCharging
+                                level: preview?.level ?? Double(batteryModel.levelBattery) / 100,
+                                charging: preview?.charging ?? batteryModel.isCharging
                             )
                             .transition(.opacity)
                         }

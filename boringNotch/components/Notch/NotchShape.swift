@@ -191,6 +191,34 @@ extension NotchShape {
     }
 }
 
+/// A few seconds of the battery line in a state the battery is not in, so the
+/// look can be checked from the settings without waiting for it.
+@MainActor
+final class BatteryEdgeLinePreview: ObservableObject {
+    static let shared = BatteryEdgeLinePreview()
+
+    enum Mode {
+        case low, charging
+
+        var level: Double { self == .low ? 0.12 : 0.6 }
+        var charging: Bool { self == .charging }
+    }
+
+    @Published private(set) var mode: Mode?
+    private var endTask: Task<Void, Never>?
+    private static let duration: TimeInterval = 8
+
+    func show(_ mode: Mode) {
+        endTask?.cancel()
+        self.mode = mode
+        endTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(Self.duration))
+            guard !Task.isCancelled else { return }
+            self?.mode = nil
+        }
+    }
+}
+
 /// The charge as a thin line just under the notch, filling from the left like
 /// a progress bar. It sits outside the notch's outline on purpose: the notch is
 /// a hole in the display, so a line drawn inside the shape would be hidden
@@ -209,9 +237,11 @@ struct BatteryEdgeLine: View {
     private static let strokeWidth: CGFloat = 3.2
     private static let margin: CGFloat = 8
 
+    private var isLow: Bool { !charging && level <= 0.2 }
+
     private var color: Color {
         if charging { return Color(red: 0.30, green: 0.85, blue: 0.40) }
-        if level <= 0.2 { return Color(red: 1.0, green: 0.33, blue: 0.30) }
+        if isLow { return Color(red: 1.0, green: 0.33, blue: 0.30) }
         return .white.opacity(0.9)
     }
 
@@ -260,6 +290,11 @@ struct BatteryEdgeLine: View {
                 let fill = shape.trim(from: 0, to: min(max(level, 0), 1))
                 ZStack {
                     shape.stroke(Color.white.opacity(0.13), style: StrokeStyle(lineWidth: Self.strokeWidth, lineCap: .round))
+                    // A red glow under a low charge, so it is noticed.
+                    if isLow {
+                        fill.stroke(color.opacity(0.6), style: StrokeStyle(lineWidth: Self.strokeWidth * 2.2, lineCap: .round))
+                            .blur(radius: 2.5)
+                    }
                     fill.stroke(color, style: StrokeStyle(lineWidth: Self.strokeWidth, lineCap: .round))
                     if charging, let head = pulseHead(at: context.date) {
                         pulse(head: head)
