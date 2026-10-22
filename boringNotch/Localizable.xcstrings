@@ -35044,6 +35044,26 @@
         }
       }
     },
+    "Preview the line" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "预览电量线"
+          }
+        }
+      }
+    },
+    "Low battery" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "低电量"
+          }
+        }
+      }
+    },
     "Excluded apps" : {
       "localizations" : {
         "zh-Hans" : {
