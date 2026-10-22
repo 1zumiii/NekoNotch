@@ -648,7 +648,8 @@ final class NotificationWatcher {
 
     private func isAllowed(_ notification: CapturedNotification) -> Bool {
         if let bundleID = notification.bundleID {
-            return allowedBundleIDs.contains(bundleID)
+            // Icon-only apps are kept lower-cased, the allowed apps as installed.
+            return allowedBundleIDs.contains { $0.caseInsensitiveCompare(bundleID) == .orderedSame }
         }
         guard let appName = notification.appName?.lowercased(), !appName.isEmpty else {
             return false

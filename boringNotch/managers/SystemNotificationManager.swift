@@ -32,10 +32,14 @@ final class SystemNotificationManager: ObservableObject {
 
     @Published private(set) var activeNotification: SystemNotification?
     @Published private(set) var queuedNotifications: [SystemNotification] = []
+    /// A notification from an icon-only app: just its icon, for a short while,
+    /// apart from the active one and its queue.
+    @Published private(set) var iconPeek: SystemNotification?
 
     private let queueLimit = 5
     private var displayDuration: TimeInterval { Defaults[.notificationDisplayDuration] }
     private var dismissTask: Task<Void, Never>?
+    private var iconPeekTask: Task<Void, Never>?
     private var notificationObserver: NSObjectProtocol?
     private var isUserPresent = false
     private var recentKeys: [String: Date] = [:]
@@ -174,6 +178,8 @@ final class SystemNotificationManager: ObservableObject {
         queuedNotifications.removeAll()
         heldBehindHigh.removeAll()
         isUserPresent = false
+        iconPeekTask?.cancel()
+        iconPeek = nil
         dismissActive()
     }
 
@@ -311,6 +317,10 @@ final class SystemNotificationManager: ObservableObject {
             raiseActiveToHigh(matching: notification)
             return
         }
+        if isIconOnly(notification) {
+            showIconPeek(notification)
+            return
+        }
         if highlightsPriority, activeNotification?.priority == .high, notification.priority != .high {
             heldBehindHigh.append(notification)
             if heldBehindHigh.count > Self.heldLimit { heldBehindHigh.removeFirst() }
@@ -402,6 +412,12 @@ final class SystemNotificationManager: ObservableObject {
             isPlaceholder: true
         )
         guard isAllowed(placeholder) else { return }
+        // The icon is all an icon-only app shows, and the placeholder already
+        // has it: the text arriving later just keeps it up a little longer.
+        if isIconOnly(placeholder) {
+            showIconPeek(placeholder)
+            return
+        }
         placeholderIDs[uuid] = placeholder.id
 
         if highlightsPriority, activeNotification?.priority == .high {
@@ -516,14 +532,26 @@ final class SystemNotificationManager: ObservableObject {
         }
     }
 
+    private func showIconPeek(_ notification: SystemNotification) {
+        iconPeekTask?.cancel()
+        iconPeek = notification
+        let duration = Defaults[.notificationIconOnlyDuration]
+        iconPeekTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(duration))
+            guard !Task.isCancelled else { return }
+            self?.iconPeek = nil
+        }
+    }
+
     private func promoteNext() {
         guard activeNotification == nil, !queuedNotifications.isEmpty else { return }
         show(queuedNotifications.removeFirst())
     }
 
     func updateFilter() {
+        // An icon-only app is mirrored even when it was not picked as an allowed app.
         XPCHelperClient.shared.setNotificationFilter(
-            bundleIDs: Defaults[.notificationAllowedApps],
+            bundleIDs: Defaults[.notificationAllowedApps].union(Defaults[.notificationIconOnlyApps]),
             allApps: Defaults[.notificationsFromAllApps]
         )
         XPCHelperClient.shared.setNotificationExclusions(bundleIDs: Defaults[.notificationExcludedApps])
@@ -540,11 +568,20 @@ final class SystemNotificationManager: ObservableObject {
     }
 
     private func isExcluded(bundleID: String?, appName: String?) -> Bool {
-        let excluded = Defaults[.notificationExcludedApps]
-        guard !excluded.isEmpty else { return false }
-        if let bundleID, excluded.contains(bundleID.lowercased()) { return true }
+        Self.list(Defaults[.notificationExcludedApps], contains: bundleID, appName: appName)
+    }
+
+    private func isIconOnly(_ notification: SystemNotification) -> Bool {
+        Self.list(Defaults[.notificationIconOnlyApps], contains: notification.bundleID, appName: notification.appName)
+    }
+
+    /// Whether a list of lower-cased bundle identifiers names the sender, by
+    /// identifier or, when that is missing, by the name's match to an identifier's last part.
+    private static func list(_ ids: Set<String>, contains bundleID: String?, appName: String?) -> Bool {
+        guard !ids.isEmpty else { return false }
+        if let bundleID, ids.contains(bundleID.lowercased()) { return true }
         guard let appName = appName.map(BundleIDResolver.normalizedAppName), !appName.isEmpty else { return false }
-        return excluded.contains { id in
+        return ids.contains { id in
             guard let last = id.split(separator: ".").last else { return false }
             return appName == BundleIDResolver.normalizedAppName(String(last))
         }
@@ -552,7 +589,7 @@ final class SystemNotificationManager: ObservableObject {
 
     private func isAllowed(_ notification: SystemNotification) -> Bool {
         if isExcluded(bundleID: notification.bundleID, appName: notification.appName) { return false }
-        if Defaults[.notificationsFromAllApps] { return true }
+        if Defaults[.notificationsFromAllApps] || isIconOnly(notification) { return true }
         if let bundleID = notification.bundleID {
             return Defaults[.notificationAllowedApps].contains(bundleID)
         }

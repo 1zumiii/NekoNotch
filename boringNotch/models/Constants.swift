@@ -536,6 +536,11 @@ extension Defaults.Keys {
     /// Apps whose notifications are left to the system: not mirrored, and
     /// their banners are not hidden. Lower-cased bundle identifiers.
     static let notificationExcludedApps = Key<Set<String>>("notificationExcludedApps", default: [])
+    /// Apps whose notifications only show their icon on the left of the closed
+    /// notch, in place of the album art while music plays. Lower-cased bundle identifiers.
+    static let notificationIconOnlyApps = Key<Set<String>>("notificationIconOnlyApps", default: [])
+    /// Seconds an icon-only notification stays before it goes.
+    static let notificationIconOnlyDuration = Key<Double>("notificationIconOnlyDuration", default: 4)
     /// The apps that notified most recently, newest first, as "bundle id|name",
     /// so they can be excluded from the settings without having an .app.
     static let notificationRecentSources = Key<[String]>("notificationRecentSources", default: [])
