@@ -34994,6 +34994,56 @@
         }
       }
     },
+    "Icon-only apps" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅显示图标的应用"
+          }
+        }
+      }
+    },
+    "No icon-only apps" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有仅显示图标的应用"
+          }
+        }
+      }
+    },
+    "Icon only" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅图标"
+          }
+        }
+      }
+    },
+    "Icon stays for" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "图标停留"
+          }
+        }
+      }
+    },
+    "Notifications from these apps only show the app's icon on the left of the closed notch, and the notch does not open for them. While music is playing, the icon takes the album art's place and the art comes back when it goes." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这些应用的通知只在收起的刘海左侧显示应用图标，刘海不会为它们展开。播放音乐时，图标会暂时替换专辑封面，图标消失后封面恢复。"
+          }
+        }
+      }
+    },
     "Excluded apps" : {
       "localizations" : {
         "zh-Hans" : {

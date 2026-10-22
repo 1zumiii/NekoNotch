@@ -22,11 +22,14 @@ import SwiftUI
 /// iOS separates them from live activities.
 enum LiveActivityItem: Identifiable, Equatable {
     case notification(SystemNotification)
+    /// An icon-only app's notification while no music is showing.
+    case notificationIcon(SystemNotification)
     case music
 
     var id: String {
         switch self {
         case .notification(let notification): "notification-\(notification.id)"
+        case .notificationIcon(let notification): "notification-icon-\(notification.id)"
         case .music: "music"
         }
     }

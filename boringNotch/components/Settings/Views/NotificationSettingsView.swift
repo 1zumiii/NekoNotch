@@ -39,6 +39,8 @@ struct NotificationSettingsView: View {
     @Default(.notificationsFromAllApps) private var notificationsFromAllApps
     @Default(.notificationAllowedApps) private var allowedApps
     @Default(.notificationExcludedApps) private var excludedApps
+    @Default(.notificationIconOnlyApps) private var iconOnlyApps
+    @Default(.notificationIconOnlyDuration) private var iconOnlyDuration
     @Default(.notificationRecentSources) private var recentSources
     @Default(.notificationDisplayDuration) private var displayDuration
     @Default(.notificationFromDatabase) private var fromDatabase
@@ -378,6 +380,8 @@ struct NotificationSettingsView: View {
             .disabled(!notificationLiveActivity)
 
             excludedSection
+
+            iconOnlySection
         }
         .formStyle(.grouped)
         .navigationTitle("Notifications")
@@ -409,6 +413,9 @@ struct NotificationSettingsView: View {
             SystemNotificationManager.shared.updateFilter()
         }
         .onChange(of: excludedApps) { _, _ in
+            SystemNotificationManager.shared.updateFilter()
+        }
+        .onChange(of: iconOnlyApps) { _, _ in
             SystemNotificationManager.shared.updateFilter()
         }
         .onChange(of: notificationsFromAllApps) { _, _ in
@@ -447,27 +454,81 @@ struct NotificationSettingsView: View {
     }
 
     private var excludedSection: some View {
-        let excluded = excludedApps
+        appListSection(
+            $excludedApps,
+            hiding: [],
+            empty: "No excluded apps",
+            addFromRecent: "Exclude"
+        ) {
+            Text("Excluded apps")
+        } footer: {
+            Text("Notifications from these apps are left to the system: nothing appears in the notch and their banners are not hidden. Apps without an app bundle, such as Background Items, can only be added from the recent senders.")
+        } extra: {
+            EmptyView()
+        }
+    }
+
+    // MARK: Icon-only apps
+
+    private var iconOnlySection: some View {
+        appListSection(
+            $iconOnlyApps,
+            hiding: excludedApps,
+            empty: "No icon-only apps",
+            addFromRecent: "Icon only"
+        ) {
+            Text("Icon-only apps")
+        } footer: {
+            Text("Notifications from these apps only show the app's icon on the left of the closed notch, and the notch does not open for them. While music is playing, the icon takes the album art's place and the art comes back when it goes.")
+        } extra: {
+            VStack(alignment: .leading) {
+                HStack {
+                    Text("Icon stays for")
+                    Spacer()
+                    Text(verbatim: "\(Int(iconOnlyDuration)) s")
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
+                Slider(value: $iconOnlyDuration, in: 1...15, step: 1)
+            }
+        }
+    }
+
+    // MARK: App lists
+
+    /// A list of apps kept as lower-cased bundle identifiers, with the recent
+    /// senders that are not on it yet and a button to pick an application.
+    private func appListSection<Header: View, Footer: View, Extra: View>(
+        _ ids: Binding<Set<String>>,
+        hiding hidden: Set<String>,
+        empty: LocalizedStringKey,
+        addFromRecent: LocalizedStringKey,
+        @ViewBuilder header: () -> Header,
+        @ViewBuilder footer: () -> Footer,
+        @ViewBuilder extra: () -> Extra
+    ) -> some View {
+        let listed = ids.wrappedValue
             .map { SourceEntry(id: $0, name: sourceName(for: $0)) }
             .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
         let recent = recentSources.compactMap { entry -> SourceEntry? in
             guard let separator = entry.firstIndex(of: "|") else { return nil }
             let id = String(entry[..<separator])
-            guard !excludedApps.contains(id) else { return nil }
+            guard !ids.wrappedValue.contains(id), !hidden.contains(id) else { return nil }
             return SourceEntry(id: id, name: sourceName(for: id))
         }
         return Section {
-            if excluded.isEmpty {
-                Text("No excluded apps")
+            extra()
+            if listed.isEmpty {
+                Text(empty)
                     .foregroundStyle(.secondary)
             }
-            ForEach(excluded) { app in
+            ForEach(listed) { app in
                 HStack {
                     sourceIcon(for: app.id)
                     Text(app.name)
                     Spacer()
                     Button("Remove", role: .destructive) {
-                        excludedApps.remove(app.id)
+                        ids.wrappedValue.remove(app.id)
                     }
                     .buttonStyle(.borderless)
                 }
@@ -481,29 +542,30 @@ struct NotificationSettingsView: View {
                         sourceIcon(for: app.id)
                         Text(app.name)
                         Spacer()
-                        Button("Exclude") {
-                            excludedApps.insert(app.id)
+                        Button(addFromRecent) {
+                            ids.wrappedValue.insert(app.id)
                         }
                         .buttonStyle(.borderless)
                     }
                 }
             }
             Button {
-                chooseExcludedApplication()
+                chooseApplications { ids.wrappedValue.formUnion($0) }
             } label: {
                 Label("Add Application…", systemImage: "plus")
             }
         } header: {
-            Text("Excluded apps")
+            header()
         } footer: {
-            Text("Notifications from these apps are left to the system: nothing appears in the notch and their banners are not hidden. Apps without an app bundle, such as Background Items, can only be added from the recent senders.")
+            footer()
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
         .disabled(!notificationLiveActivity)
     }
 
-    private func chooseExcludedApplication() {
+    /// Lets the user pick applications and hands back their lower-cased bundle identifiers.
+    private func chooseApplications(_ add: @escaping (Set<String>) -> Void) {
         let panel = NSOpenPanel()
         panel.allowedFileTypes = ["app"]
         panel.allowsMultipleSelection = true
@@ -514,7 +576,7 @@ struct NotificationSettingsView: View {
             let bundleIDs = panel.urls.compactMap { Bundle(url: $0)?.bundleIdentifier?.lowercased() }
             guard !bundleIDs.isEmpty else { return }
             DispatchQueue.main.async {
-                excludedApps.formUnion(bundleIDs)
+                add(Set(bundleIDs))
             }
         }
     }

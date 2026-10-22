@@ -123,6 +123,9 @@ struct ContentView: View {
         // activity is turned off — otherwise the peek never appears.
         if musicIsShowing || showingInlineMusicPeek {
             items.append(.music)
+        } else if let peek = notificationManager.iconPeek {
+            // With music showing, the icon is drawn in the album art's place instead.
+            items.append(.notificationIcon(peek))
         }
 
         return items
@@ -216,7 +219,7 @@ struct ContentView: View {
             // notification is still in the stack leaves the chin at the
             // notification's width.
             switch activity {
-            case .notification:
+            case .notification, .notificationIcon:
                 chinWidth += (2 * max(0, vm.effectiveClosedNotchHeight - 12) + 20)
             case .music:
                 chinWidth += (2 * max(0, displayClosedNotchHeight - 12) + 20 + 2 * liveActivityEdgeMargin + 2)
@@ -561,6 +564,8 @@ struct ContentView: View {
                               switch item {
                               case .notification(let notification):
                                   NotificationLiveActivity(notification: notification)
+                              case .notificationIcon(let notification):
+                                  NotificationLiveActivity(notification: notification, iconOnly: true)
                               case .music:
                                   MusicLiveActivity()
                                       .frame(alignment: .center)
@@ -805,6 +810,16 @@ struct ContentView: View {
                     width: scaledArtSize,
                     height: scaledArtSize
                 )
+                // An icon-only notification borrows the art's place for a
+                // while; the art stays underneath so it can come straight back.
+                .opacity(notificationManager.iconPeek == nil ? 1 : 0)
+                .overlay {
+                    if let peek = notificationManager.iconPeek {
+                        NotificationSourceIcon(bundleID: peek.bundleID, size: scaledArtSize, showsBadge: true)
+                            .transition(.opacity.combined(with: .scale(scale: 0.8)))
+                    }
+                }
+                .animation(.easeInOut(duration: 0.3), value: notificationManager.iconPeek?.id)
                 .offset(x: artVerticalInset - liveActivityEdgeMargin)
 
             Rectangle()
