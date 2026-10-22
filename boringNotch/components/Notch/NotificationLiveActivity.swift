@@ -5,11 +5,27 @@
 
 import SwiftUI
 
-private struct NotificationSourceIcon: View {
+struct NotificationSourceIcon: View {
     let bundleID: String?
     let size: CGFloat
+    /// A small dot at the bottom right that marks the icon as a notification.
+    var showsBadge = false
 
     var body: some View {
+        icon
+            .overlay(alignment: .bottomTrailing) {
+                if showsBadge {
+                    Circle()
+                        .fill(Color.effectiveAccent)
+                        .frame(width: size * 0.32, height: size * 0.32)
+                        .overlay(Circle().stroke(.black, lineWidth: 1.5))
+                        .offset(x: size * 0.08, y: size * 0.08)
+                }
+            }
+    }
+
+    @ViewBuilder
+    private var icon: some View {
         if let agent = SystemNotificationAgents.info(bundleID: bundleID) {
             Image(systemName: agent.symbol)
                 .font(.system(size: size * 0.55))
@@ -52,6 +68,8 @@ struct PriorityGlowBorder<S: Shape>: View {
 struct NotificationLiveActivity: View {
     @EnvironmentObject private var vm: BoringViewModel
     let notification: SystemNotification
+    /// Just the app's icon on the left, for an icon-only app.
+    var iconOnly = false
 
     @State private var ringScale: CGFloat = 1
     @State private var ringOpacity = 0.0
@@ -62,20 +80,22 @@ struct NotificationLiveActivity: View {
 
     var body: some View {
         HStack {
-            NotificationSourceIcon(bundleID: notification.bundleID, size: itemSize)
+            NotificationSourceIcon(bundleID: notification.bundleID, size: itemSize, showsBadge: iconOnly)
 
             Rectangle()
                 .fill(.black)
                 .frame(width: vm.closedNotchSize.width - cornerRadiusInsets.closed.top)
 
             ZStack {
-                Circle()
-                    .stroke(Color.effectiveAccent, lineWidth: 1.5)
-                    .scaleEffect(ringScale)
-                    .opacity(ringOpacity)
-                Circle()
-                    .fill(Color.effectiveAccent)
-                    .frame(width: 7, height: 7)
+                if !iconOnly {
+                    Circle()
+                        .stroke(Color.effectiveAccent, lineWidth: 1.5)
+                        .scaleEffect(ringScale)
+                        .opacity(ringOpacity)
+                    Circle()
+                        .fill(Color.effectiveAccent)
+                        .frame(width: 7, height: 7)
+                }
             }
             .frame(width: itemSize, height: itemSize)
         }
