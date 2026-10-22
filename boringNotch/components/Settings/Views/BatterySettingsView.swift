@@ -9,6 +9,8 @@ import Defaults
 import SwiftUI
 
 struct BatterySettingsView: View {
+    @Default(.batteryEdgeLine) private var batteryEdgeLine
+
     var body: some View {
         Form {
             Section {
@@ -26,6 +28,17 @@ struct BatterySettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                HStack {
+                    Text("Preview the line")
+                    Spacer()
+                    Button("Low battery") {
+                        BatteryEdgeLinePreview.shared.show(.low)
+                    }
+                    Button("Charging") {
+                        BatteryEdgeLinePreview.shared.show(.charging)
+                    }
+                }
+                .disabled(!batteryEdgeLine)
             } header: {
                 Text("General")
             }
