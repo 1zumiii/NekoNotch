@@ -356,15 +356,20 @@ final class AudioMixerEngine: ObservableObject {
     @Published private(set) var inputVolume: Double?
     @Published private(set) var inputMuted = false
     @Published private(set) var errors: [String: String] = [:]
-    @Published private(set) var settings: [String: MixerAppSetting] = Defaults[.mixerAppSettings]
+    @Published private(set) var settings: [String: MixerAppSetting] = Defaults[.mixerAppSettings] {
+        didSet { updatePolling() }
+    }
     @Published private(set) var scenes: [MixerScene] = Defaults[.mixerScenes]
     /// While set, every other app is muted.
-    @Published private(set) var solo: String?
+    @Published private(set) var solo: String? {
+        didSet { updatePolling() }
+    }
 
     private var lastDeviceIDs: [AudioObjectID] = []
     private var sessions: [String: MixerSession] = [:]
     private var meters: [String: MixerMeterSession] = [:]
     private var metersRequested = false
+    private var isRunning = false
     private var timer: Timer?
     private var debugTick = 0
     private var enabledObserver: Task<Void, Never>?
@@ -378,18 +383,9 @@ final class AudioMixerEngine: ObservableObject {
     }
 
     private func setRunning(_ running: Bool) {
-        if running {
-            guard timer == nil else { return }
-            refresh()
-            let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
-                Task { @MainActor in self?.refresh() }
-            }
-            timer.tolerance = 0.3
-            RunLoop.main.add(timer, forMode: .common)
-            self.timer = timer
-        } else {
-            timer?.invalidate()
-            timer = nil
+        isRunning = running
+        updatePolling()
+        if !running {
             // Switching the mixer off gives every app its untouched audio back.
             sessions.removeAll()
             meters.removeAll()
@@ -409,6 +405,29 @@ final class AudioMixerEngine: ObservableObject {
     func setMetersRequested(_ requested: Bool) {
         metersRequested = requested
         if requested { refresh() } else { meters.removeAll() }
+        updatePolling()
+    }
+
+    /// Each poll is dozens of calls into coreaudiod, so it only runs while
+    /// there is something to keep up to date: the page on screen, or apps
+    /// being re-routed (a changed app that starts playing needs its tap).
+    private func updatePolling() {
+        let wanted = isRunning && (metersRequested || !settings.isEmpty || solo != nil || !sessions.isEmpty)
+        if wanted {
+            guard timer == nil else { return }
+            let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
+                Task { @MainActor in self?.refresh() }
+            }
+            timer.tolerance = 0.3
+            RunLoop.main.add(timer, forMode: .common)
+            self.timer = timer
+            // Asynchronous (the block hops through a Task), so this is safe
+            // from inside refresh().
+            timer.fire()
+        } else {
+            timer?.invalidate()
+            timer = nil
+        }
     }
 
     /// 0...1 peak of an app's audio: after the volume change when the app is
@@ -583,6 +602,8 @@ final class AudioMixerEngine: ObservableObject {
         }
         updateMeters()
         if Defaults[.mixerDebug] { writeDebug() }
+        // The last session may just have gone.
+        updatePolling()
     }
 
     private func readLevelsOfDefaultDevices() {

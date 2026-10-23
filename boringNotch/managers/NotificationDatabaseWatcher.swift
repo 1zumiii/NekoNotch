@@ -19,8 +19,16 @@ final class NotificationDatabaseWatcher: @unchecked Sendable {
     private var lastRecordID: Int64 = 0
     private var appIdentifiers: [Int64: String] = [:]
     private var resolvedApps: [String: (bundleID: String?, name: String)] = [:]
+    private var fileWatchers: [DispatchSourceFileSystemObject] = []
+    private var pendingPoll: DispatchWorkItem?
 
+    /// Without file events to go on, polling has to be quick to keep up.
     private static let pollInterval: DispatchTimeInterval = .milliseconds(400)
+    /// With them, polling only catches anything the events missed.
+    private static let fallbackPollInterval: DispatchTimeInterval = .seconds(5)
+    /// SQLite marks a commit in the shared-memory index after writing the
+    /// log, and that write raises no file event: wait a moment for it.
+    private static let settleDelay: DispatchTimeInterval = .milliseconds(100)
 
     struct Status {
         var isRunning: Bool
@@ -67,8 +75,9 @@ final class NotificationDatabaseWatcher: @unchecked Sendable {
                 return
             }
             lastRecordID = currentMaxRecordID()
+            let interval = watchFiles() ? Self.fallbackPollInterval : Self.pollInterval
             let timer = DispatchSource.makeTimerSource(queue: queue)
-            timer.schedule(deadline: .now() + Self.pollInterval, repeating: Self.pollInterval, leeway: .milliseconds(100))
+            timer.schedule(deadline: .now() + interval, repeating: interval, leeway: .milliseconds(100))
             timer.setEventHandler { [weak self] in self?.poll() }
             timer.resume()
             self.timer = timer
@@ -79,10 +88,58 @@ final class NotificationDatabaseWatcher: @unchecked Sendable {
         queue.async { [self] in
             timer?.cancel()
             timer = nil
+            stopWatchingFiles()
             sqlite3_close(database)
             database = nil
             appIdentifiers.removeAll()
         }
+    }
+
+    /// Notification Center writes a new record to the database's log, or to
+    /// the database itself after a checkpoint, so a write to either is the
+    /// cue to look. The folder is watched too, for the log being recreated.
+    /// Returns whether both files could be watched.
+    @discardableResult
+    private func watchFiles() -> Bool {
+        stopWatchingFiles()
+        let directory = (Self.databasePath as NSString).deletingLastPathComponent
+        var watchedFiles = 0
+        for path in [directory, Self.databasePath, Self.databasePath + "-wal"] {
+            let descriptor = open(path, O_EVTONLY)
+            guard descriptor >= 0 else { continue }
+            let source = DispatchSource.makeFileSystemObjectSource(
+                fileDescriptor: descriptor, eventMask: [.write, .extend, .delete, .rename], queue: queue
+            )
+            let isDirectory = path == directory
+            source.setEventHandler { [weak self, weak source] in
+                guard let self, let source else { return }
+                // A changed folder or a replaced file: watch the files anew.
+                if isDirectory || !source.data.isDisjoint(with: [.delete, .rename]) {
+                    self.watchFiles()
+                }
+                self.schedulePoll()
+            }
+            source.setCancelHandler { close(descriptor) }
+            source.resume()
+            fileWatchers.append(source)
+            if !isDirectory { watchedFiles += 1 }
+        }
+        return watchedFiles == 2
+    }
+
+    private func stopWatchingFiles() {
+        fileWatchers.forEach { $0.cancel() }
+        fileWatchers.removeAll()
+        pendingPoll?.cancel()
+        pendingPoll = nil
+    }
+
+    /// One poll after a burst of writes has settled.
+    private func schedulePoll() {
+        pendingPoll?.cancel()
+        let work = DispatchWorkItem { [weak self] in self?.poll() }
+        pendingPoll = work
+        queue.asyncAfter(deadline: .now() + Self.settleDelay, execute: work)
     }
 
     private func currentMaxRecordID() -> Int64 {
