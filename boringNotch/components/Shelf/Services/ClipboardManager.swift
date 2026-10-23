@@ -23,7 +23,7 @@ final class ClipboardManager: ObservableObject {
 
     private let entryLimit = 20
     private let maxLength = 2_000
-    private let pollInterval: TimeInterval = 0.6
+    private let pollInterval: TimeInterval = 1
     private let ignoredTypes: Set<NSPasteboard.PasteboardType> = [
         NSPasteboard.PasteboardType("org.nspasteboard.ConcealedType"),
         NSPasteboard.PasteboardType("org.nspasteboard.TransientType"),
@@ -54,7 +54,7 @@ final class ClipboardManager: ObservableObject {
         let timer = Timer(timeInterval: pollInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.poll() }
         }
-        timer.tolerance = 0.2
+        timer.tolerance = 0.3
         RunLoop.main.add(timer, forMode: .common)
         self.timer = timer
         poll(force: true)
