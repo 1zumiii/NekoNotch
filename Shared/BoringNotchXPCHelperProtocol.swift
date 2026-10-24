@@ -65,6 +65,7 @@ final class BNLunarBrightnessEvent: NSObject, NSSecureCoding {
     func setNotificationExclusions(_ bundleIDs: [String])
     func serviceStatus(with reply: @escaping ([String: NSNumber]) -> Void)
     func pressNotification(_ token: String, with reply: @escaping (Bool) -> Void)
+    func processEnergy(with reply: @escaping ([String: NSNumber]) -> Void)
 }
 
 @objc protocol BoringNotchXPCHelperDelegate {

@@ -200,6 +200,14 @@ class BoringNotchXPCHelper: NSObject, BoringNotchXPCHelperProtocol {
         }
     }
 
+    /// Keys are process IDs as text; see ProcessEnergy.
+    @objc func processEnergy(with reply: @escaping ([String: NSNumber]) -> Void) {
+        DispatchQueue.global(qos: .utility).async {
+            let energy = ProcessEnergy.byResponsibleProcess()
+            reply(Dictionary(uniqueKeysWithValues: energy.map { (String($0.key), NSNumber(value: $0.value)) }))
+        }
+    }
+
     @objc func pressNotification(_ token: String, with reply: @escaping (Bool) -> Void) {
         DispatchQueue.main.async { reply(Self.watcher.press(token: token)) }
     }
