@@ -206,6 +206,9 @@ final class BoringViewCoordinator: ObservableObject {
                 }
             }
 
+        // Before anything can show the dashboard.
+        DashboardLayout.migrateIfNeeded()
+
         Task { @MainActor in
             helloAnimationRunning = firstLaunch
 

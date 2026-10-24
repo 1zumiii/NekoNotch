@@ -21,7 +21,7 @@ struct DashboardWidgetInfo: Identifiable {
 }
 
 enum DashboardWidgets {
-    static let all: [DashboardWidgetInfo] = usageWidgets + [storageWidget, claudeCodeWidget]
+    static let all: [DashboardWidgetInfo] = usageWidgets + [storageWidget, claudeCodeWidget, batteryUsageWidget]
 
     private static let usageWidgets: [DashboardWidgetInfo] = UsageSource.all.enumerated().map { index, source in
         DashboardWidgetInfo(
@@ -29,12 +29,12 @@ enum DashboardWidgets {
             title: LocalizedStringKey(source.displayName),
             icon: source.icon,
             tint: source.tint,
-            minWidth: 2,
-            minHeight: 1,
-            maxWidth: 6,
-            maxHeight: 2,
+            minWidth: 4,
+            minHeight: 2,
+            maxWidth: 12,
+            maxHeight: 4,
             defaultPlacement: DashboardPlacement(
-                id: source.id, enabled: true, col: index * 2, row: 0, width: 2, height: 2
+                id: source.id, enabled: true, col: index * 4, row: 0, width: 4, height: 4
             ),
             content: { size in AnyView(UsageWidgetView(source: source, size: size)) }
         )
@@ -45,12 +45,12 @@ enum DashboardWidgets {
         title: "Storage",
         icon: "internaldrive.fill",
         tint: StorageWidgetView.tint,
-        minWidth: 2,
-        minHeight: 1,
-        maxWidth: 6,
-        maxHeight: 2,
+        minWidth: 4,
+        minHeight: 2,
+        maxWidth: 12,
+        maxHeight: 4,
         defaultPlacement: DashboardPlacement(
-            id: "storage", enabled: true, col: UsageSource.all.count * 2, row: 0, width: 2, height: 2
+            id: "storage", enabled: true, col: UsageSource.all.count * 4, row: 0, width: 4, height: 4
         ),
         content: { size in AnyView(StorageWidgetView(size: size)) }
     )
@@ -60,14 +60,29 @@ enum DashboardWidgets {
         title: "Claude Code",
         icon: "square.grid.3x3.fill",
         tint: ClaudeCodeStatsWidgetView.tint,
-        minWidth: 2,
-        minHeight: 1,
-        maxWidth: 6,
-        maxHeight: 2,
+        minWidth: 4,
+        minHeight: 2,
+        maxWidth: 12,
+        maxHeight: 4,
         defaultPlacement: DashboardPlacement(
-            id: "claudeCode", enabled: false, col: 0, row: 0, width: 3, height: 2
+            id: "claudeCode", enabled: false, col: 0, row: 0, width: 6, height: 4
         ),
         content: { size in AnyView(ClaudeCodeStatsWidgetView(size: size)) }
+    )
+
+    private static let batteryUsageWidget = DashboardWidgetInfo(
+        id: "batteryUsage",
+        title: "Battery Usage",
+        icon: "bolt.fill",
+        tint: BatteryUsageWidgetView.tint,
+        minWidth: 4,
+        minHeight: 2,
+        maxWidth: 12,
+        maxHeight: 4,
+        defaultPlacement: DashboardPlacement(
+            id: "batteryUsage", enabled: false, col: 0, row: 0, width: 4, height: 4
+        ),
+        content: { size in AnyView(BatteryUsageWidgetView(size: size)) }
     )
 
     static func info(for id: String) -> DashboardWidgetInfo? {

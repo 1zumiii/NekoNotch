@@ -23,15 +23,38 @@ struct DashboardPlacement: Codable, Defaults.Serializable, Equatable, Identifiab
 }
 
 enum DashboardGrid {
-    static let columns = 6
-    static let rows = 2
+    static let columns = 12
+    static let rows = 4
     static let spacing: CGFloat = 8
+    /// Layouts saved before the grid was split from 6 × 2 cells are in
+    /// version 1 cells, twice as large.
+    static let layoutVersion = 2
 }
 
 enum DashboardLayout {
     /// Used until the user changes anything, and by "Reset layout".
     static var defaults: [DashboardPlacement] {
         DashboardWidgets.all.map(\.defaultPlacement)
+    }
+
+    /// Converts a layout saved in an older grid, once. Splitting every cell
+    /// in two keeps each widget exactly where and as big as it was: with the
+    /// same gap, two small cells and the gap between them are one old cell.
+    static func migrateIfNeeded() {
+        guard Defaults[.dashboardLayoutVersion] < DashboardGrid.layoutVersion else { return }
+        // Nothing saved means the defaults, which are already in the new cells.
+        if UserDefaults.standard.object(forKey: Defaults.Keys.dashboardLayout.name) != nil,
+           Defaults[.dashboardLayoutVersion] == 1 {
+            Defaults[.dashboardLayout] = Defaults[.dashboardLayout].map { placement in
+                var placement = placement
+                placement.col *= 2
+                placement.row *= 2
+                placement.width *= 2
+                placement.height *= 2
+                return placement
+            }
+        }
+        Defaults[.dashboardLayoutVersion] = DashboardGrid.layoutVersion
     }
 
     /// The stored layout with every registered widget present and every
