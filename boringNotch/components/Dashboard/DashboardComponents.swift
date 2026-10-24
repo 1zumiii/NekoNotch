@@ -223,14 +223,36 @@ struct GaugeBar: View {
 
 /// "9 hrs ago" with a dot: green when fresh, grey when a while old, orange
 /// when stale. Stale numbers are still shown; the dot just says how old.
+/// How old a snapshot is: green within the hour, grey within six, then
+/// orange, and the age as relative text.
+enum Freshness {
+    static func color(of date: Date?, at now: Date) -> Color {
+        guard let date else { return .gray }
+        let age = now.timeIntervalSince(date)
+        if age < 3600 { return Color(red: 0.30, green: 0.80, blue: 0.45) }
+        if age < 6 * 3600 { return .gray }
+        return Color.orange
+    }
+
+    static func text(of date: Date?, at now: Date) -> String? {
+        guard let date else { return nil }
+        let formatter = RelativeDateTimeFormatter()
+        // The app's language, not the system region's, to match the rest of
+        // the card.
+        formatter.locale = Locale(identifier: Bundle.main.preferredLocalizations.first ?? "en")
+        formatter.unitsStyle = .abbreviated
+        return formatter.localizedString(for: date, relativeTo: now)
+    }
+}
+
 struct FreshnessPill: View {
     let date: Date?
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 30)) { context in
             HStack(spacing: 5) {
-                Circle().fill(color(at: context.date)).frame(width: 6, height: 6)
-                Text(text(at: context.date))
+                Circle().fill(Freshness.color(of: date, at: context.date)).frame(width: 6, height: 6)
+                Text(Freshness.text(of: date, at: context.date) ?? "—")
                     .font(.system(size: 9, weight: .medium))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -240,22 +262,20 @@ struct FreshnessPill: View {
             .background(Capsule().fill(Color.white.opacity(0.07)))
         }
     }
+}
 
-    private func age(at now: Date) -> TimeInterval? {
-        date.map { now.timeIntervalSince($0) }
-    }
+/// Just the coloured dot, for a card that shows the age as text elsewhere;
+/// hovering it still tells the age.
+struct FreshnessDot: View {
+    let date: Date?
+    let now: Date
 
-    private func color(at now: Date) -> Color {
-        guard let age = age(at: now) else { return .gray }
-        if age < 3600 { return Color(red: 0.30, green: 0.80, blue: 0.45) }
-        if age < 6 * 3600 { return .gray }
-        return Color.orange
-    }
-
-    private func text(at now: Date) -> String {
-        guard let date else { return "—" }
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: date, relativeTo: now)
+    var body: some View {
+        Circle()
+            .fill(Freshness.color(of: date, at: now))
+            .frame(width: 7, height: 7)
+            .padding(4)
+            .contentShape(Rectangle())
+            .help(Freshness.text(of: date, at: now) ?? "—")
     }
 }

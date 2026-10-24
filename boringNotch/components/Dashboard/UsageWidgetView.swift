@@ -33,14 +33,21 @@ struct UsageWidgetView: View {
 
     // MARK: Two rows tall
 
+    /// The age goes under the title, where it has room; a pill beside the
+    /// title was cut down to a digit, most of all in Chinese.
     private var card: some View {
-        DashboardCard(icon: icon, tint: source.tint, title: title, subtitle: snapshot?.model) {
-            FreshnessPill(date: snapshot?.lastUpdatedDate)
-        } content: {
-            if let snapshot {
-                rings(snapshot)
-            } else {
-                emptyState
+        TimelineView(.periodic(from: .now, by: 30)) { context in
+            let date = snapshot?.lastUpdatedDate
+            let age = Freshness.text(of: date, at: context.date)
+            let subtitle = [snapshot?.model, age].compactMap { $0 }.joined(separator: " · ")
+            DashboardCard(icon: icon, tint: source.tint, title: title, subtitle: subtitle.isEmpty ? nil : subtitle) {
+                FreshnessDot(date: date, now: context.date)
+            } content: {
+                if let snapshot {
+                    rings(snapshot)
+                } else {
+                    emptyState
+                }
             }
         }
     }
@@ -49,7 +56,8 @@ struct UsageWidgetView: View {
     private func rings(_ snapshot: UsageSnapshot) -> some View {
         let windows = snapshot.windows
         let bars = snapshot.bars
-        let headerHeight: CGFloat = snapshot.model == nil ? 22 : 26
+        let hasSubtitle = snapshot.model != nil || snapshot.lastUpdatedDate != nil
+        let headerHeight: CGFloat = hasSubtitle ? 26 : 22
         // Padding, header, the bar rows, and the minimum gaps between them.
         let reserved: CGFloat = 18 + headerHeight + CGFloat(bars.count) * 14 + 22
         let byHeight = size.height - reserved
