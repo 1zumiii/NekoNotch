@@ -564,6 +564,8 @@ extension Defaults.Keys {
     static let showDashboardTab = Key<Bool>("showDashboardTab", default: false)
     /// Grid placement of each dashboard widget. See DashboardLayout.
     static let dashboardLayout = Key<[DashboardPlacement]>("dashboardLayout", default: DashboardLayout.defaults)
+    /// The grid `dashboardLayout` was saved in; see DashboardLayout.migrateIfNeeded.
+    static let dashboardLayoutVersion = Key<Int>("dashboardLayoutVersion", default: 1)
 
     // MARK: Shelf
     static let boringShelf = Key<Bool>("boringShelf", default: true)

@@ -17,6 +17,38 @@
         }
       }
     },
+    "Battery Usage" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Battery Usage"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "电池用量"
+          }
+        }
+      }
+    },
+    "Since launch" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Since launch"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启动以来"
+          }
+        }
+      }
+    },
     "This is a customised build. Software updates are turned off so an official release can't overwrite your changes. To update, merge upstream into your fork and rebuild." : {
       "localizations" : {
         "en" : {

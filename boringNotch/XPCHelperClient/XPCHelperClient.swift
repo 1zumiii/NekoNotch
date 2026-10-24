@@ -506,6 +506,36 @@ extension XPCHelperClient {
         }
     }
 
+    /// Energy used per responsible process, in nanojoules; nil when the
+    /// helper doesn't answer within a few seconds.
+    nonisolated func processEnergy() async -> [pid_t: UInt64]? {
+        await withTaskGroup(of: [String: NSNumber]?.self) { group in
+            group.addTask {
+                do {
+                    let service = await MainActor.run { self.ensureRemoteService() }
+                    return try await service.withContinuation { service, continuation in
+                        service.processEnergy { energy in
+                            continuation.resume(returning: energy)
+                        }
+                    }
+                } catch {
+                    return nil
+                }
+            }
+            group.addTask {
+                try? await Task.sleep(for: .seconds(3))
+                return nil
+            }
+            let first = await group.next() ?? nil
+            group.cancelAll()
+            return first.map { energy in
+                Dictionary(uniqueKeysWithValues: energy.compactMap { key, value in
+                    pid_t(key).map { ($0, value.uint64Value) }
+                })
+            }
+        }
+    }
+
     /// Clicks the system banner behind a mirrored notification. False when
     /// the banner is gone (it times out a few seconds after it appears).
     nonisolated func pressNotification(token: String) async -> Bool {
