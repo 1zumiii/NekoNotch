@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		FC0004A22F00000100EC13B2 /* SystemStatsWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC0004A12F00000100EC13B2 /* SystemStatsWidgetView.swift */; };
+		FC0003A22F00000100EC13B2 /* NotificationHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC0003A12F00000100EC13B2 /* NotificationHistoryView.swift */; };
+		FC0002A22F00000100EC13B2 /* NotificationHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC0002A12F00000100EC13B2 /* NotificationHistory.swift */; };
+		FC0001A22F00000100EC13B2 /* FocusStatusMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC0001A12F00000100EC13B2 /* FocusStatusMonitor.swift */; };
 		07FE456E7AEA085D9FCA6D97 /* MeetingLinkDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9B2A5E5F4D28F1DD9CD0B09 /* MeetingLinkDetector.swift */; };
 		110029272E84FD4C00035A57 /* TemporaryFileStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110029262E84FD4C00035A57 /* TemporaryFileStorageService.swift */; };
 		1100292A2E8691B400035A57 /* FileShareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 110029292E8691B400035A57 /* FileShareView.swift */; };
@@ -202,6 +206,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		FC0004A12F00000100EC13B2 /* SystemStatsWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SystemStatsWidgetView.swift; path = boringNotch/components/Dashboard/SystemStatsWidgetView.swift; sourceTree = SOURCE_ROOT; };
+		FC0003A12F00000100EC13B2 /* NotificationHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NotificationHistoryView.swift; path = boringNotch/components/Notch/NotificationHistoryView.swift; sourceTree = SOURCE_ROOT; };
+		FC0002A12F00000100EC13B2 /* NotificationHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NotificationHistory.swift; path = boringNotch/managers/NotificationHistory.swift; sourceTree = SOURCE_ROOT; };
+		FC0001A12F00000100EC13B2 /* FocusStatusMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = FocusStatusMonitor.swift; path = boringNotch/managers/FocusStatusMonitor.swift; sourceTree = SOURCE_ROOT; };
 		0268933F488E47DFB58E48CF /* VisualEffectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualEffectView.swift; sourceTree = "<group>"; };
 		033B8885979E4EA1A78E8ADC /* Log.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Log.swift; sourceTree = "<group>"; };
 		110029262E84FD4C00035A57 /* TemporaryFileStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemporaryFileStorageService.swift; sourceTree = "<group>"; };
@@ -628,6 +636,7 @@
 				CB1000502F00000100EC13B2 /* DashboardComponents.swift */,
 				CB1000512F00000100EC13B2 /* StorageWidgetView.swift */,
 				BA77E5A12F00000100EC13B2 /* BatteryUsageWidgetView.swift */,
+				FC0004A12F00000100EC13B2 /* SystemStatsWidgetView.swift */,
 				CB1000C12F00000100EC13B2 /* ClaudeCodeStatsWidgetView.swift */,
 				CB10007A2F00000100EC13B2 /* CustomBuild.swift */,
 				CB1000802F00000100EC13B2 /* MixerModels.swift */,
@@ -636,6 +645,8 @@
 				CB1000832F00000100EC13B2 /* MixerSettingsView.swift */,
 				CB1000A02F00000100EC13B2 /* BatteryAlertTracker.swift */,
 				AA01SNM22E7A0001 /* SystemNotificationManager.swift */,
+				FC0002A12F00000100EC13B2 /* NotificationHistory.swift */,
+				FC0001A12F00000100EC13B2 /* FocusStatusMonitor.swift */,
 				AA02CAM22E7A0001 /* ContactAvatarManager.swift */,
 				147163992C5D35FF0068B555 /* MusicManager.swift */,
 				AA07ARM22E7A0001 /* AudioRouteManager.swift */,
@@ -822,6 +833,7 @@
 			isa = PBXGroup;
 			children = (
 				AA01NLA22E7A0001 /* NotificationLiveActivity.swift */,
+				FC0003A12F00000100EC13B2 /* NotificationHistoryView.swift */,
 				AA06CHV22E7A0001 /* CompactHomeView.swift */,
 				AA04LAS22E7A0001 /* LiveActivityStack.swift */,
 				1194E8862EA6DDA7009C82D6 /* BoringNotchSkyLightWindow.swift */,
@@ -1084,6 +1096,10 @@
 				CB1000602F00000100EC13B2 /* DashboardComponents.swift in Sources */,
 				CB1000612F00000100EC13B2 /* StorageWidgetView.swift in Sources */,
 				BA77E5A22F00000100EC13B2 /* BatteryUsageWidgetView.swift in Sources */,
+				FC0004A22F00000100EC13B2 /* SystemStatsWidgetView.swift in Sources */,
+				FC0003A22F00000100EC13B2 /* NotificationHistoryView.swift in Sources */,
+				FC0002A22F00000100EC13B2 /* NotificationHistory.swift in Sources */,
+				FC0001A22F00000100EC13B2 /* FocusStatusMonitor.swift in Sources */,
 				CB1000D12F00000100EC13B2 /* ClaudeCodeStatsWidgetView.swift in Sources */,
 				CB10007B2F00000100EC13B2 /* CustomBuild.swift in Sources */,
 				CB1000902F00000100EC13B2 /* MixerModels.swift in Sources */,

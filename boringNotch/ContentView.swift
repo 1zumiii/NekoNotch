@@ -686,6 +686,8 @@ struct ContentView: View {
                             DashboardView()
                         case .mixer:
                             MixerView()
+                        case .notifications:
+                            NotificationHistoryView()
                         }
                     }
                 }
