@@ -29,6 +29,12 @@ struct ContentView: View {
     @State private var isHovering: Bool = false
     @State private var openedForNotification = false
     @State private var dragWatchTask: Task<Void, Never>?
+    /// The app whose icon last borrowed the album art's place. Kept after the
+    /// peek ends so the icon fades out instead of being removed: a removal
+    /// transition can get stuck when it overlaps another animation, and then
+    /// the icon stays on top of the art.
+    @State private var peekIconBundleID: String?
+    @State private var hasPeekIcon = false
     /// Where the pointer was when a notification opened the notch. A notch
     /// that grows under a resting pointer isn't the user hovering on purpose.
     @State private var autoOpenPointerLocation: CGPoint?
@@ -816,12 +822,21 @@ struct ContentView: View {
                 // while; the art stays underneath so it can come straight back.
                 .opacity(notificationManager.iconPeek == nil ? 1 : 0)
                 .overlay {
-                    if let peek = notificationManager.iconPeek {
-                        NotificationSourceIcon(bundleID: peek.bundleID, size: scaledArtSize, showsBadge: true)
-                            .transition(.opacity.combined(with: .scale(scale: 0.8)))
+                    if hasPeekIcon {
+                        let peeking = notificationManager.iconPeek != nil
+                        NotificationSourceIcon(bundleID: peekIconBundleID, size: scaledArtSize, showsBadge: true)
+                            .opacity(peeking ? 1 : 0)
+                            .scaleEffect(peeking ? 1 : 0.8)
+                            .allowsHitTesting(false)
                     }
                 }
                 .animation(.easeInOut(duration: 0.3), value: notificationManager.iconPeek?.id)
+                .onChange(of: notificationManager.iconPeek?.id) { _, _ in
+                    if let peek = notificationManager.iconPeek {
+                        peekIconBundleID = peek.bundleID
+                        hasPeekIcon = true
+                    }
+                }
                 .offset(x: artVerticalInset - liveActivityEdgeMargin)
 
             Rectangle()
