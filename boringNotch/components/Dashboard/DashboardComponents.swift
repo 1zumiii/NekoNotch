@@ -17,15 +17,21 @@ func usageGaugeColor(used: Double, tint: Color) -> Color {
 }
 
 /// The tinted, bordered rounded rectangle every widget sits in. Content that
-/// doesn't fit is clipped to the card instead of spilling over its neighbours.
+/// doesn't fit is clipped to the card instead of spilling over its neighbours:
+/// the card takes the size it is given, and the content is an overlay, which
+/// can't make it wider. (A `maxWidth: .infinity` frame grows to fit a child
+/// wider than the offer, and the card then covered the one beside it.)
 struct DashboardCardChrome<Content: View>: View {
     let tint: Color
     @ViewBuilder var content: Content
 
     var body: some View {
-        content
-            .padding(9)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        Color.clear
+            .overlay(alignment: .topLeading) {
+                content
+                    .padding(9)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            }
             .background(
                 LinearGradient(
                     colors: [tint.opacity(0.16), Color.white.opacity(0.04)],
