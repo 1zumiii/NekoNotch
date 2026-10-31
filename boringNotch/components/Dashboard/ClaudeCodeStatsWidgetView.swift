@@ -112,18 +112,37 @@ struct ClaudeCodeStatsWidgetView: View {
     private var strip: some View {
         DashboardCardChrome(tint: Self.tint) {
             if let stats {
-                HStack(spacing: 14) {
-                    DashboardCardTitle(icon: "square.grid.3x3.fill", tint: Self.tint, title: title)
-                    Text(verbatim: Self.compact(stats.total))
-                        .font(.system(size: 15, weight: .bold, design: .rounded))
-                        .foregroundStyle(Self.tint)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 14) {
+                        DashboardCardTitle(icon: "square.grid.3x3.fill", tint: Self.tint, title: title)
+                        Text(verbatim: Self.compact(stats.total))
+                            .font(.system(size: 15, weight: .bold, design: .rounded))
+                            .foregroundStyle(Self.tint)
+                            .lineLimit(1)
+                            .fixedSize()
+                        Text(verbatim: String(localized: "7d") + " " + Self.compact(stats.last7))
+                            .font(.system(size: 10, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .fixedSize()
+                    }
+                    .frame(maxHeight: .infinity)
+
+                    // Narrow: the numbers go under the title.
+                    VStack(alignment: .leading, spacing: 7) {
+                        DashboardCardTitle(icon: "square.grid.3x3.fill", tint: Self.tint, title: title)
+                        HStack(spacing: 8) {
+                            Text(verbatim: Self.compact(stats.total))
+                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                                .foregroundStyle(Self.tint)
+                            Text(verbatim: String(localized: "7d") + " " + Self.compact(stats.last7))
+                                .font(.system(size: 10, weight: .semibold, design: .rounded))
+                                .foregroundStyle(.secondary)
+                        }
                         .lineLimit(1)
                         .fixedSize()
-                    Text(verbatim: String(localized: "7d") + " " + Self.compact(stats.last7))
-                        .font(.system(size: 10, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .fixedSize()
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
                 }
                 .frame(maxHeight: .infinity)
             } else {
