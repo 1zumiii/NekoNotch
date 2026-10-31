@@ -1,6 +1,28 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Home" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Home"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "主页"
+          }
+        },
+        "zh-Hant-HK" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "主頁"
+          }
+        }
+      }
+    },
     "Based on Boring Notch" : {
       "localizations" : {
         "en" : {
@@ -60,7 +82,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "这是自定义版本。软件更新已关闭，以免官方版本覆盖你的修改。如需更新，请把上游合并进你的 fork 后重新构建。"
+            "value" : "此版本为自定义版本，已关闭软件更新，以免官方版本覆盖自定义改动。如需更新，请将上游改动合并到 fork 后重新编译。"
           }
         }
       }
@@ -188,7 +210,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "部件"
+            "value" : "卡片"
           }
         }
       }
@@ -300,7 +322,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "没有启用任何部件"
+            "value" : "尚未启用卡片"
           }
         }
       }
@@ -316,7 +338,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "格子里没有足够的空位，请先缩小或关闭其他部件。"
+            "value" : "网格空间不足，请先缩小或关闭其他卡片。"
           }
         }
       }
@@ -332,7 +354,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在预览里点击部件选中它，然后按格子移动或调整大小；点击空格子可把选中的部件移到那里。"
+            "value" : "点击预览中的卡片，即可按网格调整位置和大小。点击空白格子，可将选中的卡片移到该位置。"
           }
         }
       }
@@ -396,7 +418,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在播放器旁增加第二页，显示 Claude 和 Codex 的用量，数据来自 RunCat 集成脚本写出的文件。"
+            "value" : "在播放器旁添加用量页，显示 Claude 和 Codex 的用量。数据来自 RunCat 集成脚本生成的文件。"
           }
         }
       }
@@ -460,7 +482,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "可以在系统设置里关闭某个应用的横幅，这样屏幕上不会再闪一下，它的通知仍会显示在刘海里。"
+            "value" : "开启后，可在系统设置中关闭应用的通知横幅，避免横幅短暂闪现。通知仍会显示在刘海中。"
           }
         }
       }
@@ -476,7 +498,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "通知自动收回时间"
+            "value" : "通知停留时间"
           }
         }
       }
@@ -730,13 +752,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "“当前播放”是历史版本中的唯一选项，该选项可兼容所有媒体应用。"
+            "value" : "旧版本仅提供“当前播放”选项，可兼容所有媒体应用。"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "「當前播放」喺舊版得呢個選項，啱晒所有媒體 app 用。"
+            "value" : "舊版本僅提供“當前播放”選項，可兼容所有媒體應用程式。"
           }
         }
       }
@@ -1353,7 +1375,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "首选颜色"
+            "value" : "主题色"
           }
         },
         "zh-Hant-HK" : {
@@ -1472,13 +1494,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "访问被拒绝"
+            "value" : "未获得访问权限"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "訪問被拒絕"
+            "value" : "未獲存取權限"
           }
         }
       }
@@ -1742,7 +1764,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "添加应用…"
+            "value" : "添加应用……"
           }
         }
       }
@@ -2553,13 +2575,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "始终显示完整的事件标题"
+            "value" : "始终显示完整的日程标题"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "永遠顯示完整活動標題"
+            "value" : "始終顯示完整的日程標題"
           }
         }
       }
@@ -2671,13 +2693,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "总是显示标签页"
+            "value" : "始终显示标签页"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "永遠顯示分頁"
+            "value" : "始終顯示分頁"
           }
         }
       }
@@ -3127,13 +3149,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "自定定位到下一事件"
+            "value" : "自动滚动到下一项日程"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "自動滾動到下個活動"
+            "value" : "自動捲動至下一項日程"
           }
         }
       }
@@ -3687,13 +3709,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "按键灯光"
+            "value" : "键盘背光"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "按鍵燈光"
+            "value" : "鍵盤背光"
           }
         }
       }
@@ -4510,7 +4532,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Boring Notch 可以在后台检查更新。你也可以随时通过菜单栏手动检查。"
+            "value" : "Boring Notch 可在后台检查更新，也可随时从菜单栏手动检查。"
           }
         }
       }
@@ -4557,7 +4579,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Boring Notch 无法验证“正在播放”。请重试；如果问题持续出现，请重新打开应用。"
+            "value" : "Boring Notch 无法确认“当前播放”是否可用。请重试；若问题仍然存在，请重新打开应用。"
           }
         }
       }
@@ -4610,7 +4632,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Boring Notch 与“正在播放”的连接已断开，正在自动重新连接…"
+            "value" : "Boring Notch 与“当前播放”的连接已断开，正在自动重新连接……"
           }
         }
       }
@@ -4663,7 +4685,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Boring Notch 的“正在播放”组件不可用。请重新打开或重新安装应用。"
+            "value" : "Boring Notch 的“当前播放”组件不可用。请重新打开或重新安装应用。"
           }
         }
       }
@@ -4909,13 +4931,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "亮度源"
+            "value" : "亮度控制来源"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "亮度源"
+            "value" : "亮度控制來源"
           }
         }
       }
@@ -5228,13 +5250,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "日历访问被拒绝。请在系统设置中启用它。"
+            "value" : "尚未获得日历访问权限，请在系统设置中授权。"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "日曆存取被拒絕，請喺系統設定度開啟佢。"
+            "value" : "尚未獲得日曆存取權限，請在系統設定中授權。"
           }
         }
       }
@@ -5689,7 +5711,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "通过左右滑动来切换播放内容"
+            "value" : "左右滑动切换播放内容"
           }
         },
         "zh-Hant-HK" : {
@@ -6324,13 +6346,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "检查更新…"
+            "value" : "检查更新……"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "檢查更新…"
+            "value" : "檢查更新……"
           }
         }
       }
@@ -6377,7 +6399,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "正在检查“正在播放”是否可用…"
+            "value" : "正在检查“当前播放”是否可用……"
           }
         }
       }
@@ -6495,7 +6517,7 @@
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "揀音樂來源"
+            "value" : "選擇音樂來源"
           }
         }
       }
@@ -6647,7 +6669,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "选择任何颜色"
+            "value" : "自选颜色"
           }
         },
         "zh-Hant-HK" : {
@@ -6811,13 +6833,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在系统主题色和你自己自定义的颜色之间选择。"
+            "value" : "使用系统主题色，或自定义颜色。"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "喺系統強調色同你自訂顏色之間選擇。"
+            "value" : "使用系統主題色，或自訂顏色。"
           }
         }
       }
@@ -6976,13 +6998,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请选择分享文件的服务。您可以点击中转站按钮来选取文件，也可以直接将文件拖拽入中转站进行分享。"
+            "value" : "选择暂存区使用的共享服务。点击共享按钮可选择文件，也可将文件拖到按钮上直接共享。"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "揀定分享檔案嘅服務。點擊中轉站掣揀檔案，或者直接拖檔案入去即刻分享。"
+            "value" : "選擇暫存區使用的共享服務。點擊共享按鈕可選擇檔案，也可將檔案拖到按鈕上直接共享。"
           }
         }
       }
@@ -7602,13 +7624,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "关闭的刘海"
+            "value" : "收起状态"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "關閉劉海"
+            "value" : "收起狀態"
           }
         }
       }
@@ -7714,13 +7736,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "颜色预设方案"
+            "value" : "预设颜色"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "顏色預設方案"
+            "value" : "預設顏色"
           }
         }
       }
@@ -8608,13 +8630,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "转换图像…"
+            "value" : "转换图片……"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "轉換圖像…"
+            "value" : "轉換圖像……"
           }
         }
       }
@@ -9010,13 +9032,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "拷贝为路径名称"
+            "value" : "拷贝路径"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "複製為路徑名稱"
+            "value" : "複製路徑"
           }
         }
       }
@@ -9063,7 +9085,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无法验证“正在播放”"
+            "value" : "无法确认“当前播放”是否可用"
           }
         }
       }
@@ -9294,7 +9316,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "所选服务: %@"
+            "value" : "当前选择：%@"
           }
         },
         "zh-Hant-HK" : {
@@ -9637,13 +9659,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "自定义Notch大小 - %@"
+            "value" : "自定义刘海尺寸：%@"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "自訂劉海尺寸 - %@"
+            "value" : "自訂劉海尺寸：%@"
           }
         }
       }
@@ -9695,7 +9717,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "自定义…"
+            "value" : "自定义……"
           }
         }
       }
@@ -9913,13 +9935,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "自定义音乐播放器里出现的按钮，音量部分激活后会自动展开。"
+            "value" : "选择音乐播放器中显示的按钮。点击音量按钮可展开滑块。"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "自訂音樂播放器顯示按鈕，音量啟用時自動展開。"
+            "value" : "選擇音樂播放器中顯示的按鈕。點擊音量按鈕可展開滑桿。"
           }
         }
       }
@@ -10079,7 +10101,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "设定按住 Option 键同时按媒体键时的行为。"
+            "value" : "设置按住 Option 键时，媒体按键执行的操作。"
           }
         }
       }
@@ -10858,13 +10880,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在预览中拖动项目可调整顺序，或从调色板中拖入"
+            "value" : "在预览中拖动按钮可调整顺序，也可从下方拖入按钮"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在預覽中拖動項目可調整順序，或從調色板拖入"
+            "value" : "在預覽中拖動按鈕可調整順序，也可從下方拖入按鈕"
           }
         }
       }
@@ -11357,7 +11379,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "启用专辑封面的模糊效果"
+            "value" : "模糊专辑封面背景"
           }
         },
         "zh-Hant-HK" : {
@@ -11475,13 +11497,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "启用虚拟镜像"
+            "value" : "启用镜子"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "啟用單調鏡子"
+            "value" : "啟用鏡子"
           }
         }
       }
@@ -11888,13 +11910,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "启用震动反馈"
+            "value" : "启用触感反馈"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "啟用震動反饋"
+            "value" : "啟用觸覺回饋"
           }
         }
       }
@@ -12012,7 +12034,7 @@
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "啟用中轉站"
+            "value" : "啟用暫存區"
           }
         }
       }
@@ -12282,13 +12304,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "享受您的闲暇时光！"
+            "value" : "享受闲暇时光"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "享受您的闲暇时光！"
+            "value" : "享受閒暇時光"
           }
         }
       }
@@ -12335,7 +12357,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "事件"
+            "value" : "日程"
           }
         }
       }
@@ -12435,7 +12457,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "增加拖动检测区域"
+            "value" : "扩大拖动检测区域"
           }
         },
         "zh-Hant-HK" : {
@@ -12672,7 +12694,7 @@
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "擴展"
+            "value" : "擴充功能"
           }
         }
       }
@@ -12859,13 +12881,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "拖入中转站的文件可以通过所选服务进行分享"
+            "value" : "拖到共享按钮上的文件将通过所选服务共享"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "拖入中轉站嘅檔案會透過所選服務分享"
+            "value" : "拖到共享按鈕上的檔案將透過所選服務共享"
           }
         }
       }
@@ -13297,13 +13319,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "电源已满"
+            "value" : "电池已充满"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "電源已滿"
+            "value" : "電池已充滿"
           }
         }
       }
@@ -14097,7 +14119,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "授予 %@，以镜像通知横幅。"
+            "value" : "授予 %@ 后，可在刘海中显示系统通知横幅的内容。"
           }
         }
       }
@@ -14179,7 +14201,7 @@
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "授予訪問權限"
+            "value" : "授予存取權限"
           }
         }
       }
@@ -14331,13 +14353,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "隐藏全天事件"
+            "value" : "隐藏全天日程"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "隱藏全天事件"
+            "value" : "隱藏全天日程"
           }
         }
       }
@@ -14449,13 +14471,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "隐藏已完成提醒"
+            "value" : "隐藏已完成的提醒事项"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "隱藏已完成提醒"
+            "value" : "隱藏已完成的提醒事項"
           }
         }
       }
@@ -14561,13 +14583,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "为所有应用隐藏"
+            "value" : "所有应用全屏时隐藏"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "隱藏所有應用程式"
+            "value" : "所有應用程式全螢幕時隱藏"
           }
         }
       }
@@ -14667,13 +14689,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "仅为媒体应用隐藏"
+            "value" : "仅媒体应用全屏时隐藏"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "僅隱藏媒體應用程式"
+            "value" : "僅媒體應用程式全螢幕時隱藏"
           }
         }
       }
@@ -14961,13 +14983,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在普通屏上隐藏调度中心"
+            "value" : "在调度中心中隐藏无刘海屏幕上的刘海窗口"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "喺普通屏幕上隱藏調度中心"
+            "value" : "在調度中心中隱藏無劉海螢幕上的劉海視窗"
           }
         }
       }
@@ -15999,13 +16021,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "互动"
+            "value" : "交互"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "互動"
+            "value" : "互動操作"
           }
         }
       }
@@ -16215,7 +16237,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "将较新的暂存项目放在前面"
+            "value" : "新添加的内容排在暂存区前面"
           }
         }
       }
@@ -16320,13 +16342,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "键盘源"
+            "value" : "键盘亮度控制来源"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "鍵盤源"
+            "value" : "鍵盤亮度控制來源"
           }
         }
       }
@@ -16612,13 +16634,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "开机自启"
+            "value" : "登录时自动启动"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "開機自啟"
+            "value" : "登入時自動啟動"
           }
         }
       }
@@ -16764,7 +16786,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "正在查找设备…"
+            "value" : "正在查找设备……"
           }
         }
       }
@@ -17000,7 +17022,7 @@
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "低功耗模式"
+            "value" : "低耗電模式"
           }
         }
       }
@@ -17147,13 +17169,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "不那么无趣的 not.people 团队 用🫶🏻出品"
+            "value" : "由 not.people 团队制作"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "由不那麼無聊的 not.people 團隊用 🫶🏻 製作"
+            "value" : "由 not.people 團隊製作"
           }
         }
       }
@@ -17684,7 +17706,7 @@
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "配合真實瀏海高度"
+            "value" : "與劉海高度一致"
           }
         }
       }
@@ -18216,13 +18238,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "媒体非活动超时"
+            "value" : "停止播放后保留时长"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "媒體閒置超時"
+            "value" : "停止播放後保留時間"
           }
         }
       }
@@ -19007,7 +19029,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "音乐源"
+            "value" : "音乐来源"
           }
         },
         "zh-Hant-HK" : {
@@ -19626,13 +19648,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无操作"
+            "value" : "不执行操作"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "冇操作"
+            "value" : "不執行操作"
           }
         }
       }
@@ -19827,7 +19849,7 @@
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "未搵到兼容嘅應用程式"
+            "value" : "找不到兼容的應用程式"
           }
         }
       }
@@ -19933,13 +19955,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无事件"
+            "value" : "暂无日程"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "無事件"
+            "value" : "暫無日程"
           }
         }
       }
@@ -20051,13 +20073,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "今天无日程"
+            "value" : "今天暂无日程"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "今日無事件"
+            "value" : "今天暫無日程"
           }
         }
       }
@@ -20176,7 +20198,7 @@
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "無已安裝擴充功能"
+            "value" : "尚未安裝擴充功能"
           }
         }
       }
@@ -20334,13 +20356,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "不再充电"
+            "value" : "未在充电"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "唔再充電"
+            "value" : "未在充電"
           }
         }
       }
@@ -20452,7 +20474,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "不是现在"
+            "value" : "暂不"
           }
         },
         "zh-Hant-HK" : {
@@ -20726,13 +20748,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "普通屏上的刘海高度"
+            "value" : "无刘海屏幕上的刘海高度"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "普通屏劉海高度"
+            "value" : "無劉海螢幕上的劉海高度"
           }
         }
       }
@@ -20844,7 +20866,7 @@
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "劉海屏劉海高度"
+            "value" : "劉海螢幕上的劉海高度"
           }
         }
       }
@@ -21013,7 +21035,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "“正在播放”组件不可用"
+            "value" : "“当前播放”组件不可用"
           }
         }
       }
@@ -21054,7 +21076,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "“正在播放”连接已断开"
+            "value" : "“当前播放”连接已断开"
           }
         }
       }
@@ -21165,7 +21187,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "仅支持 Apple 显示器。多显示器环境下，亮度 OSD 会显示在当前活动显示器上（若其受支持），否则显示在另一台受支持的显示器上。"
+            "value" : "仅支持 Apple 显示器。连接多台显示器时，优先在当前使用的显示器上显示亮度 OSD；若该显示器不受支持，则改在其他受支持的显示器上显示。"
           }
         }
       }
@@ -21200,7 +21222,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "仅镜像所选应用的通知。请从你的 Mac 中添加应用，没有预设的应用列表。"
+            "value" : "仅在刘海中显示所选应用的通知。请从本机添加应用，列表不含预设应用。"
           }
         }
       }
@@ -21354,7 +21376,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "打开问题反馈页面，并自动填入你的版本信息"
+            "value" : "打开问题反馈页面，并自动填入当前版本信息"
           }
         }
       }
@@ -21642,13 +21664,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "打开刘海"
+            "value" : "展开刘海"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "開啟劉海"
+            "value" : "展開劉海"
           }
         }
       }
@@ -21754,13 +21776,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "悬停时打开Notch"
+            "value" : "悬停时展开刘海"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "懸停時開啟劉海"
+            "value" : "懸停時展開劉海"
           }
         }
       }
@@ -22031,13 +22053,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "当项目存在时默认打开暂存器"
+            "value" : "暂存区有内容时默认显示暂存区"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "有項目時預設開中轉站"
+            "value" : "暫存區有內容時預設顯示暫存區"
           }
         }
       }
@@ -22120,7 +22142,7 @@
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "打開系統設定"
+            "value" : "開啟系統設定"
           }
         }
       }
@@ -22551,13 +22573,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "其他…"
+            "value" : "其他……"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "其他…"
+            "value" : "其他……"
           }
         }
       }
@@ -23008,13 +23030,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "播放界面主题"
+            "value" : "播放器配色"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "播放界面主題"
+            "value" : "播放器配色"
           }
         }
       }
@@ -23061,7 +23083,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请在“系统设置”中允许摄像头访问，以使用镜子功能。"
+            "value" : "使用镜子功能需要摄像头权限，请在系统设置中授权。"
           }
         }
       }
@@ -23108,7 +23130,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请在系统设置中允许相机访问。"
+            "value" : "请在系统设置中授予摄像头访问权限。"
           }
         }
       }
@@ -23220,13 +23242,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已插入"
+            "value" : "已接通电源"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已插入"
+            "value" : "已接通電源"
           }
         }
       }
@@ -23332,7 +23354,7 @@
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "主顯示器"
+            "value" : "首選顯示器"
           }
         }
       }
@@ -23507,7 +23529,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "进度条风格"
+            "value" : "进度条样式"
           }
         },
         "zh-Hant-HK" : {
@@ -23744,7 +23766,7 @@
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "快傳分享"
+            "value" : "快速共享"
           }
         }
       }
@@ -23850,7 +23872,7 @@
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "快傳服務服務"
+            "value" : "快速共享服務"
           }
         }
       }
@@ -24432,7 +24454,7 @@
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "記住上一個標籤頁"
+            "value" : "記住上一個分頁"
           }
         }
       }
@@ -24544,13 +24566,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "提醒事项访问被拒绝。请在系统设置中启用它。"
+            "value" : "尚未获得提醒事项访问权限，请在系统设置中授权。"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "提醒事項存取被拒絕，請喺系統設定啟用佢。"
+            "value" : "尚未獲得提醒事項存取權限，請在系統設定中授權。"
           }
         }
       }
@@ -25058,13 +25080,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "拖拽后自动移除中转站内容"
+            "value" : "拖出后从暂存区移除"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "拖拽後自動移除中轉站內容"
+            "value" : "拖出後從暫存區移除"
           }
         }
       }
@@ -25403,7 +25425,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "需要 %@。仅镜像可见的横幅。"
+            "value" : "需要 %@。仅显示系统已弹出的通知横幅内容。"
           }
         }
       }
@@ -25902,7 +25924,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "重启以应用语言"
+            "value" : "重启后切换语言"
           }
         }
       }
@@ -25972,13 +25994,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "隐藏刘海模式下圆角自适应缩放"
+            "value" : "收起时按刘海尺寸缩放圆角"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "隱藏劉海模式下圓角自適應縮放"
+            "value" : "收起時按劉海尺寸縮放圓角"
           }
         }
       }
@@ -26090,13 +26112,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "选择您想要使用的音乐源。您可以稍后在应用设置中更改此项。"
+            "value" : "选择音乐来源，之后可在应用设置中更改。"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "選擇音樂源或稍後喺設定更改。"
+            "value" : "選擇音樂來源，之後可在應用程式設定中更改。"
           }
         }
       }
@@ -26166,13 +26188,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "选择哪个程序来负责系统控制。BetterDisplay 和 Lunar 都需要各自的 app 已安装并且正在运行。"
+            "value" : "选择系统控制来源。使用 BetterDisplay 或 Lunar 时，需要先安装并运行对应的应用。"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "揀邊個程序嚟負責系統控制。 BetterDisplay 同 Lunar 都需要各自嘅 app 已經安裝同埋正喺運行。"
+            "value" : "選擇系統控制來源。使用 BetterDisplay 或 Lunar 時，需要先安裝並執行對應的應用程式。"
           }
         }
       }
@@ -26409,13 +26431,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "共享…"
+            "value" : "共享……"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "共享…"
+            "value" : "共享……"
           }
         }
       }
@@ -26527,13 +26549,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "暂存器"
+            "value" : "暂存区"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "文件中轉站"
+            "value" : "暫存區"
           }
         }
       }
@@ -26645,13 +26667,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "快捷方式"
+            "value" : "快捷键"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "快捷方式"
+            "value" : "快捷鍵"
           }
         }
       }
@@ -27152,13 +27174,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "空闲时显示酷炫脸部动画"
+            "value" : "空闲时显示表情动画"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "閒置時顯示炫酷臉部動畫"
+            "value" : "閒置時顯示表情動畫"
           }
         }
       }
@@ -27283,7 +27305,7 @@
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在Finder顯示"
+            "value" : "在 Finder 中顯示"
           }
         }
       }
@@ -27389,13 +27411,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在歌手下方显示歌词"
+            "value" : "在歌手名称下方显示歌词"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "喺歌手名稱下方顯示歌詞"
+            "value" : "在歌手名稱下方顯示歌詞"
           }
         }
       }
@@ -27924,7 +27946,7 @@
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "喺所有顯示器顯示劉海"
+            "value" : "在所有顯示器上顯示"
           }
         }
       }
@@ -28071,13 +28093,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在打开的刘海中显示 OSD"
+            "value" : "在展开的刘海中显示 OSD"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "喺打開嘅劉海中顯示 OSD"
+            "value" : "在展開的劉海中顯示 OSD"
           }
         }
       }
@@ -28260,13 +28282,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "显示百分比 (刘海关闭状态下)"
+            "value" : "显示百分比（刘海收起时）"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "顯示百分比（劉海關閉狀態下）"
+            "value" : "顯示百分比（劉海收起時）"
           }
         }
       }
@@ -28336,13 +28358,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "显示百分比 (刘海打开状态下)"
+            "value" : "显示百分比（刘海展开时）"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "顯示百分比（劉海打開狀態下）"
+            "value" : "顯示百分比（劉海展開時）"
           }
         }
       }
@@ -28725,7 +28747,7 @@
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "喺劉海顯示設定圖示"
+            "value" : "在劉海中顯示設定圖示"
           }
         }
       }
@@ -29174,7 +29196,7 @@
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "音樂進度條顏色"
+            "value" : "滑桿顏色"
           }
         }
       }
@@ -29326,13 +29348,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sneak Peek 在 Notch 下显示媒体标题和艺术家几秒钟。"
+            "value" : "在刘海下方短暂显示曲目标题和艺人名称。"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "喺劉海下短暫預覽歌曲資訊。"
+            "value" : "在劉海下方短暫顯示曲目標題和藝人名稱。"
           }
         }
       }
@@ -29444,13 +29466,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sneak Peek 样式"
+            "value" : "播放预览样式"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "短暫預覽樣式"
+            "value" : "播放預覽樣式"
           }
         }
       }
@@ -30405,7 +30427,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "电池充满时间：%@"
+            "value" : "距离充满：%@"
           }
         }
       }
@@ -30476,7 +30498,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "电池充满时间：计算中……"
+            "value" : "距离充满：计算中……"
           }
         }
       }
@@ -30541,7 +30563,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "电池耗尽时间：%@"
+            "value" : "剩余续航：%@"
           }
         }
       }
@@ -30606,7 +30628,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "电池耗尽时间：计算中……"
+            "value" : "剩余续航：计算中……"
           }
         }
       }
@@ -30831,13 +30853,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "切换Notch："
+            "value" : "展开或收起刘海："
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "切換劉海："
+            "value" : "展開或收起劉海："
           }
         }
       }
@@ -30949,13 +30971,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "触发 Sneak Peek："
+            "value" : "切换播放预览："
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "觸發預覽："
+            "value" : "切換播放預覽："
           }
         }
       }
@@ -31067,13 +31089,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在Notch里双指向上滑动以关闭。当**悬停在Notch时打开**选项禁用时，双指向下滑动即可打开"
+            "value" : "在刘海上双指向上滑动可收起刘海。关闭**悬停时展开刘海**后，双指向下滑动可展开刘海。"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "鼠標懸停在劉海上時，雙指上滑關閉劉海，下滑開啟劉海"
+            "value" : "在劉海上雙指向上滑動可收起劉海。關閉**懸停時展開劉海**後，雙指向下滑動可展開劉海。"
           }
         }
       }
@@ -31663,13 +31685,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "使用强调色"
+            "value" : "使用主题色"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "使用強調色"
+            "value" : "使用主題色"
           }
         }
       }
@@ -31745,7 +31767,7 @@
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "喺劉海兩邊顯示"
+            "value" : "在劉海兩側顯示"
           }
         }
       }
@@ -31927,7 +31949,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在播放应用程序的音频上使用加速FFT。需要音频捕获权限并使用更多的 CPU。"
+            "value" : "使用 Accelerate 框架的 FFT 分析正在播放的音频。需要音频采集权限，会略微增加 CPU 占用。"
           }
         }
       }
@@ -32009,7 +32031,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "改用 %@，你的“正在播放”偏好已保留。"
+            "value" : "改用 %@，仍保留“当前播放”设置。"
           }
         }
       }
@@ -32103,7 +32125,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "暂时改用 %@，你的“正在播放”偏好已保留。"
+            "value" : "暂时改用 %@，仍保留“当前播放”设置。"
           }
         }
       }
@@ -32916,13 +32938,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "音量源"
+            "value" : "音量控制来源"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "音量源"
+            "value" : "音量控制來源"
           }
         }
       }
@@ -32993,7 +33015,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "每周开始于"
+            "value" : "每周起始日"
           }
         }
       }
@@ -33464,13 +33486,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "如果您想进一步调整内容，您可以随时访问设置。"
+            "value" : "现在可以开始使用，之后可随时在设置中调整。"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "如果想進一步調整內容，您可以隨時訪問設置。"
+            "value" : "現在可以開始使用，之後可隨時在設定中調整。"
           }
         }
       }
@@ -33582,13 +33604,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "一切都准备好了！"
+            "value" : "设置完成"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "一切都準備好了！"
+            "value" : "設定完成"
           }
         }
       }
@@ -33694,13 +33716,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "您 macOS 的系统主题色"
+            "value" : "macOS 系统主题色"
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "沿用 macOS 的系統主題色"
+            "value" : "macOS 系統主題色"
           }
         }
       }
@@ -33825,13 +33847,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "YouTube 音乐需要安装此第三方应用程序： "
+            "value" : "使用 YouTube Music 需要安装以下第三方应用： "
           }
         },
         "zh-Hant-HK" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "YouTube 音樂需要安裝此第三方應用程式: "
+            "value" : "使用 YouTube Music 需要安裝以下第三方應用程式： "
           }
         }
       }
@@ -33895,7 +33917,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "颜色轮转速度"
+            "value" : "颜色变化速度"
           }
         }
       }
@@ -33927,7 +33949,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已拔出电源"
+            "value" : "已断开电源"
           }
         }
       }
@@ -34007,7 +34029,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "为每个正在发声的应用单独设置音量、静音，或把它送到不同的输出设备。你没有调整过的应用不会受到任何影响。"
+            "value" : "单独调整各应用的音量、静音状态和音频输出设备。未调整的应用保持原样。"
           }
         }
       }
@@ -34039,7 +34061,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你调整过的应用会经由 Boring Notch 重新输出，会增加几毫秒的延迟。受版权保护的音频无法截取，可能没有声音或调整不生效。"
+            "value" : "调整后的应用音频会经由 Boring Notch 输出，增加几毫秒延迟。带有复制保护的音频无法采集，可能无声或不受调整影响。"
           }
         }
       }
@@ -34071,7 +34093,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "没有应用正在发声"
+            "value" : "暂无应用播放音频"
           }
         }
       }
@@ -34199,7 +34221,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "没有已保存的场景"
+            "value" : "尚未保存场景"
           }
         }
       }
@@ -34215,7 +34237,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "把当前音量保存为场景…"
+            "value" : "将当前音量保存为场景……"
           }
         }
       }
@@ -34247,7 +34269,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "把当前音量保存为场景"
+            "value" : "将当前音量保存为场景"
           }
         }
       }
@@ -34263,7 +34285,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "给场景起个名字。使用已有的名字会覆盖原场景。"
+            "value" : "输入场景名称。若名称已存在，将覆盖同名场景。"
           }
         }
       }
@@ -34343,7 +34365,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "电平表会监听每个正在发声的应用，但不会改变它的声音。关闭可以略微节省 CPU。"
+            "value" : "电平表会采集各应用正在播放的音频，不改变声音。关闭电平表可略微降低 CPU 占用。"
           }
         }
       }
@@ -34391,7 +34413,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "按应用调音量"
+            "value" : "应用音量"
           }
         }
       }
@@ -34407,7 +34429,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "拖动应用的滑块调节音量（最高 150%），双击滑块回到 100%。滑块轨道里淡淡的彩色条是该应用的实时电平。"
+            "value" : "拖动滑块可调节应用音量（最高 150%），双击可恢复到 100%。滑块内的浅色条显示实时电平。"
           }
         }
       }
@@ -34439,7 +34461,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "喇叭按钮可以让单个应用静音。展开一行最右边的箭头后按 S，可以只听这一个应用。"
+            "value" : "点击扬声器按钮可将对应应用静音。点击该行右侧箭头，再点击 S，可仅播放该应用的声音。"
           }
         }
       }
@@ -34455,7 +34477,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "输出路由"
+            "value" : "输出设备"
           }
         }
       }
@@ -34471,7 +34493,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在展开的那一行里，可以把应用送到别的输出设备，或保持系统默认。"
+            "value" : "展开应用所在行后，可为该应用选择音频输出设备，也可使用系统默认设备。"
           }
         }
       }
@@ -34503,7 +34525,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "把应用的声音偏向左边或右边，或者合并成单声道（M）。"
+            "value" : "调整应用音频的左右声道平衡，或合并为单声道（M）。"
           }
         }
       }
@@ -34535,7 +34557,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "左边的两张卡片用来切换默认输出和输入设备，并设置它们的音量与静音。"
+            "value" : "左侧两张卡片可切换默认输出和输入设备，并调整音量和静音状态。"
           }
         }
       }
@@ -34551,7 +34573,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "把所有应用的设置存成一个带名字的场景，之后在“场景”按钮里一键恢复。"
+            "value" : "将所有应用的设置保存为场景。之后点击“场景”按钮，选择已保存的场景即可恢复设置。"
           }
         }
       }
@@ -34615,7 +34637,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "添加电量：%lld%%"
+            "value" : "添加提醒阈值：%lld%%"
           }
         }
       }
@@ -34647,7 +34669,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "未接电源时，电量降到你选的每个等级，刘海里就会弹出提醒。每个等级在一次放电过程中只提醒一次，充电后会重新生效。"
+            "value" : "未接电源时，电量降至所选阈值就会在刘海中提醒。每个阈值在一次放电过程中只提醒一次，充电后可再次触发。"
           }
         }
       }
@@ -34711,7 +34733,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "对于关闭了横幅的应用，通知一到刘海就先显示这个应用，约 5 秒后系统提供内容时再补上文字。"
+            "value" : "应用关闭通知横幅后，收到通知时会先在刘海中显示应用图标。约 5 秒后，系统提供正文，再补上文字。"
           }
         }
       }
@@ -34801,7 +34823,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "检测中…"
+            "value" : "检测中……"
           }
         }
       }
@@ -34891,7 +34913,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "如果通知不再出现在刘海里，看看这里哪一行是红色或橙色。"
+            "value" : "若刘海中未显示通知，请检查此处标为红色或橙色的服务。"
           }
         }
       }
@@ -34911,7 +34933,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "它们会有炫彩描边、停留时间翻倍，也不会被普通通知顶掉。重要程度来自通知数据库，所以需要开启数据库读取。"
+            "value" : "时间敏感通知会显示彩虹描边，停留时间翻倍，普通通知会等待其收起后再显示。通知级别来自数据库，需开启数据库读取。"
           }
         }
       }
@@ -34991,7 +35013,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "如果你能看到这行字，说明通知已经送到刘海。"
+            "value" : "看到此消息，表示刘海已成功显示通知。"
           }
         }
       }
@@ -35001,7 +35023,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "系统设置里已关闭 Boring Notch 的通知权限。"
+            "value" : "系统设置中已关闭 Boring Notch 的通知权限。"
           }
         }
       }
@@ -35011,7 +35033,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "真实系统通知会走完整条链路，可能会闪一下系统横幅；“仅刘海”的类型会跳过系统，这是唯一能试看时间敏感效果的办法。"
+            "value" : "真实系统通知用于测试完整的接收流程，可能短暂显示系统横幅。“仅刘海”测试会直接在刘海中显示通知；预览时间敏感通知效果需选择此类测试。"
           }
         }
       }
@@ -35061,7 +35083,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "图标停留"
+            "value" : "图标停留时间"
           }
         }
       }
@@ -35071,7 +35093,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "这些应用的通知只在收起的刘海左侧显示应用图标，刘海不会为它们展开。播放音乐时，图标会暂时替换专辑封面，图标消失后封面恢复。"
+            "value" : "收到这些应用的通知时，仅在刘海左侧显示应用图标，刘海保持收起。播放音乐时，图标会暂时替换专辑封面，消失后恢复封面。"
           }
         }
       }
@@ -35141,7 +35163,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "这些应用的通知交给系统处理：刘海里不显示，系统横幅也不会被隐藏。后台项目这类没有 .app 的系统代理，只能从“最近发过通知的应用”里添加。"
+            "value" : "这些应用的通知仅由系统显示，刘海不显示，也不隐藏系统横幅。“后台项目”等没有独立应用的系统服务，只能从“最近发过通知的应用”中添加。"
           }
         }
       }
@@ -35181,7 +35203,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "沿底边的一条细线，从左向右按电量填充：充电时为绿色，电量在 20% 及以下时为红色。"
+            "value" : "刘海底部的细线从左向右显示剩余电量。充电时为绿色，电量在 20% 及以下时为红色。"
           }
         }
       }
@@ -35261,7 +35283,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "已被专注模式静音"
+            "value" : "专注模式已将此通知静音"
           }
         }
       }
@@ -35389,7 +35411,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "选择“跟随专注模式”时，刘海只显示系统放行的通知，即仍会弹出横幅的通知和时间敏感通知，其余通知只记入历史。读取专注模式状态需要完全磁盘访问权限，按计划自动开启的专注模式无法识别。"
+            "value" : "选择“跟随专注模式”时，刘海只显示系统允许提醒的通知，包括仍会弹出横幅的通知和时间敏感通知。其余通知仅记入历史。读取专注模式状态需要完全磁盘访问权限；按计划自动开启的专注模式无法识别。"
           }
         }
       }
@@ -35421,7 +35443,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在刘海中添加“通知”页签，显示最近 %lld 条通知。历史只保存在内存中，退出应用后清空。"
+            "value" : "在刘海中添加“通知”标签页，显示最近 %lld 条通知。历史只保存在内存中，退出应用后清空。"
           }
         }
       }
