@@ -308,8 +308,11 @@ struct ContentView: View {
                     .overlay {
                         if Defaults[.notificationPriorityHighlight],
                            notificationManager.activeNotification?.priority == .high {
+                            // Gone at once on removal: a view fading out keeps
+                            // its last size, and would hang there while the
+                            // notch shrinks out from under it.
                             PriorityGlowBorder(shape: currentNotchShape.sidesOnly)
-                                .transition(.opacity)
+                                .transition(.asymmetric(insertion: .opacity, removal: .identity))
                         }
                     }
                     .animation(.easeInOut(duration: 0.3), value: notificationManager.activeNotification?.priority)

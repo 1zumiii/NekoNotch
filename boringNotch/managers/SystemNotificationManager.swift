@@ -562,6 +562,8 @@ final class SystemNotificationManager: ObservableObject {
         guard let bundleID, !bundleID.isEmpty else { return }
         let entry = "\(bundleID.lowercased())|\(name ?? bundleID)"
         var sources = Defaults[.notificationRecentSources]
+        // Most notifications come from the app that sent the last one.
+        guard sources.first != entry else { return }
         sources.removeAll { $0.hasPrefix(bundleID.lowercased() + "|") }
         sources.insert(entry, at: 0)
         Defaults[.notificationRecentSources] = Array(sources.prefix(12))
