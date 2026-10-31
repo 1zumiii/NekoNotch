@@ -49,19 +49,121 @@ struct NotificationSourceIcon: View {
 /// notifications. Only on screen while one is.
 private let priorityGlowColors: [Color] = [.red, .orange, .yellow, .green, .cyan, .blue, .purple, .pink, .red]
 
-struct PriorityGlowBorder<S: Shape>: View {
+/// Played by Core Animation: a time-sensitive notification stays on screen
+/// for up to a minute, and a SwiftUI loop would lay out and commit the whole
+/// notch window in this process on every frame of it.
+struct PriorityGlowBorder<S: Shape>: NSViewRepresentable {
     let shape: S
 
-    var body: some View {
-        TimelineView(.animation) { context in
-            let angle = context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 4) / 4 * 360
-            let gradient = AngularGradient(colors: priorityGlowColors, center: .center, angle: .degrees(angle))
-            ZStack {
-                shape.stroke(gradient, style: StrokeStyle(lineWidth: 5, lineCap: .round)).blur(radius: 6).opacity(0.7)
-                shape.stroke(gradient, style: StrokeStyle(lineWidth: 2, lineCap: .round))
-            }
+    func makeNSView(context: Context) -> PriorityGlowView { PriorityGlowView() }
+
+    func updateNSView(_ view: PriorityGlowView, context: Context) {
+        view.pathProvider = { shape.path(in: $0).cgPath }
+    }
+}
+
+final class PriorityGlowView: NSView {
+    private static let period: CFTimeInterval = 4
+    private static let lineWidth: CGFloat = 2
+    /// Widening, fading strokes that stand in for a blur. A Core Image blur
+    /// would need the layer tree rendered in this process.
+    private static let glowStrokes: [(width: CGFloat, opacity: Float)] = [(5, 0.45), (9, 0.22), (14, 0.1)]
+    private static let animationKey = "turn"
+
+    private let glowGradient = CAGradientLayer()
+    private let lineGradient = CAGradientLayer()
+    private let glowMask = CALayer()
+    private let glowMaskStrokes: [CAShapeLayer]
+    private let lineMask = CAShapeLayer()
+    private let glowHost = CALayer()
+    private let lineHost = CALayer()
+
+    var pathProvider: ((CGRect) -> CGPath)? {
+        didSet { needsLayout = true }
+    }
+
+    override var isFlipped: Bool { true }
+
+    init() {
+        glowMaskStrokes = Self.glowStrokes.map { _ in CAShapeLayer() }
+        super.init(frame: .zero)
+        wantsLayer = true
+        layer?.masksToBounds = false
+
+        let colors = priorityGlowColors.map { NSColor($0).cgColor }
+        for gradient in [glowGradient, lineGradient] {
+            gradient.type = .conic
+            gradient.colors = colors
+            gradient.startPoint = CGPoint(x: 0.5, y: 0.5)
+            gradient.endPoint = CGPoint(x: 1, y: 0.5)
         }
-        .allowsHitTesting(false)
+        for (stroke, style) in zip(glowMaskStrokes, Self.glowStrokes) {
+            configure(stroke, width: style.width)
+            stroke.opacity = style.opacity
+            glowMask.addSublayer(stroke)
+        }
+        configure(lineMask, width: Self.lineWidth)
+
+        glowHost.addSublayer(glowGradient)
+        glowHost.mask = glowMask
+        glowHost.opacity = 0.7
+        lineHost.addSublayer(lineGradient)
+        lineHost.mask = lineMask
+        layer?.addSublayer(glowHost)
+        layer?.addSublayer(lineHost)
+        startAnimation()
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+    private func configure(_ stroke: CAShapeLayer, width: CGFloat) {
+        stroke.fillColor = nil
+        stroke.strokeColor = NSColor.black.cgColor
+        stroke.lineWidth = width
+        stroke.lineCap = .round
+    }
+
+    /// The notch's size changes under it: only the paths and frames follow,
+    /// the running turn is left alone.
+    override func layout() {
+        super.layout()
+        guard let pathProvider else { return }
+        let bounds = self.bounds
+        let path = pathProvider(bounds)
+        // Square and as wide as the diagonal, so the turning gradient
+        // always covers the outline.
+        let side = hypot(bounds.width, bounds.height) + 32
+        let square = CGRect(x: bounds.midX - side / 2, y: bounds.midY - side / 2, width: side, height: side)
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        for host in [glowHost, lineHost] {
+            host.frame = bounds
+        }
+        for gradient in [glowGradient, lineGradient] {
+            gradient.bounds = CGRect(origin: .zero, size: square.size)
+            gradient.position = CGPoint(x: square.midX, y: square.midY)
+        }
+        glowMask.frame = bounds
+        for stroke in glowMaskStrokes + [lineMask] {
+            stroke.frame = bounds
+            stroke.path = path
+        }
+        CATransaction.commit()
+    }
+
+    private func startAnimation() {
+        for gradient in [glowGradient, lineGradient] {
+            let turn = CABasicAnimation(keyPath: "transform.rotation.z")
+            turn.fromValue = 0
+            turn.toValue = Double.pi * 2
+            turn.duration = Self.period
+            turn.repeatCount = .infinity
+            turn.preferredFrameRateRange = CAFrameRateRange(minimum: 20, maximum: 60, preferred: 30)
+            gradient.add(turn, forKey: Self.animationKey)
+        }
     }
 }
 
