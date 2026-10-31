@@ -45,6 +45,8 @@ struct NotificationSettingsView: View {
     @Default(.notificationDisplayDuration) private var displayDuration
     @Default(.notificationFromDatabase) private var fromDatabase
     @Default(.notificationEarlyPlaceholder) private var earlyPlaceholder
+    @Default(.notificationHistory) private var keepHistory
+    @Default(.notificationFocusBehavior) private var focusBehavior
     @State private var isAccessibilityAuthorized = true
     @State private var hasDatabaseAccess = true
     @State private var helperStatus: [String: NSNumber]?
@@ -53,6 +55,8 @@ struct NotificationSettingsView: View {
     @State private var testKind: NotificationTestKind = .system
     @State private var testDenied = false
     @ObservedObject private var manager = SystemNotificationManager.shared
+    @ObservedObject private var focus = FocusStatusMonitor.shared
+    @ObservedObject private var history = NotificationHistory.shared
 
     private var selectedApps: [NotificationApp] {
         allowedApps
@@ -108,6 +112,67 @@ struct NotificationSettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+    }
+
+    // MARK: Focus and history
+
+    private var focusSection: some View {
+        Section {
+            Picker("While a Focus is on", selection: $focusBehavior) {
+                Text("Follow the Focus").tag(FocusNotificationBehavior.follow)
+                Text("Show all notifications").tag(FocusNotificationBehavior.showAll)
+                Text("Show none").tag(FocusNotificationBehavior.hideAll)
+            }
+            .disabled(!notificationLiveActivity)
+            if notificationLiveActivity, focusBehavior != .showAll {
+                HStack {
+                    Text("Current Focus")
+                    Spacer()
+                    if let current = focus.current {
+                        Label {
+                            Text(verbatim: current.name ?? current.identifier)
+                        } icon: {
+                            Image(systemName: current.symbol ?? "moon.fill")
+                        }
+                        .foregroundStyle(.secondary)
+                    } else {
+                        Text("Off")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        } header: {
+            Text("Focus")
+        } footer: {
+            Text("Following the Focus, the notch only shows what the system lets through: notifications that still get a banner, and time-sensitive ones. The others go to the history. Reading the Focus needs Full Disk Access, and one that starts on a schedule is not detected.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var historySection: some View {
+        Section {
+            Defaults.Toggle(key: .notificationHistory) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Keep a history")
+                    Text("Adds a Notifications tab to the notch with the last \(NotificationHistory.limit) notifications. Kept in memory only and cleared when the app quits.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .disabled(!notificationLiveActivity)
+            HStack {
+                Text("\(history.entries.count) in the history")
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button("Clear") {
+                    history.clear()
+                }
+                .disabled(history.entries.isEmpty)
+            }
+        } header: {
+            Text("History")
+        }
     }
 
     // MARK: Service status
@@ -281,6 +346,10 @@ struct NotificationSettingsView: View {
 
             databaseSection
 
+            focusSection
+
+            historySection
+
             Section {
                 Picker("Type", selection: $testKind) {
                     Text("Real system notification").tag(NotificationTestKind.system)
@@ -393,6 +462,12 @@ struct NotificationSettingsView: View {
                 await refreshStatus()
                 try? await Task.sleep(for: .seconds(2))
             }
+        }
+        .onChange(of: focusBehavior) { _, _ in
+            SystemNotificationManager.shared.updateDatabaseWatcher()
+        }
+        .onChange(of: keepHistory) { _, keep in
+            if !keep { history.clear() }
         }
         .onChange(of: fromDatabase) { _, _ in
             hasDatabaseAccess = NotificationDatabaseWatcher.hasAccess()

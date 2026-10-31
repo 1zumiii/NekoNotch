@@ -23,6 +23,7 @@ enum NotchViews {
     case shelf
     case dashboard
     case mixer
+    case notifications
 }
 
 enum DownloadIndicatorStyle: String, Defaults.Serializable {

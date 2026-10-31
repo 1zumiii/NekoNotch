@@ -156,6 +156,11 @@ final class SystemNotificationManager: ObservableObject {
     }
 
     func updateDatabaseWatcher() {
+        if Defaults[.notificationLiveActivity], Defaults[.notificationFocusBehavior] != .showAll {
+            FocusStatusMonitor.shared.start()
+        } else {
+            FocusStatusMonitor.shared.stop()
+        }
         if Defaults[.notificationLiveActivity], Defaults[.notificationFromDatabase] {
             NotificationDatabaseWatcher.shared.start()
         } else {
@@ -173,6 +178,7 @@ final class SystemNotificationManager: ObservableObject {
 
     func stop() {
         NotificationDatabaseWatcher.shared.stop()
+        FocusStatusMonitor.shared.stop()
         XPCHelperClient.shared.stopEarlyNotificationSignal()
         XPCHelperClient.shared.stopNotificationWatching()
         queuedNotifications.removeAll()
@@ -306,9 +312,13 @@ final class SystemNotificationManager: ObservableObject {
 
         // The text for a notification already on screen as a placeholder.
         if let uuid = nonEmpty(payload["recordUUID"]) {
-            if dismissedPlaceholders.remove(uuid) != nil { return }
+            if dismissedPlaceholders.remove(uuid) != nil {
+                NotificationHistory.shared.record(notification)
+                return
+            }
             if let placeholderID = placeholderIDs.removeValue(forKey: uuid),
                upgradePlaceholder(placeholderID, to: notification, uuid: uuid) {
+                NotificationHistory.shared.record(notification)
                 return
             }
         }
@@ -317,6 +327,9 @@ final class SystemNotificationManager: ObservableObject {
             raiseActiveToHigh(matching: notification)
             return
         }
+        let silenced = isSilencedByFocus(notification)
+        NotificationHistory.shared.record(notification, silenced: silenced)
+        guard !silenced else { return }
         if isIconOnly(notification) {
             showIconPeek(notification)
             return
@@ -411,7 +424,7 @@ final class SystemNotificationManager: ObservableObject {
             recordUUID: uuid,
             isPlaceholder: true
         )
-        guard isAllowed(placeholder) else { return }
+        guard isAllowed(placeholder), !isSilencedByFocus(placeholder) else { return }
         // The icon is all an icon-only app shows, and the placeholder already
         // has it: the text arriving later just keeps it up a little longer.
         if isIconOnly(placeholder) {
@@ -474,7 +487,7 @@ final class SystemNotificationManager: ObservableObject {
     /// is immediate, the database copy lands several seconds later. Match on
     /// title and the start of the text, over a window long enough to cover
     /// that delay, and show it once.
-    private static func dedupeKey(_ notification: SystemNotification) -> String {
+    static func dedupeKey(_ notification: SystemNotification) -> String {
         [notification.title ?? "", String((notification.body ?? "").prefix(40))].joined(separator: "\u{1F}")
     }
 
@@ -586,6 +599,25 @@ final class SystemNotificationManager: ObservableObject {
         return ids.contains { id in
             guard let last = id.split(separator: ".").last else { return false }
             return appName == BundleIDResolver.normalizedAppName(String(last))
+        }
+    }
+
+    /// Whether a Focus keeps this notification out of the notch; it still
+    /// goes to the history. Test notifications always come through.
+    private func isSilencedByFocus(_ notification: SystemNotification) -> Bool {
+        guard FocusStatusMonitor.shared.isFocused, !notification.id.hasPrefix("test-") else { return false }
+        switch Defaults[.notificationFocusBehavior] {
+        case .showAll:
+            return false
+        case .hideAll:
+            return true
+        case .follow:
+            // A banner means the system let it through the Focus. Database
+            // records and early signals arrive whether it did or not; a
+            // placeholder doesn't know its priority yet, and a time-sensitive
+            // notification gets its turn when its record is read.
+            let fromBanner = !notification.id.hasPrefix("db-") && !notification.id.hasPrefix("early-")
+            return !fromBanner && notification.priority != .high
         }
     }
 

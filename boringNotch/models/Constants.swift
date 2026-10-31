@@ -541,6 +541,11 @@ extension Defaults.Keys {
     static let notificationIconOnlyApps = Key<Set<String>>("notificationIconOnlyApps", default: [])
     /// Seconds an icon-only notification stays before it goes.
     static let notificationIconOnlyDuration = Key<Double>("notificationIconOnlyDuration", default: 4)
+    /// Keep the notifications that arrived, in memory only, for the
+    /// dashboard's history card. Cleared on quit.
+    static let notificationHistory = Key<Bool>("notificationHistory", default: true)
+    /// What the notch shows while a Focus is on.
+    static let notificationFocusBehavior = Key<FocusNotificationBehavior>("notificationFocusBehavior", default: .follow)
     /// The apps that notified most recently, newest first, as "bundle id|name",
     /// so they can be excluded from the settings without having an .app.
     static let notificationRecentSources = Key<[String]>("notificationRecentSources", default: [])
