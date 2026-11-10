@@ -74,10 +74,14 @@ final class BoringViewModel: NSObject, ObservableObject {
         let fullscreenStatusPublisher = detector.$fullscreenStatus
             .removeDuplicates()
 
-        // Combine all three: screen UUID, fullscreen status, and enabled setting
-        Publishers.CombineLatest3(screenPublisher, fullscreenStatusPublisher, enabledPublisher)
-            .map { screenUUID, fullscreenStatus, enabled in
-                let isFullscreen = fullscreenStatus[screenUUID] ?? false
+        // A window over the notch without a full-screen space counts too.
+        let coveredPublisher = detector.$coveredScreens
+            .removeDuplicates()
+
+        // Combine: screen UUID, fullscreen status, covered screens, and enabled setting
+        Publishers.CombineLatest4(screenPublisher, fullscreenStatusPublisher, coveredPublisher, enabledPublisher)
+            .map { screenUUID, fullscreenStatus, covered, enabled in
+                let isFullscreen = (fullscreenStatus[screenUUID] ?? false) || covered.contains(screenUUID)
                 return enabled && isFullscreen
             }
             .removeDuplicates()
@@ -174,7 +178,9 @@ final class BoringViewModel: NSObject, ObservableObject {
 
     @discardableResult
     func open() -> Bool {
-        guard !coordinator.firstLaunch, notchState != .open else { return false }
+        // Hidden because of a full-screen app: the notch stays shut, whether the
+        // pointer, a gesture or an incoming notification asks to open it.
+        guard !coordinator.firstLaunch, !hideOnClosed, notchState != .open else { return false }
 
         self.notchSize = openNotchSize
         self.notchState = .open

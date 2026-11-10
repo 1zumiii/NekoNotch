@@ -118,6 +118,11 @@ struct ContentView: View {
     private var liveActivities: [LiveActivityItem] {
         var items: [LiveActivityItem] = []
 
+        // Hidden for a full-screen app: nothing but a notification's icon.
+        if vm.hideOnClosed {
+            return notificationManager.iconPeek.map { [.notificationIcon($0)] } ?? []
+        }
+
         if let notification = notificationManager.activeNotification {
             items.append(.notification(notification))
         }
@@ -199,7 +204,7 @@ struct ContentView: View {
         if coordinator.shouldShowSneakPeek(on: vm.screenUUID) {
             return .osd(coordinator.sneakPeekState(for: vm.screenUUID).type)
         }
-        if !liveActivities.isEmpty, !vm.hideOnClosed {
+        if !liveActivities.isEmpty {
             return .activities(liveActivities)
         }
         if !coordinator.expandingView.show,
@@ -220,7 +225,7 @@ struct ContentView: View {
         } else if coordinator.expandingView.type == .battery && coordinator.expandingView.show
             && vm.notchState == .closed && Defaults[.showPowerStatusNotifications] {
             chinWidth = 640
-        } else if vm.notchState == .closed, !vm.hideOnClosed, let activity = selectedActivity {
+        } else if vm.notchState == .closed, let activity = selectedActivity {
             // Sized for whichever activity is actually on top, not for
             // whichever happens to exist — otherwise swiping to music while a
             // notification is still in the stack leaves the chin at the
@@ -570,7 +575,7 @@ struct ContentView: View {
                               gestureProgress: $gestureProgress
                           )
                               .transition(.opacity)
-                      } else if !liveActivities.isEmpty && vm.notchState == .closed && !vm.hideOnClosed {
+                      } else if !liveActivities.isEmpty && vm.notchState == .closed {
                           LiveActivityStack(items: liveActivities, index: $activityIndex) { item in
                               switch item {
                               case .notification(let notification):
