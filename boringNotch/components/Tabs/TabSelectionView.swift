@@ -18,10 +18,11 @@ struct TabModel: Identifiable {
 
 let tabs = [
     TabModel(label: "Home", icon: "house.fill", view: .home),
-    TabModel(label: "Shelf", icon: "tray.fill", view: .shelf),
     TabModel(label: "Dashboard", icon: "square.grid.2x2.fill", view: .dashboard),
     TabModel(label: "Mixer", icon: "headphones", view: .mixer),
-    TabModel(label: "Notifications", icon: "bell.fill", view: .notifications)
+    TabModel(label: "Notifications", icon: "bell.fill", view: .notifications),
+    // Last: the shelf opens on its own when files are dragged in.
+    TabModel(label: "Shelf", icon: "tray.fill", view: .shelf)
 ]
 
 struct TabSelectionView: View {
