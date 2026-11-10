@@ -587,7 +587,8 @@ final class SystemNotificationManager: ObservableObject {
     }
 
     private func isIconOnly(_ notification: SystemNotification) -> Bool {
-        Self.list(Defaults[.notificationIconOnlyApps], contains: notification.bundleID, appName: notification.appName)
+        // Hidden for a full-screen app, the notch shows no more than the icon.
+        FullscreenMediaDetector.shared.hidesNotchOnAnyScreen || Self.list(Defaults[.notificationIconOnlyApps], contains: notification.bundleID, appName: notification.appName)
     }
 
     /// Whether a list of lower-cased bundle identifiers names the sender, by

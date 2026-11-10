@@ -594,7 +594,7 @@ extension Defaults.Keys {
     static let joinMeetingOnEventTap = Key<Bool>("joinMeetingOnEventTap", default: true)
 
     // MARK: Fullscreen Media Detection
-    static let hideNotchOption = Key<HideNotchOption>("hideNotchOption", default: .nowPlayingOnly)
+    static let hideNotchOption = Key<HideNotchOption>("hideNotchOption", default: .always)
 
     // MARK: Media Controller
     static let mediaController = Key<MediaControllerType>("mediaController", default: defaultMediaController)
