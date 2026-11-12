@@ -84,6 +84,10 @@ private final class MixerRenderState {
     var leftScale: Float = 1
     var rightScale: Float = 1
     var mono = false
+    /// Zero-based output channels for left and right: the device's own
+    /// speaker pair, which on a multichannel interface need not be 1 and 2.
+    var leftChannel = 0
+    var rightChannel = 1
     var peakIn: Float = 0
     var peakOut: Float = 0
     var callbacks: Int = 0
@@ -165,6 +169,12 @@ private final class MixerMeterSession {
 private final class MixerSession {
     let key: String
     let outputUID: String
+    /// The output device's object ID when the session was built. The same UID
+    /// under a new ID means the device went away and came back (unplugged and
+    /// replugged, a Bluetooth reconnect), and the aggregate still points at
+    /// the old one.
+    let deviceID: AudioObjectID
+    let builtAt = Date()
     private let state = MixerRenderState()
     private var tapID = AudioObjectID(kAudioObjectUnknown)
     private var aggregateID = AudioObjectID(0)
@@ -172,14 +182,25 @@ private final class MixerSession {
     private let queue = DispatchQueue(label: "boringnotch.mixer.io", qos: .userInteractive)
     private(set) var processObjects: [AudioObjectID]
 
+    // Watchdog bookkeeping, only touched by the engine on the main actor.
+    var checkedCallbacks = 0
+    var lastCheck = Date.distantPast
+    var stalledChecks = 0
+
     struct Failure: Error { let message: String }
 
-    init(key: String, processObjects: [AudioObjectID], outputUID: String, gain: Float) throws {
+    init(
+        key: String, processObjects: [AudioObjectID], outputUID: String, deviceID: AudioObjectID, gain: Float
+    ) throws {
         self.key = key
         self.outputUID = outputUID
+        self.deviceID = deviceID
         self.processObjects = processObjects
         state.targetGain = gain
         state.currentGain = gain
+        let pair = Self.preferredStereoChannels(of: deviceID)
+        state.leftChannel = pair.left
+        state.rightChannel = pair.right
         do {
             try build()
         } catch {
@@ -202,11 +223,58 @@ private final class MixerSession {
 
     var level: Float { state.peakOut }
 
+    /// Advances with every IO cycle, sound or silence, while the session runs.
+    var callbacks: Int { state.callbacks }
+
+    /// False once Core Audio reports the aggregate dead, for instance when its
+    /// output device disappeared underneath it. An unreadable value counts as
+    /// alive; the callback watchdog catches those cases.
+    var isAggregateAlive: Bool {
+        guard aggregateID != 0 else { return false }
+        return (CA.value(aggregateID, kAudioDevicePropertyDeviceIsAlive, as: UInt32.self) ?? 1) != 0
+    }
+
     var debugLine: String {
         String(
             format: "%@ → %@ gain %.2f in-peak %.3f out-peak %.3f callbacks %d",
             key, outputUID, state.targetGain, state.peakIn, state.peakOut, state.callbacks
         )
+    }
+
+    /// The speaker pair chosen for the device (Audio MIDI Setup → Configure
+    /// Speakers), zero-based. A multichannel interface often has its monitors
+    /// on other channels than 1 and 2. Channels 1 and 2 when the device
+    /// doesn't say, or names a channel it doesn't have.
+    private static func preferredStereoChannels(of device: AudioObjectID) -> (left: Int, right: Int) {
+        let fallback = (left: 0, right: 1)
+        var address = CA.address(kAudioDevicePropertyPreferredChannelsForStereo, scope: kAudioObjectPropertyScopeOutput)
+        var pair: [UInt32] = [0, 0]
+        let expected = UInt32(MemoryLayout<UInt32>.size * 2)
+        var size = expected
+        guard AudioObjectGetPropertyData(device, &address, 0, nil, &size, &pair) == noErr, size == expected else {
+            return fallback
+        }
+        let count = outputChannelCount(of: device)
+        let left = Int(pair[0])
+        let right = Int(pair[1])
+        guard count >= 2, left != right, (1...count).contains(left), (1...count).contains(right) else {
+            return fallback
+        }
+        return (left: left - 1, right: right - 1)
+    }
+
+    private static func outputChannelCount(of device: AudioObjectID) -> Int {
+        var address = CA.address(kAudioDevicePropertyStreamConfiguration, scope: kAudioObjectPropertyScopeOutput)
+        var size: UInt32 = 0
+        guard AudioObjectGetPropertyDataSize(device, &address, 0, nil, &size) == noErr,
+              Int(size) >= MemoryLayout<AudioBufferList>.size else { return 0 }
+        let raw = UnsafeMutableRawPointer.allocate(
+            byteCount: Int(size), alignment: MemoryLayout<AudioBufferList>.alignment
+        )
+        defer { raw.deallocate() }
+        guard AudioObjectGetPropertyData(device, &address, 0, nil, &size, raw) == noErr else { return 0 }
+        let list = UnsafeMutableAudioBufferListPointer(raw.assumingMemoryBound(to: AudioBufferList.self))
+        return list.reduce(0) { $0 + Int($1.mNumberChannels) }
     }
 
     private func build() throws {
@@ -307,6 +375,46 @@ private final class MixerSession {
 
         var peakIn: Float = 0
         var peakOut: Float = 0
+
+        // A single-channel output (some USB headsets, a mono speaker) would
+        // otherwise only get the left side; give it both, balance applied.
+        var totalChannels = 0
+        for buffer in outputs { totalChannels += Int(buffer.mNumberChannels) }
+        if totalChannels == 1 {
+            let rightIndex = min(1, tapChannels - 1)
+            for buffer in outputs {
+                guard let data = buffer.mData, buffer.mNumberChannels == 1 else { continue }
+                let frames = min(tapFrames, Int(buffer.mDataByteSize) / MemoryLayout<Float>.size)
+                let destination = data.assumingMemoryBound(to: Float.self)
+                for frame in 0..<frames {
+                    let gain = frames > 1
+                        ? start + (end - start) * Float(frame) / Float(frames - 1)
+                        : end
+                    let left = source[frame * tapChannels]
+                    let right = source[frame * tapChannels + rightIndex]
+                    let mixed = (left * state.leftScale + right * state.rightScale) * 0.5
+                    var scaled = mixed * gain
+                    if gain * max(state.leftScale, state.rightScale) > 1 { scaled = softKnee(scaled) }
+                    scaled = max(-1, min(1, scaled))
+                    destination[frame] = scaled
+                    peakIn = max(peakIn, max(abs(left), abs(right)))
+                    peakOut = max(peakOut, abs(scaled))
+                }
+            }
+            state.peakIn = peakIn
+            state.peakOut = peakOut
+            return
+        }
+
+        // The device's speaker pair, unless its layout changed under the
+        // session and the pair no longer exists.
+        var leftChannel = state.leftChannel
+        var rightChannel = state.rightChannel
+        if leftChannel >= totalChannels || rightChannel >= totalChannels {
+            leftChannel = 0
+            rightChannel = 1
+        }
+
         var outputChannelBase = 0
         for buffer in outputs {
             guard let data = buffer.mData, buffer.mNumberChannels > 0 else { continue }
@@ -318,16 +426,21 @@ private final class MixerSession {
                     ? start + (end - start) * Float(frame) / Float(frames - 1)
                     : end
                 for channel in 0..<channels {
-                    // Stereo in, any number of channels out: the first two
-                    // outputs get left/right, the rest stay silent.
+                    // Stereo in, any number of channels out: the speaker pair
+                    // gets left/right, the rest stay silent.
                     let outputChannel = outputChannelBase + channel
-                    guard outputChannel < 2 else { continue }
-                    var sample = source[frame * tapChannels + min(outputChannel, tapChannels - 1)]
+                    let isLeft = outputChannel == leftChannel
+                    guard isLeft || outputChannel == rightChannel else { continue }
+                    var sample = source[frame * tapChannels + (isLeft ? 0 : min(1, tapChannels - 1))]
                     if state.mono, tapChannels > 1 {
                         sample = (source[frame * tapChannels] + source[frame * tapChannels + 1]) * 0.5
                     }
-                    let side = outputChannel == 0 ? state.leftScale : state.rightScale
-                    let scaled = max(-1, min(1, sample * gain * side))
+                    let side = isLeft ? state.leftScale : state.rightScale
+                    // Below unity the input is already within ±1 and this is
+                    // the plain product; only a boost bends the peaks.
+                    var scaled = sample * gain * side
+                    if gain * side > 1 { scaled = softKnee(scaled) }
+                    scaled = max(-1, min(1, scaled))
                     destination[frame * channels + channel] = scaled
                     peakIn = max(peakIn, abs(sample))
                     peakOut = max(peakOut, abs(scaled))
@@ -337,6 +450,16 @@ private final class MixerSession {
         }
         state.peakIn = peakIn
         state.peakOut = peakOut
+    }
+
+    /// Linear up to 0.8, then eases into full scale instead of chopping the
+    /// peaks off, so a boosted app gets louder without the hard-clip crackle.
+    @inline(__always)
+    private static func softKnee(_ x: Float) -> Float {
+        let magnitude = abs(x)
+        guard magnitude > 0.8 else { return x }
+        let shaped = 0.8 + 0.2 * tanhf((magnitude - 0.8) / 0.2)
+        return x < 0 ? -shaped : shaped
     }
 }
 
@@ -364,15 +487,93 @@ final class AudioMixerEngine: ObservableObject {
     @Published private(set) var solo: String? {
         didSet { updatePolling() }
     }
+    /// Apps whose chosen output is unavailable right now (unplugged, or not
+    /// responding) and which play on the system default until it is back.
+    @Published private(set) var fallbackKeys: Set<String> = []
+    /// The user turned down "System Audio Recording". Taps would only hear
+    /// silence (and mute the app with it), so no app is re-routed meanwhile.
+    @Published private(set) var capturePermissionMissing = false
 
     private var lastDeviceIDs: [AudioObjectID] = []
     private var sessions: [String: MixerSession] = [:]
     private var meters: [String: MixerMeterSession] = [:]
     private var metersRequested = false
+    /// Set while the page is on screen, see `refresh`.
+    private var keepsOrder = false
     private var isRunning = false
     private var timer: Timer?
     private var debugTick = 0
     private var enabledObserver: Task<Void, Never>?
+
+    /// What a session build depends on. A failed build is only retried early
+    /// when one of these changes; otherwise it waits out the back-off.
+    private struct BuildInputs: Equatable {
+        let outputUID: String
+        let processObjects: Set<AudioObjectID>
+        let devices: [MixerOutputDevice]
+    }
+
+    private struct Retry {
+        let inputs: BuildInputs
+        let failures: Int
+        let notBefore: Date
+    }
+
+    private struct Death {
+        let outputUID: String
+        let at: Date
+        let count: Int
+    }
+
+    /// Back-off after failed builds, per app.
+    private var retries: [String: Retry] = [:]
+    /// Sessions the watchdog found dead recently, per app, to tell a one-off
+    /// hiccup from a device that keeps failing.
+    private var deaths: [String: Death] = [:]
+    /// Explicitly chosen outputs that kept dying; apps on them fall back to
+    /// the default until the cool-down ends or the device list changes.
+    private var unhealthyOutputs: [String: Date] = [:]
+
+    /// A new session needs a moment before its IO starts counting.
+    private static let watchdogGrace: TimeInterval = 3
+    /// Checks closer together than this say nothing about a stalled IO, so a
+    /// burst of refreshes from hardware notifications can't trip it.
+    private static let watchdogInterval: TimeInterval = 0.8
+    private static let deathWindow: TimeInterval = 60
+    private static let unhealthyCoolDown: TimeInterval = 15
+    private static let maxBackOff: TimeInterval = 30
+
+    private struct Listener {
+        let selector: AudioObjectPropertySelector
+        let block: AudioObjectPropertyListenerBlock
+    }
+
+    private var listeners: [Listener] = []
+    private let listenerQueue = DispatchQueue(label: "boringnotch.mixer.listeners", qos: .utility)
+    private var refreshScheduled = false
+    /// The device list as last seen by a listener, without the mixer's own
+    /// aggregates: building or tearing down a session adds and removes one,
+    /// and that must not wake the engine again.
+    private var externalDeviceIDs: [AudioObjectID] = []
+
+    /// Listeners on each audio process's "is playing" flag, so a changed app
+    /// gets its tap the moment it starts instead of being heard untouched
+    /// until the next poll. Keyed by process object, pruned to the current
+    /// process list on every read of it.
+    private var processListeners: [AudioObjectID: AudioObjectPropertyListenerBlock] = [:]
+    /// This app's own process objects, which are never listened to.
+    private var ownProcessObjects: Set<AudioObjectID> = []
+    private var processRefreshScheduled = false
+
+    private enum CapturePermission { case granted, denied, notDetermined }
+    /// nil until checked after the engine starts.
+    private var capturePermission: CapturePermission?
+    private var lastPermissionCheck = Date.distantPast
+
+    /// Trailing write of `settings` to UserDefaults; a slider drag changes
+    /// them dozens of times a second.
+    private var pendingPersist: Task<Void, Never>?
+    private var terminationObserver: NSObjectProtocol?
 
     private init() {
         enabledObserver = Task { [weak self] in
@@ -380,12 +581,21 @@ final class AudioMixerEngine: ObservableObject {
                 self?.setRunning(enabled)
             }
         }
+        terminationObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.willTerminateNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            MainActor.assumeIsolated { self.flushPendingSettings() }
+        }
     }
 
     private func setRunning(_ running: Bool) {
         isRunning = running
         updatePolling()
-        if !running {
+        if running {
+            installListeners()
+        } else {
+            removeListeners()
             // Switching the mixer off gives every app its untouched audio back.
             sessions.removeAll()
             meters.removeAll()
@@ -393,7 +603,33 @@ final class AudioMixerEngine: ObservableObject {
             sources.removeAll()
             lastDeviceIDs = []
             solo = nil
+            clearRecoveryState()
+            flushPendingSettings()
+            // Asked again before the first session the next time it starts.
+            capturePermission = nil
+            lastPermissionCheck = .distantPast
+            if capturePermissionMissing { capturePermissionMissing = false }
         }
+    }
+
+    /// Forgets fallbacks, back-offs and the watchdog's memory for every app.
+    private func clearRecoveryState() {
+        if !fallbackKeys.isEmpty { fallbackKeys = [] }
+        retries.removeAll()
+        deaths.removeAll()
+        unhealthyOutputs.removeAll()
+    }
+
+    /// The same for one app, when it is reset, left alone or gone.
+    private func forgetRecoveryState(for key: String) {
+        setFallback(false, for: key)
+        retries[key] = nil
+        deaths[key] = nil
+    }
+
+    private func setFallback(_ on: Bool, for key: String) {
+        guard fallbackKeys.contains(key) != on else { return }
+        if on { fallbackKeys.insert(key) } else { fallbackKeys.remove(key) }
     }
 
     /// Starts the engine at launch if the mixer is enabled.
@@ -404,16 +640,22 @@ final class AudioMixerEngine: ObservableObject {
     /// Level meters only run while the mixer page is on screen.
     func setMetersRequested(_ requested: Bool) {
         metersRequested = requested
+        // Sorted once as the page opens, then held still while it is shown.
+        keepsOrder = false
         if requested { refresh() } else { meters.removeAll() }
+        keepsOrder = requested
         updatePolling()
     }
 
     /// Each poll is dozens of calls into coreaudiod, so it only runs while
     /// there is something to keep up to date: the page on screen, or apps
     /// being re-routed (a changed app that starts playing needs its tap).
+    private var pollingWanted: Bool {
+        isRunning && (metersRequested || !settings.isEmpty || solo != nil || !sessions.isEmpty)
+    }
+
     private func updatePolling() {
-        let wanted = isRunning && (metersRequested || !settings.isEmpty || solo != nil || !sessions.isEmpty)
-        if wanted {
+        if pollingWanted {
             guard timer == nil else { return }
             let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in
                 Task { @MainActor in self?.refresh() }
@@ -427,6 +669,169 @@ final class AudioMixerEngine: ObservableObject {
         } else {
             timer?.invalidate()
             timer = nil
+            removeProcessListeners()
+        }
+    }
+
+    // MARK: Hardware notifications
+
+    /// Device plugged or unplugged, default changed, an app started or quit
+    /// using audio, coreaudiod restarted: react now instead of on the next
+    /// poll, so an unplugged output falls back without a second of silence.
+    private static let listenedSelectors: [AudioObjectPropertySelector] = [
+        kAudioHardwarePropertyDevices,
+        kAudioHardwarePropertyDefaultOutputDevice,
+        kAudioHardwarePropertyDefaultInputDevice,
+        kAudioHardwarePropertyProcessObjectList,
+        kAudioHardwarePropertyServiceRestarted
+    ]
+
+    private func installListeners() {
+        guard listeners.isEmpty else { return }
+        externalDeviceIDs = Self.readExternalDeviceIDs()
+        for selector in Self.listenedSelectors {
+            var address = CA.address(selector)
+            let block = Self.listenerBlock(for: selector, engine: self)
+            if AudioObjectAddPropertyListenerBlock(CA.system, &address, listenerQueue, block) == noErr {
+                listeners.append(Listener(selector: selector, block: block))
+            }
+        }
+    }
+
+    private func removeListeners() {
+        for listener in listeners {
+            var address = CA.address(listener.selector)
+            AudioObjectRemovePropertyListenerBlock(CA.system, &address, listenerQueue, listener.block)
+        }
+        listeners.removeAll()
+        refreshScheduled = false
+        externalDeviceIDs = []
+        removeProcessListeners()
+    }
+
+    /// Listens to every process in the list that isn't ours and stops
+    /// listening to those that left it, while the engine polls anyway.
+    private func syncProcessListeners(_ objects: [AudioObjectID]) {
+        guard isRunning, pollingWanted else {
+            removeProcessListeners()
+            return
+        }
+        let current = Set(objects)
+        for (object, block) in processListeners where !current.contains(object) {
+            var address = CA.address(kAudioProcessPropertyIsRunningOutput)
+            // Fails once the process object is gone, which is the usual case.
+            _ = AudioObjectRemovePropertyListenerBlock(object, &address, listenerQueue, block)
+            processListeners[object] = nil
+        }
+        ownProcessObjects.formIntersection(current)
+        let ownPID = getpid()
+        for object in objects
+        where processListeners.index(forKey: object) == nil && !ownProcessObjects.contains(object) {
+            // Unreadable means the process already left; the next read prunes it.
+            guard let pid = CA.value(object, kAudioProcessPropertyPID, as: pid_t.self) else { continue }
+            if pid == ownPID {
+                ownProcessObjects.insert(object)
+                continue
+            }
+            var address = CA.address(kAudioProcessPropertyIsRunningOutput)
+            let block = Self.processListenerBlock(object: object, engine: self)
+            if AudioObjectAddPropertyListenerBlock(object, &address, listenerQueue, block) == noErr {
+                processListeners[object] = block
+            }
+        }
+    }
+
+    private func removeProcessListeners() {
+        for (object, block) in processListeners {
+            var address = CA.address(kAudioProcessPropertyIsRunningOutput)
+            _ = AudioObjectRemovePropertyListenerBlock(object, &address, listenerQueue, block)
+        }
+        processListeners.removeAll()
+        ownProcessObjects.removeAll()
+        processRefreshScheduled = false
+    }
+
+    private nonisolated static func processListenerBlock(
+        object: AudioObjectID, engine: AudioMixerEngine
+    ) -> AudioObjectPropertyListenerBlock {
+        { [weak engine] _, _ in
+            guard let engine else { return }
+            Task { @MainActor in engine.processOutputChanged(object) }
+        }
+    }
+
+    /// An app started or stopped playing. Starting is what matters now (a
+    /// muted app would otherwise be heard until the next poll), so only that
+    /// refreshes, without the settling delay the hardware notifications get;
+    /// several firing together still make one refresh.
+    private func processOutputChanged(_ object: AudioObjectID) {
+        guard isRunning, pollingWanted, processListeners.index(forKey: object) != nil else { return }
+        guard (CA.value(object, kAudioProcessPropertyIsRunningOutput, as: UInt32.self) ?? 0) != 0 else { return }
+        guard !processRefreshScheduled else { return }
+        processRefreshScheduled = true
+        // Queued behind the other notifications already waiting for the main
+        // actor, so a burst is covered by this one refresh.
+        Task { @MainActor [weak self] in
+            guard let self, self.processRefreshScheduled else { return }
+            self.processRefreshScheduled = false
+            guard self.isRunning, self.pollingWanted else { return }
+            self.refresh()
+        }
+    }
+
+    /// Built outside the main actor: Core Audio calls the block on its own
+    /// queue, so it must not inherit the engine's isolation.
+    private nonisolated static func listenerBlock(
+        for selector: AudioObjectPropertySelector, engine: AudioMixerEngine
+    ) -> AudioObjectPropertyListenerBlock {
+        { [weak engine] _, _ in
+            guard let engine else { return }
+            Task { @MainActor in engine.hardwareChanged(selector) }
+        }
+    }
+
+    private nonisolated static func readExternalDeviceIDs() -> [AudioObjectID] {
+        CA.objects(CA.system, kAudioHardwarePropertyDevices).filter { device in
+            !(CA.string(device, kAudioDevicePropertyDeviceUID)?.hasPrefix("com.boringnotch.") ?? false)
+        }
+    }
+
+    private func hardwareChanged(_ selector: AudioObjectPropertySelector) {
+        guard isRunning else { return }
+        if selector == kAudioHardwarePropertyServiceRestarted {
+            // Every object ID from before the restart is meaningless now.
+            sessions.removeAll()
+            meters.removeAll()
+            lastDeviceIDs = []
+            retries.removeAll()
+            deaths.removeAll()
+            unhealthyOutputs.removeAll()
+            externalDeviceIDs = Self.readExternalDeviceIDs()
+            // The process objects are gone with the old IDs, and so are the
+            // listeners on them; the refresh below listens to the new ones.
+            processListeners.removeAll()
+            ownProcessObjects.removeAll()
+        } else if selector == kAudioHardwarePropertyDevices {
+            let current = Self.readExternalDeviceIDs()
+            guard current != externalDeviceIDs else { return }
+            externalDeviceIDs = current
+        } else if selector == kAudioHardwarePropertyProcessObjectList {
+            // Listen to a new process straight away, so it is caught even if
+            // it starts playing before the refresh below.
+            syncProcessListeners(CA.objects(CA.system, kAudioHardwarePropertyProcessObjectList))
+        }
+        // An idle mixer stays idle; the next poll or page open catches up.
+        guard pollingWanted, !refreshScheduled else { return }
+        refreshScheduled = true
+        // Notifications come in bursts (an unplug changes the device list and
+        // the default together); one refresh a moment later covers them all
+        // and lets the new default device settle.
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 80_000_000)
+            guard let self, self.refreshScheduled else { return }
+            self.refreshScheduled = false
+            guard self.isRunning, self.pollingWanted else { return }
+            self.refresh()
         }
     }
 
@@ -450,7 +855,13 @@ final class AudioMixerEngine: ObservableObject {
     }
 
     func setOutput(_ uid: String?, for key: String) {
-        update(key) { $0.outputUID = uid }
+        // Remember the name too, so the page can still say which device the
+        // app is waiting for once it has been unplugged.
+        let name = uid.flatMap { wanted in devices.first(where: { $0.uid == wanted })?.name }
+        update(key) { setting in
+            setting.outputUID = uid
+            setting.outputName = name
+        }
     }
 
     func setBalance(_ balance: Double, for key: String) {
@@ -472,10 +883,12 @@ final class AudioMixerEngine: ObservableObject {
 
     func resetAll() {
         settings = [:]
+        cancelPendingPersist()
         Defaults[.mixerAppSettings] = [:]
         solo = nil
         sessions.removeAll()
         errors.removeAll()
+        clearRecoveryState()
     }
 
     // MARK: Scenes
@@ -493,6 +906,7 @@ final class AudioMixerEngine: ObservableObject {
 
     func applyScene(_ scene: MixerScene) {
         settings = scene.settings
+        cancelPendingPersist()
         Defaults[.mixerAppSettings] = settings
         solo = nil
         for key in Set(sources.map(\.id)).union(sessions.keys) { apply(key) }
@@ -555,8 +969,92 @@ final class AudioMixerEngine: ObservableObject {
         } else {
             settings[key] = setting
         }
-        Defaults[.mixerAppSettings] = settings
+        schedulePersist()
         apply(key)
+    }
+
+    // MARK: Saving settings
+
+    /// `settings` changes at once; the write to UserDefaults waits until the
+    /// changes pause, so a drag is saved once instead of dozens of times.
+    private func schedulePersist() {
+        pendingPersist?.cancel()
+        pendingPersist = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            guard !Task.isCancelled else { return }
+            self?.flushPendingSettings()
+        }
+    }
+
+    /// Writes a waiting change now: at quit and when the engine stops.
+    private func flushPendingSettings() {
+        guard let pending = pendingPersist else { return }
+        pending.cancel()
+        pendingPersist = nil
+        Defaults[.mixerAppSettings] = settings
+    }
+
+    /// For callers that write the whole dictionary themselves right after.
+    private func cancelPendingPersist() {
+        pendingPersist?.cancel()
+        pendingPersist = nil
+    }
+
+    // MARK: Capture permission
+
+    /// Opens Privacy & Security → Screen & System Audio Recording.
+    func openCapturePermissionSettings() {
+        guard let url = URL(
+            string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AudioCapture"
+        ) else { return }
+        NSWorkspace.shared.open(url)
+    }
+
+    /// False only when the user has definitely turned the permission down.
+    /// Process taps need it; without it a tap is still created but hears
+    /// silence, and since the tap mutes the app, the app would go quiet with
+    /// no explanation. Not asked yet counts as allowed: building the first
+    /// tap is what brings up the system prompt.
+    ///
+    /// A denied or unanswered permission can change at any moment (the
+    /// prompt, System Settings), so it is asked again at most once a second;
+    /// a granted one every half minute, in case it is revoked.
+    private func captureAllowed() -> Bool {
+        let now = Date()
+        let interval: TimeInterval = capturePermission == .granted ? 30 : 1
+        if capturePermission == nil || now.timeIntervalSince(lastPermissionCheck) >= interval {
+            lastPermissionCheck = now
+            capturePermission = Self.preflightAudioCapture()
+        }
+        let denied = capturePermission == .denied
+        if denied != capturePermissionMissing { capturePermissionMissing = denied }
+        if denied {
+            // Every app gets its own untouched audio back instead of silence.
+            sessions.removeAll()
+            meters.removeAll()
+        }
+        return !denied
+    }
+
+    private typealias TCCPreflight = @convention(c) (CFString, CFDictionary?) -> Int32
+
+    /// TCC's own check, which answers without prompting. Resolved at run time
+    /// because TCC is a private framework.
+    private static let tccPreflight: TCCPreflight? = {
+        guard let handle = dlopen("/System/Library/PrivateFrameworks/TCC.framework/TCC", RTLD_LAZY),
+              let symbol = dlsym(handle, "TCCAccessPreflight") else { return nil }
+        return unsafeBitCast(symbol, to: TCCPreflight.self)
+    }()
+
+    /// 0 granted, 1 denied, anything else not asked yet or unknown. Without
+    /// the function this fails open, as the mixer behaved before the check.
+    private static func preflightAudioCapture() -> CapturePermission {
+        guard let preflight = tccPreflight else { return .granted }
+        switch preflight("kTCCServiceAudioCapture" as CFString, nil) {
+        case 0: return .granted
+        case 1: return .denied
+        default: return .notDetermined
+        }
     }
 
     // MARK: Polling
@@ -576,32 +1074,72 @@ final class AudioMixerEngine: ObservableObject {
         if deviceIDs != lastDeviceIDs {
             lastDeviceIDs = deviceIDs
             let outputs = readDevices(deviceIDs, scope: kAudioObjectPropertyScopeOutput)
-            if outputs != devices { devices = outputs }
+            if outputs != devices {
+                devices = outputs
+                // A device came or went, or came back under a new ID: give
+                // every output a fresh chance.
+                unhealthyOutputs.removeAll()
+                deaths.removeAll()
+            }
             let inputs = readDevices(deviceIDs, scope: kAudioObjectPropertyScopeInput)
             if inputs != inputDevices { inputDevices = inputs }
         }
         readLevelsOfDefaultDevices()
+        let now = Date()
+        unhealthyOutputs = unhealthyOutputs.filter { now.timeIntervalSince($0.value) < Self.unhealthyCoolDown }
 
-        let found = readSources()
-        // Keep an app listed while it still has a session, even between sounds.
+        let processObjects = CA.objects(CA.system, kAudioHardwarePropertyProcessObjectList)
+        let found = readSources(processObjects)
+        // Keep an app listed while its processes are alive and it still has a
+        // session, or is the soloed one, even between sounds: a soloed app has
+        // no session of its own, and dropping it the moment it paused would
+        // end the solo and unmute everything else.
+        let liveObjects = Set(processObjects)
+        var kept = Set(sessions.keys)
+        if let solo { kept.insert(solo) }
         var merged = found
-        for (key, session) in sessions where !merged.contains(where: { $0.id == key }) {
-            if let kept = sources.first(where: { $0.id == key }), isAlive(session.processObjects) {
-                var copy = kept
-                copy.isPlaying = false
-                merged.append(copy)
-            }
+        for key in kept where !merged.contains(where: { $0.id == key }) {
+            guard let previous = sources.first(where: { $0.id == key }) else { continue }
+            let objects = sessions[key]?.processObjects ?? previous.processObjects
+            guard objects.contains(where: liveObjects.contains) else { continue }
+            var copy = previous
+            copy.isPlaying = false
+            merged.append(copy)
         }
-        merged.sort { ($0.isPlaying ? 0 : 1, $0.name.lowercased()) < ($1.isPlaying ? 0 : 1, $1.name.lowercased()) }
+        let byPlayingThenName: (MixerSource, MixerSource) -> Bool = {
+            ($0.isPlaying ? 0 : 1, $0.name.lowercased()) < ($1.isPlaying ? 0 : 1, $1.name.lowercased())
+        }
+        if keepsOrder {
+            // The page is on screen: an app that starts or stops playing must
+            // not jump to another row under the pointer, least of all the one
+            // being dragged. Rows keep their place and new apps go to the end.
+            let place = Dictionary(sources.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { first, _ in first })
+            let listed = merged.filter { place[$0.id] != nil }.sorted { place[$0.id]! < place[$1.id]! }
+            merged = listed + merged.filter { place[$0.id] == nil }.sorted(by: byPlayingThenName)
+        } else {
+            merged.sort(by: byPlayingThenName)
+        }
         if merged != sources { sources = merged }
         if let solo, !sources.contains(where: { $0.id == solo }) { self.solo = nil }
 
+        checkSessionHealth(now: now)
+        // Asked before the first session is built, then on the poll while it
+        // is missing, so granting it in System Settings takes effect by itself.
+        if !sessions.isEmpty || !settings.isEmpty || solo != nil || capturePermissionMissing {
+            _ = captureAllowed()
+        }
         for source in sources { apply(source.id) }
         for key in Array(sessions.keys) where !sources.contains(where: { $0.id == key }) {
             sessions[key] = nil
         }
+        // Apps that are gone take their fallback and back-off with them.
+        let current = Set(sources.map(\.id))
+        for key in fallbackKeys.union(retries.keys).union(deaths.keys) where !current.contains(key) {
+            forgetRecoveryState(for: key)
+        }
         updateMeters()
         if Defaults[.mixerDebug] { writeDebug() }
+        syncProcessListeners(processObjects)
         // The last session may just have gone.
         updatePolling()
     }
@@ -633,7 +1171,8 @@ final class AudioMixerEngine: ObservableObject {
     /// Listen-only taps, for apps that aren't being re-routed (those already
     /// report their own level), and only while the page is showing.
     private func updateMeters() {
-        guard metersRequested, Defaults[.mixerShowMeters] else {
+        // A listen-only tap needs the same permission, and would only read silence.
+        guard metersRequested, Defaults[.mixerShowMeters], !capturePermissionMissing else {
             if !meters.isEmpty { meters.removeAll() }
             return
         }
@@ -647,54 +1186,149 @@ final class AudioMixerEngine: ObservableObject {
         }
     }
 
-    private func isAlive(_ objects: [AudioObjectID]) -> Bool {
-        let current = Set(CA.objects(CA.system, kAudioHardwarePropertyProcessObjectList))
-        return objects.contains(where: current.contains)
+    // MARK: Session health
+
+    /// A healthy session's IO runs continuously, sound or silence. One whose
+    /// callback count stopped moving, or whose aggregate Core Audio calls
+    /// dead, is dropped here so `apply` builds it again.
+    private func checkSessionHealth(now: Date) {
+        for (key, session) in sessions where !isHealthy(session, now: now) {
+            sessions[key] = nil
+            recordDeath(of: session, key: key, now: now)
+        }
+    }
+
+    private func isHealthy(_ session: MixerSession, now: Date) -> Bool {
+        guard session.isAggregateAlive else { return false }
+        let count = session.callbacks
+        // Not judged until it has had time to start.
+        guard now.timeIntervalSince(session.builtAt) >= Self.watchdogGrace else {
+            session.checkedCallbacks = count
+            session.lastCheck = now
+            return true
+        }
+        guard now.timeIntervalSince(session.lastCheck) >= Self.watchdogInterval else { return true }
+        session.stalledChecks = count == session.checkedCallbacks ? session.stalledChecks + 1 : 0
+        session.checkedCallbacks = count
+        session.lastCheck = now
+        return session.stalledChecks < 2
+    }
+
+    /// The first death is rebuilt straight away. Dying again soon after means
+    /// the device itself is the problem: an explicitly chosen output is set
+    /// aside so the app falls back to the default, and the default (which has
+    /// nothing to fall back to) is retried with a growing delay, so a broken
+    /// device can never glitch the audio every second.
+    private func recordDeath(of session: MixerSession, key: String, now: Date) {
+        let uid = session.outputUID
+        var count = 1
+        if let last = deaths[key], last.outputUID == uid, now.timeIntervalSince(last.at) < Self.deathWindow {
+            count = last.count + 1
+        }
+        deaths[key] = Death(outputUID: uid, at: now, count: count)
+        guard count >= 2 else { return }
+        if setting(for: key).outputUID == uid, uid != defaultOutputUID {
+            unhealthyOutputs[uid] = now
+        } else {
+            let inputs = BuildInputs(
+                outputUID: uid, processObjects: Set(session.processObjects), devices: devices
+            )
+            retries[key] = Retry(inputs: inputs, failures: count - 1, notBefore: now + Self.backOff(count - 1))
+        }
+    }
+
+    /// 1 s, 2 s, 4 s … up to the cap.
+    private static func backOff(_ failures: Int) -> TimeInterval {
+        min(maxBackOff, pow(2, Double(max(failures, 1) - 1)))
     }
 
     /// Makes the session for one app match its setting: none when untouched,
     /// otherwise a tap on the right output at the right gain.
     private func apply(_ key: String) {
-        let setting = self.setting(for: key)
+        var setting = self.setting(for: key)
         guard let source = sources.first(where: { $0.id == key }) else {
             sessions[key] = nil
+            forgetRecoveryState(for: key)
             return
         }
         let silencedBySolo = solo != nil && solo != key
         if setting.isUntouched && !silencedBySolo {
             if sessions[key] != nil { sessions[key] = nil }
-            errors[key] = nil
+            if errors[key] != nil { errors[key] = nil }
+            forgetRecoveryState(for: key)
             return
         }
-        guard let outputUID = setting.outputUID ?? defaultOutputUID,
-              devices.contains(where: { $0.uid == outputUID }) else {
+
+        // A chosen output that is unplugged or keeps failing falls back to the
+        // default; the preference stays, so the app moves back on its own
+        // (through the output check below) once the device returns.
+        var target: MixerOutputDevice?
+        if let wanted = setting.outputUID,
+           unhealthyOutputs[wanted] == nil,
+           let device = devices.first(where: { $0.uid == wanted }) {
+            target = device
+            // Settings saved before names were remembered pick theirs up here.
+            if setting.outputName == nil {
+                setting.outputName = device.name
+                settings[key] = setting
+                schedulePersist()
+            }
+        } else if let fallback = defaultOutputUID {
+            target = devices.first(where: { $0.uid == fallback })
+        }
+        guard let target else {
             sessions[key] = nil
-            errors[key] = String(localized: "That output device isn't available")
+            setFallback(false, for: key)
+            let message = String(localized: "That output device isn't available")
+            if errors[key] != message { errors[key] = message }
             return
         }
+        setFallback(setting.outputUID != nil && setting.outputUID != target.uid, for: key)
         let gain = Float(setting.muted || silencedBySolo ? 0 : setting.volume)
 
         if let session = sessions[key] {
             let sameProcesses = Set(session.processObjects) == Set(source.processObjects)
-            if session.outputUID == outputUID && sameProcesses {
+            if session.outputUID == target.uid && session.deviceID == target.id && sameProcesses {
                 session.configure(gain: gain, balance: setting.balance, mono: setting.mono)
                 return
             }
             sessions[key] = nil
         }
+
+        // Without the permission the app keeps playing as it is; the page
+        // explains why, so this is not an error of the app's own.
+        guard captureAllowed() else { return }
+
+        // After a failed build, wait out the back-off unless something the
+        // build depends on has changed since.
+        let inputs = BuildInputs(
+            outputUID: target.uid, processObjects: Set(source.processObjects), devices: devices
+        )
+        if let retry = retries[key] {
+            if retry.inputs != inputs {
+                retries[key] = nil
+            } else if Date() < retry.notBefore {
+                return
+            }
+        }
+
         // A listen-only meter on the same app is replaced by the real session.
         meters[key] = nil
         do {
             let session = try MixerSession(
-                key: key, processObjects: source.processObjects, outputUID: outputUID, gain: gain
+                key: key, processObjects: source.processObjects, outputUID: target.uid,
+                deviceID: target.id, gain: gain
             )
             session.configure(gain: gain, balance: setting.balance, mono: setting.mono)
             sessions[key] = session
-            errors[key] = nil
-        } catch let failure as MixerSession.Failure {
-            errors[key] = failure.message
+            retries[key] = nil
+            if errors[key] != nil { errors[key] = nil }
         } catch {
-            errors[key] = error.localizedDescription
+            let failures = (retries[key]?.failures ?? 0) + 1
+            retries[key] = Retry(
+                inputs: inputs, failures: failures, notBefore: Date() + Self.backOff(failures)
+            )
+            errors[key] = (error as? MixerSession.Failure)?.message ?? error.localizedDescription
         }
     }
 
@@ -732,14 +1366,18 @@ final class AudioMixerEngine: ObservableObject {
     }
 
     /// Audio-producing processes, grouped by the app they belong to.
-    private func readSources() -> [MixerSource] {
+    private func readSources(_ processObjects: [AudioObjectID]) -> [MixerSource] {
         var groups: [String: MixerSource] = [:]
-        for object in CA.objects(CA.system, kAudioHardwarePropertyProcessObjectList) {
+        for object in processObjects {
             guard let pid = CA.value(object, kAudioProcessPropertyPID, as: pid_t.self), pid != getpid() else { continue }
             let running = (CA.value(object, kAudioProcessPropertyIsRunningOutput, as: UInt32.self) ?? 0) != 0
             guard running else { continue }
-            let appPath = Self.outermostAppPath(pid: pid)
-            let info = appInfo(path: appPath, fallbackBundleID: CA.string(object, kAudioProcessPropertyBundleID), pid: pid)
+            let executable = Self.executablePath(pid: pid)
+            let appPath = executable.flatMap(Self.outermostAppPath(executable:))
+            // Core Audio reports an empty string, not nothing, for a process
+            // without a bundle ID.
+            let bundleID = CA.string(object, kAudioProcessPropertyBundleID).flatMap { $0.isEmpty ? nil : $0 }
+            let info = appInfo(path: appPath, fallbackBundleID: bundleID, executable: executable, pid: pid)
             if var existing = groups[info.key] {
                 existing.processObjects.append(object)
                 groups[info.key] = existing
@@ -756,24 +1394,38 @@ final class AudioMixerEngine: ObservableObject {
     /// name don't change while it runs, so ask once per path.
     private var appInfoCache: [String: (key: String, name: String)] = [:]
 
-    private func appInfo(path: String?, fallbackBundleID: String?, pid: pid_t) -> (key: String, name: String) {
-        if let path, let cached = appInfoCache[path] { return cached }
-        let bundle = path.flatMap { Bundle(path: $0) }
-        let key = bundle?.bundleIdentifier ?? path ?? fallbackBundleID ?? "pid-\(pid)"
+    private func appInfo(
+        path: String?, fallbackBundleID: String?, executable: String?, pid: pid_t
+    ) -> (key: String, name: String) {
+        guard let path else {
+            // Not inside an app (a command-line player, a helper daemon): key
+            // it by something that survives a relaunch, so a setting saved
+            // for it still applies next time, and only fall back to the pid
+            // when nothing else is known.
+            let executableName = executable.map { URL(fileURLWithPath: $0).lastPathComponent }
+            let key = fallbackBundleID ?? executable ?? "pid-\(pid)"
+            let name = executableName ?? fallbackBundleID ?? "pid \(pid)"
+            return (key: key, name: name)
+        }
+        if let cached = appInfoCache[path] { return cached }
+        let bundle = Bundle(path: path)
+        let key = bundle?.bundleIdentifier ?? path
         let name = (bundle?.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String)
             ?? (bundle?.object(forInfoDictionaryKey: "CFBundleName") as? String)
-            ?? path.map { URL(fileURLWithPath: $0).deletingPathExtension().lastPathComponent }
-            ?? fallbackBundleID
-            ?? "pid \(pid)"
+            ?? URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent
         let info = (key: key, name: name)
-        if let path { appInfoCache[path] = info }
+        appInfoCache[path] = info
         return info
     }
 
-    private static func outermostAppPath(pid: pid_t) -> String? {
+    private static func executablePath(pid: pid_t) -> String? {
         var buffer = [CChar](repeating: 0, count: Int(MAXPATHLEN))
         guard proc_pidpath(pid, &buffer, UInt32(buffer.count)) > 0 else { return nil }
         let path = URL(fileURLWithPath: String(cString: buffer)).standardizedFileURL.path
+        return path.isEmpty ? nil : path
+    }
+
+    private static func outermostAppPath(executable path: String) -> String? {
         let components = path.split(separator: "/")
         guard let index = components.firstIndex(where: { $0.hasSuffix(".app") }) else { return nil }
         return "/" + components[...index].joined(separator: "/")
@@ -783,7 +1435,9 @@ final class AudioMixerEngine: ObservableObject {
         debugTick += 1
         let lines = sessions.values.map(\.debugLine).sorted()
         guard !lines.isEmpty || debugTick % 5 == 0 else { return }
-        let text = "\(Date()) sessions=\(sessions.count) meters=\(meters.count) solo=\(solo ?? "-") errors=\(errors)\n"
+        let text = "\(Date()) sessions=\(sessions.count) meters=\(meters.count) solo=\(solo ?? "-") errors=\(errors)"
+            + " fallback=\(fallbackKeys.sorted()) unhealthy=\(unhealthyOutputs.keys.sorted())"
+            + " backoff=\(retries.mapValues(\.failures))\n"
             + lines.map { "  " + $0 }.joined(separator: "\n") + "\n"
         let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("mixer-debug.log")
         if let handle = try? FileHandle(forWritingTo: url) {
