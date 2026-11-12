@@ -42,6 +42,10 @@ struct MixerView: View {
                 .frame(height: 18)
                 .padding(.horizontal, 4)
 
+                if engine.capturePermissionMissing {
+                    CapturePermissionNotice()
+                }
+
                 if engine.sources.isEmpty {
                     // A single centred line. (As an overlay on the scroll view
                     // the text was squeezed to the width of its empty content
@@ -233,6 +237,44 @@ private func devicePicker(
     .menuStyle(.borderlessButton)
     .menuIndicator(.hidden)
     .fixedSize(horizontal: false, vertical: true)
+}
+
+// MARK: - Permission notice
+
+/// Shown above the app list when macOS has denied "System Audio Recording".
+/// Without it per-app volume and routing silently do nothing, so the notice
+/// says why and links to the right System Settings pane. Kept to one line
+/// because the whole tab is only about 150 pt tall.
+private struct CapturePermissionNotice: View {
+    @ObservedObject private var engine = AudioMixerEngine.shared
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 10))
+                .foregroundStyle(.orange)
+            Text("Allow System Audio Recording to change app volumes")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            Spacer(minLength: 0)
+            Button {
+                engine.openCapturePermissionSettings()
+            } label: {
+                Text("Open Settings")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.black)
+                    .padding(.horizontal, 7)
+                    .frame(height: 18)
+                    .background(Capsule().fill(Color.orange))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.07)))
+    }
 }
 
 // MARK: - Fixed cards
@@ -444,6 +486,13 @@ private struct AppRow: View {
             } label: {
                 Label("System default", systemImage: setting.outputUID == nil ? "checkmark" : "arrow.triangle.branch")
             }
+            if chosenDeviceMissing {
+                // Keep the remembered choice visible while the device is unplugged.
+                Button {} label: {
+                    Label(String(localized: "\(missingDeviceName) (not connected)"), systemImage: "checkmark")
+                }
+                .disabled(true)
+            }
             Divider()
             ForEach(engine.devices) { device in
                 Button {
@@ -454,7 +503,9 @@ private struct AppRow: View {
             }
         } label: {
             HStack(spacing: 4) {
-                Image(systemName: setting.outputUID == nil ? "arrow.triangle.branch" : "arrow.triangle.turn.up.right.diamond.fill")
+                Image(systemName: isFallback
+                      ? "exclamationmark.triangle.fill"
+                      : (setting.outputUID == nil ? "arrow.triangle.branch" : "arrow.triangle.turn.up.right.diamond.fill"))
                     .font(.system(size: 10, weight: .semibold))
                 Text(routeTitle)
                     .font(.system(size: 10, weight: .medium))
@@ -465,19 +516,42 @@ private struct AppRow: View {
             .padding(.horizontal, 6)
             .frame(height: 20)
             .background(RoundedRectangle(cornerRadius: 6)
-                .fill(setting.outputUID == nil ? Color.white.opacity(0.1) : Color.accentColor))
+                .fill(isFallback
+                      ? Color.orange.opacity(0.85)
+                      : (setting.outputUID == nil ? Color.white.opacity(0.1) : Color.accentColor)))
             .frame(maxWidth: 120)
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
         .fixedSize()
+        .help(isFallback
+              ? String(localized: "\(missingDeviceName) isn't connected. Playing on the system default until it comes back.")
+              : "")
     }
+
+    /// The chosen output is unplugged, so the app is playing on the system default for now.
+    private var isFallback: Bool { engine.fallbackKeys.contains(source.id) }
 
     private var routeTitle: String {
         if let uid = setting.outputUID, let device = engine.devices.first(where: { $0.uid == uid }) {
             return device.name
         }
+        if setting.outputUID != nil {
+            // The chosen device is unplugged: name it rather than claim "System default".
+            return setting.outputName ?? String(localized: "Unavailable device")
+        }
         return String(localized: "System default")
+    }
+
+    /// Name of the chosen device when it is not connected, for the menu and the tooltip.
+    private var missingDeviceName: String {
+        setting.outputName ?? String(localized: "Unavailable device")
+    }
+
+    /// True when an output is chosen but no connected device has that UID.
+    private var chosenDeviceMissing: Bool {
+        guard let uid = setting.outputUID else { return false }
+        return !engine.devices.contains(where: { $0.uid == uid })
     }
 }
 
