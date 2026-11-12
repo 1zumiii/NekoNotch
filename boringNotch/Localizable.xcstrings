@@ -35212,6 +35212,246 @@
         }
       }
     },
+    "System Monitor" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "系统监测"
+          }
+        }
+      }
+    },
+    "Up %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已运行 %@"
+          }
+        }
+      }
+    },
+    "User" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用户"
+          }
+        }
+      }
+    },
+    "Idle" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "空闲"
+          }
+        }
+      }
+    },
+    "Pressure" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "压力"
+          }
+        }
+      }
+    },
+    "Wired" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "联动"
+          }
+        }
+      }
+    },
+    "Compressed" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已压缩"
+          }
+        }
+      }
+    },
+    "Network" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "网络"
+          }
+        }
+      }
+    },
+    "Download" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载"
+          }
+        }
+      }
+    },
+    "Upload" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上传"
+          }
+        }
+      }
+    },
+    "Total" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "总计"
+          }
+        }
+      }
+    },
+    "Power" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "电源"
+          }
+        }
+      }
+    },
+    "Adapter" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "电源适配器"
+          }
+        }
+      }
+    },
+    "Health" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "健康度"
+          }
+        }
+      }
+    },
+    "Cycles" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "循环次数"
+          }
+        }
+      }
+    },
+    "Temperature" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "温度"
+          }
+        }
+      }
+    },
+    "Energy" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "耗电"
+          }
+        }
+      }
+    },
+    "Share of the energy apps have used since they started" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "各应用自启动以来的耗电占比"
+          }
+        }
+      }
+    },
+    "Rainbow Cat" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "彩虹猫"
+          }
+        }
+      }
+    },
+    "Show the rainbow cat" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示彩虹猫"
+          }
+        }
+      }
+    },
+    "Replace the waveform while playing" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "播放时代替音频波形"
+          }
+        }
+      }
+    },
+    "Open the system monitor from the cat" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从猫展开系统监测"
+          }
+        }
+      }
+    },
+    "While nothing plays, a pixel cat with a piano keyboard for a body runs on the right of the closed notch, with an empty wing of the same width on the left. It runs faster the busier the CPU is." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有播放媒体时，一只以钢琴键盘为身体的像素猫会在收起的刘海右侧奔跑，左侧留出同样宽度的空白以保持对称。CPU 越忙，它跑得越快。"
+          }
+        }
+      }
+    },
+    "While media plays, the cat takes the waveform's place beside the album art, and coloured notes float off behind it instead of the rainbow, more of them the louder the music. Hovering over the cat or clicking it opens CPU, memory, network, storage, battery and energy use instead of the usual tabs." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "播放媒体时，猫会代替专辑封面旁的音频波形，身后的彩虹换成飘出的彩色音符，音乐越响，音符越多。将指针悬停在猫上或点按它，展开后显示 CPU、内存、网络、存储空间、电池和耗电情况，而不是平常的标签页。"
+          }
+        }
+      }
+    },
     "Full-screen scrolling (notch only)" : {
       "localizations" : {
         "zh-Hans" : {

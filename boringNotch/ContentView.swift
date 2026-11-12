@@ -27,6 +27,8 @@ struct ContentView: View {
     @State private var activityIndex: Int = 0
     @State private var hoverTask: Task<Void, Never>?
     @State private var isHovering: Bool = false
+    /// This opening came from the cat: the system monitor instead of the tabs.
+    @State private var showsSystemMonitor = false
     @State private var openedForNotification = false
     @State private var dragWatchTask: Task<Void, Never>?
     /// The app whose icon last borrowed the album art's place. Kept after the
@@ -162,6 +164,7 @@ struct ContentView: View {
 
     private var openNotchHeight: CGFloat? {
         if openNotification != nil { return 132 }
+        if showsSystemMonitor { return vm.notchSize.height }
         return Defaults[.compactMode] ? nil : vm.notchSize.height
     }
 
@@ -173,6 +176,31 @@ struct ContentView: View {
         vm.notchState == .open
             && openNotification == nil
             && !Defaults[.compactMode]
+            && !showsSystemMonitor
+    }
+
+    /// Opening from the cat shows the system monitor, when that is turned on.
+    /// Decided from where the pointer is as the notch opens: the closed
+    /// notch's own content takes no part in hit testing.
+    private func noteOpeningFromCat() {
+        showsSystemMonitor = Defaults[.rainbowCat] && Defaults[.rainbowCatSystemMonitor]
+            && catIsShown && pointerIsOverCatWing
+    }
+
+    private var catIsShown: Bool {
+        if showsIdleCat { return true }
+        if showsCatInPlayer, case .music = selectedActivity { return true }
+        return false
+    }
+
+    /// Right of the cutout, on the cat's wing, at the height of the closed notch.
+    private var pointerIsOverCatWing: Bool {
+        let pointer = NSEvent.mouseLocation
+        guard let screen = NSScreen.screens.first(where: { NSMouseInRect(pointer, $0.frame, false) }) else { return false }
+        let cutoutEdge = screen.frame.midX + vm.closedNotchSize.width / 2
+        return pointer.x > cutoutEdge
+            && pointer.x < cutoutEdge + 2 * liveActivityEdgeMargin + catWingWidth + 12
+            && pointer.y > screen.frame.maxY - displayClosedNotchHeight - 8
     }
 
     /// The activity currently on top of the stack — what the chin has to be
@@ -190,6 +218,7 @@ struct ContentView: View {
         case osd(SneakContentType)
         case activities([LiveActivityItem])
         case face
+        case cat
         case idle
     }
 
@@ -207,6 +236,7 @@ struct ContentView: View {
         if !liveActivities.isEmpty {
             return .activities(liveActivities)
         }
+        if showsIdleCat { return .cat }
         if !coordinator.expandingView.show,
            !musicManager.isPlaying,
            musicManager.isPlayerIdle,
@@ -233,8 +263,14 @@ struct ContentView: View {
             switch activity {
             case .notification, .notificationIcon:
                 chinWidth += (2 * max(0, vm.effectiveClosedNotchHeight - 12) + 20)
+                if catInNotification != nil {
+                    chinWidth += 2 * (catWingWidth - max(0, vm.effectiveClosedNotchHeight - 12))
+                }
             case .music:
                 chinWidth += (2 * max(0, displayClosedNotchHeight - 12) + 20 + 2 * liveActivityEdgeMargin + 2)
+                if showsCatInPlayer {
+                    chinWidth += 2 * (catWingWidth - max(0, displayClosedNotchHeight - 12))
+                }
                 // The inline song-change peek widens the pill itself, so the
                 // chin has to grow with it — otherwise the hover region is
                 // narrower than what's on screen.
@@ -242,6 +278,8 @@ struct ContentView: View {
                     chinWidth += 2 * inlineMusicPeekLabelWidth
                 }
             }
+        } else if vm.notchState == .closed && showsIdleCat {
+            chinWidth += 2 * catWingWidth + 2 * liveActivityEdgeMargin
         } else if !coordinator.expandingView.show && vm.notchState == .closed
             && (!musicManager.isPlaying && musicManager.isPlayerIdle) && Defaults[.showNotHumanFace]
             && !vm.hideOnClosed {
@@ -362,6 +400,7 @@ struct ContentView: View {
                     }
                     .onTapGesture {
                         if vm.notchState == .closed && !shouldDisplayNowPlayingFallbackNotice {
+                            noteOpeningFromCat()
                             doOpen()
                         }
                     }
@@ -437,6 +476,7 @@ struct ContentView: View {
                     .onChange(of: vm.notchState) { _, state in
                         if state == .closed {
                             openedForNotification = false
+                            showsSystemMonitor = false
                             dragWatchTask?.cancel()
                         }
                     }
@@ -591,16 +631,21 @@ struct ContentView: View {
                           LiveActivityStack(items: liveActivities, index: $activityIndex) { item in
                               switch item {
                               case .notification(let notification):
-                                  NotificationLiveActivity(notification: notification)
+                                  NotificationLiveActivity(notification: notification, catPlaying: catInNotification)
                               case .notificationIcon(let notification):
-                                  NotificationLiveActivity(notification: notification, iconOnly: true)
+                                  NotificationLiveActivity(notification: notification, iconOnly: true, catPlaying: catInNotification)
                               case .music:
                                   MusicLiveActivity()
                                       .frame(alignment: .center)
                               }
                           }
+                      } else if vm.notchState == .closed && showsIdleCat {
+                          RainbowCatIdle()
                       } else if !coordinator.expandingView.show && vm.notchState == .closed && (!musicManager.isPlaying && musicManager.isPlayerIdle) && Defaults[.showNotHumanFace] && !vm.hideOnClosed {
                           BoringFaceAnimation()
+                       } else if vm.notchState == .open && showsSystemMonitor && openNotification == nil {
+                           SystemMonitorHeader()
+                               .frame(height: max(38, displayClosedNotchHeight))
                        } else if showsHeader {
                            // No tab bar over a notification: it's a glance,
                            // not a place to switch between home and shelf —
@@ -680,6 +725,8 @@ struct ContentView: View {
                     if let notification = openNotification {
                         NotificationExpandedView(notification: notification, holdWhileShown: !openedForNotification)
                             .id(notification.id)
+                    } else if showsSystemMonitor {
+                        SystemMonitorView()
                     } else if Defaults[.compactMode] {
                         // Player only — no tab switching, so currentView is
                         // ignored here rather than offering a shelf the
@@ -778,6 +825,55 @@ struct ContentView: View {
         )
     }
 
+    // MARK: Rainbow cat
+
+    /// No activity has the closed notch and nothing is passing through it:
+    /// the cat has the right wing to itself. That includes the notch hidden
+    /// for a full-screen app, and media playing without the music pill.
+    private var showsIdleCat: Bool {
+        Defaults[.rainbowCat]
+            && !coordinator.expandingView.show
+            && liveActivities.isEmpty
+    }
+
+    /// A notification in the closed notch keeps the cat in the right wing,
+    /// in place of its dot. Nil when the cat is off.
+    private var catInNotification: Bool? {
+        Defaults[.rainbowCat] ? musicManager.isPlaying : nil
+    }
+
+    /// The cat stands in for the waveform beside the album art.
+    private var showsCatInPlayer: Bool {
+        Defaults[.rainbowCat] && Defaults[.rainbowCatInPlayer]
+    }
+
+    /// Each wing beside the cutout. The cat's wing is a window onto its sky,
+    /// as tall as the closed notch.
+    private var catWingWidth: CGFloat { RainbowCatNSView.wingWidth }
+
+    /// The cat's wing. Opening the notch with the pointer here shows the
+    /// system monitor (see `noteOpeningFromCat`).
+    @ViewBuilder
+    private func catWing(isPlaying: Bool) -> some View {
+        RainbowCat(isPlaying: isPlaying, isActive: vm.notchState == .closed)
+            .frame(width: catWingWidth, height: displayClosedNotchHeight)
+    }
+
+    /// The cat on the right of the cutout and an equal empty wing on the
+    /// left, so the closed notch stays centred.
+    @ViewBuilder
+    func RainbowCatIdle() -> some View {
+        HStack(spacing: 0) {
+            // Above the black middle, which its sky reaches in over.
+            RainbowStars().frame(width: catWingWidth, height: displayClosedNotchHeight).zIndex(1)
+            Rectangle()
+                .fill(.black)
+                .frame(width: vm.closedNotchSize.width + 2 * liveActivityEdgeMargin)
+            catWing(isPlaying: musicManager.isPlaying)
+        }
+        .frame(height: displayClosedNotchHeight, alignment: .center)
+    }
+
     @ViewBuilder
     func BoringFaceAnimation() -> some View {
         HStack {
@@ -822,10 +918,11 @@ struct ContentView: View {
     func MusicLiveActivity() -> some View {
         HStack(spacing: 0) {
             // Closed-mode album art: scale padding and corner radius according to cornerRadiusScaleFactor
-            let baseArtSize = displayClosedNotchHeight - 12
+            // The cat's wider wings leave room for bigger art.
+            let baseArtSize = displayClosedNotchHeight - (showsCatInPlayer ? 5 : 12)
             let scaledArtSize: CGFloat = {
                 if let scale = cornerRadiusScaleFactor {
-                    return displayClosedNotchHeight - 12 * scale
+                    return displayClosedNotchHeight - (showsCatInPlayer ? 5 : 12) * scale
                 }
                 return baseArtSize
             }()
@@ -871,7 +968,18 @@ struct ContentView: View {
                         hasPeekIcon = true
                     }
                 }
-                .offset(x: artVerticalInset - liveActivityEdgeMargin)
+                // Beside the cat, centred in what shows of this side: the wing
+                // and the margin before the cutout.
+                .offset(x: showsCatInPlayer ? liveActivityEdgeMargin / 2 : artVerticalInset - liveActivityEdgeMargin)
+                // As wide as the cat's wing on the other side, art in the middle of it.
+                .frame(width: showsCatInPlayer ? catWingWidth : nil, alignment: .center)
+                .background {
+                    // The cat's sky goes on behind the album art.
+                    if showsCatInPlayer {
+                        RainbowStars().frame(width: catWingWidth, height: displayClosedNotchHeight)
+                    }
+                }
+                .zIndex(1)
 
             Rectangle()
                 .fill(.black)
@@ -917,28 +1025,33 @@ struct ContentView: View {
                 )
                 .frame(width: musicActivityCenterWidth)
 
-            HStack {
-                MusicVisualizer(
-                    isPlaying: musicManager.isPlaying,
-                    tintColor: Defaults[.coloredSpectrogram]
-                    ? Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.5)
-                    : Color.gray,
-                    isActive: vm.notchState == .closed
+            if showsCatInPlayer {
+                // The trail is the waveform while something plays.
+                catWing(isPlaying: musicManager.isPlaying)
+            } else {
+                HStack {
+                    MusicVisualizer(
+                        isPlaying: musicManager.isPlaying,
+                        tintColor: Defaults[.coloredSpectrogram]
+                        ? Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.5)
+                        : Color.gray,
+                        isActive: vm.notchState == .closed
+                    )
+                    .frame(width: 18, height: 12)
+                }
+                .frame(
+                    width: max(
+                        0,
+                        displayClosedNotchHeight - 12
+                            + gestureProgress / 2
+                    ),
+                    height: max(
+                        0,
+                        displayClosedNotchHeight - 12
+                    ),
+                    alignment: .center
                 )
-                .frame(width: 18, height: 12)
             }
-            .frame(
-                width: max(
-                    0,
-                    displayClosedNotchHeight - 12
-                        + gestureProgress / 2
-                ),
-                height: max(
-                    0,
-                    displayClosedNotchHeight - 12
-                ),
-                alignment: .center
-            )
         }
         .frame(
             height: displayClosedNotchHeight,
@@ -1086,6 +1199,7 @@ extension ContentView {
                           !self.shouldDisplayNowPlayingFallbackNotice,
                           !self.coordinator.shouldShowSneakPeek(on: self.vm.screenUUID) else { return }
 
+                    self.noteOpeningFromCat()
                     self.doOpen()
                 }
             }

@@ -37,6 +37,9 @@ final class SystemStatsReader {
         )
     }
 
+    /// The CPU load alone, for callers that need nothing else.
+    func sampleCPU() -> Double? { cpuUsage() }
+
     private func cpuUsage() -> Double? {
         var info = host_cpu_load_info()
         var count = mach_msg_type_number_t(MemoryLayout<host_cpu_load_info>.stride / MemoryLayout<integer_t>.stride)
@@ -121,50 +124,8 @@ final class SystemStatsReader {
     }
 }
 
-/// CPU and memory as rings, network speed beside them. Read only while the
-/// dashboard is on screen.
-struct SystemStatsWidgetView: View {
-    static let tint = Color(red: 0.42, green: 0.62, blue: 1.0)
-
-    let size: CGSize
-
-    @State private var reader = SystemStatsReader()
-    @State private var sample: SystemStatsSample?
-
-    private var isStrip: Bool { size.height < 90 }
-    private var title: String { String(localized: "System") }
-    private static let icon = "cpu"
-    private static let refreshInterval: Duration = .seconds(2)
-
-    var body: some View {
-        Group {
-            if isStrip {
-                strip
-            } else {
-                card
-            }
-        }
-        .frame(width: size.width, height: size.height)
-        // Numbers change every two seconds: easing the rings each time would
-        // keep SwiftUI animating most of the time the dashboard is open.
-        .transaction { $0.disablesAnimations = true }
-        .task {
-            while !Task.isCancelled {
-                sample = reader.sample()
-                try? await Task.sleep(for: Self.refreshInterval)
-            }
-        }
-    }
-
-    private static func percent(_ fraction: Double?) -> String {
-        guard let fraction else { return "—" }
-        return "\(Int((fraction * 100).rounded()))%"
-    }
-
-    private static func bytes(_ value: UInt64) -> String {
-        ByteCountFormatter.string(fromByteCount: Int64(value), countStyle: .memory)
-    }
-
+extension SystemStatsReader {
+    /// A transfer rate such as "1.2 MB/s", or a dash before the second reading.
     static func speed(_ bytesPerSecond: Double?) -> String {
         guard let bytesPerSecond else { return "—" }
         let formatter = ByteCountFormatter()
@@ -172,139 +133,5 @@ struct SystemStatsWidgetView: View {
         formatter.allowedUnits = [.useKB, .useMB, .useGB]
         formatter.zeroPadsFractionDigits = false
         return formatter.string(fromByteCount: Int64(bytesPerSecond)) + "/s"
-    }
-
-    // MARK: Two rows tall
-
-    /// Wide enough for both rings with the speeds beside them; narrower
-    /// cards put the speeds under the rings.
-    private var isWide: Bool { size.width >= 250 }
-
-    private var card: some View {
-        DashboardCard(icon: Self.icon, tint: Self.tint, title: title) {
-            EmptyView()
-        } content: {
-            if let sample {
-                let contentWidth = size.width - 18
-                let diameter = isWide
-                    ? min(max(size.height - 18 - 22 - 28, 40), 64)
-                    : min(max(size.height - 18 - 22 - 44, 36), (contentWidth - 12) / 2, 60)
-                Spacer(minLength: 4)
-                HStack(spacing: 0) {
-                    Spacer(minLength: 2)
-                    GaugeRing(
-                        fraction: sample.cpu ?? 0,
-                        valueText: Self.percent(sample.cpu),
-                        label: String(localized: "CPU"),
-                        tint: Self.tint,
-                        diameter: diameter
-                    )
-                    Spacer(minLength: 8)
-                    GaugeRing(
-                        fraction: sample.memoryFraction,
-                        valueText: Self.percent(sample.memoryFraction),
-                        label: String(localized: "Memory"),
-                        tint: Self.tint,
-                        diameter: diameter
-                    )
-                    .help(Self.bytes(sample.memoryUsed) + " / " + Self.bytes(sample.memoryTotal))
-                    if isWide {
-                        Spacer(minLength: 10)
-                        VStack(alignment: .leading, spacing: 6) {
-                            rate(symbol: "arrow.down", value: sample.download)
-                            rate(symbol: "arrow.up", value: sample.upload)
-                        }
-                    }
-                    Spacer(minLength: 2)
-                }
-                if !isWide {
-                    Spacer(minLength: 4)
-                    HStack(spacing: 12) {
-                        rate(symbol: "arrow.down", value: sample.download)
-                        rate(symbol: "arrow.up", value: sample.upload)
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-                Spacer(minLength: 4)
-            } else {
-                Spacer(minLength: 0)
-            }
-        }
-    }
-
-    private func rate(symbol: String, value: Double?) -> some View {
-        HStack(spacing: 4) {
-            Image(systemName: symbol)
-                .font(.system(size: 9, weight: .bold))
-                .foregroundStyle(Self.tint)
-            Text(verbatim: Self.speed(value))
-                .font(.system(size: 11, weight: .semibold, design: .rounded))
-                .monospacedDigit()
-                .lineLimit(1)
-                .fixedSize()
-        }
-    }
-
-    // MARK: One row tall
-
-    private var strip: some View {
-        DashboardCardChrome(tint: Self.tint) {
-            if let sample {
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 12) {
-                        DashboardCardTitle(icon: Self.icon, tint: Self.tint, title: title)
-                        MiniGauge(
-                            fraction: sample.cpu ?? 0, valueText: Self.percent(sample.cpu),
-                            label: String(localized: "CPU"), tint: Self.tint
-                        )
-                        MiniGauge(
-                            fraction: sample.memoryFraction, valueText: Self.percent(sample.memoryFraction),
-                            label: String(localized: "Memory"), tint: Self.tint
-                        )
-                        VStack(alignment: .leading, spacing: 2) {
-                            rate(symbol: "arrow.down", value: sample.download)
-                            rate(symbol: "arrow.up", value: sample.upload)
-                        }
-                    }
-                    .frame(maxHeight: .infinity)
-
-                    HStack(spacing: 10) {
-                        MiniGauge(
-                            fraction: sample.cpu ?? 0, valueText: Self.percent(sample.cpu),
-                            label: String(localized: "CPU"), tint: Self.tint
-                        )
-                        MiniGauge(
-                            fraction: sample.memoryFraction, valueText: Self.percent(sample.memoryFraction),
-                            label: String(localized: "Memory"), tint: Self.tint
-                        )
-                        VStack(alignment: .leading, spacing: 2) {
-                            rate(symbol: "arrow.down", value: sample.download)
-                            rate(symbol: "arrow.up", value: sample.upload)
-                        }
-                    }
-                    .frame(maxHeight: .infinity)
-
-                    // The narrowest strip: gauges on one line, speeds on the next.
-                    VStack(alignment: .leading, spacing: 5) {
-                        HStack(spacing: 10) {
-                            MiniGauge(
-                                fraction: sample.cpu ?? 0, valueText: Self.percent(sample.cpu),
-                                label: String(localized: "CPU"), tint: Self.tint
-                            )
-                            MiniGauge(
-                                fraction: sample.memoryFraction, valueText: Self.percent(sample.memoryFraction),
-                                label: String(localized: "Memory"), tint: Self.tint
-                            )
-                        }
-                        HStack(spacing: 12) {
-                            rate(symbol: "arrow.down", value: sample.download)
-                            rate(symbol: "arrow.up", value: sample.upload)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
-                .frame(maxHeight: .infinity)
-            }
-        }
     }
 }
