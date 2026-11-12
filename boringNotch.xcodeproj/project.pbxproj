@@ -129,7 +129,6 @@
 		CB1000432F00000100EC13B2 /* UsageWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1000332F00000100EC13B2 /* UsageWidgetView.swift */; };
 		CB1000442F00000100EC13B2 /* DashboardSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1000342F00000100EC13B2 /* DashboardSettingsView.swift */; };
 		CB1000602F00000100EC13B2 /* DashboardComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1000502F00000100EC13B2 /* DashboardComponents.swift */; };
-		CB1000612F00000100EC13B2 /* StorageWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1000512F00000100EC13B2 /* StorageWidgetView.swift */; };
 		BA77E5A22F00000100EC13B2 /* BatteryUsageWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA77E5A12F00000100EC13B2 /* BatteryUsageWidgetView.swift */; };
 		CB1000D12F00000100EC13B2 /* ClaudeCodeStatsWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1000C12F00000100EC13B2 /* ClaudeCodeStatsWidgetView.swift */; };
 		CB10007B2F00000100EC13B2 /* CustomBuild.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB10007A2F00000100EC13B2 /* CustomBuild.swift */; };
@@ -320,7 +319,6 @@
 		CB1000332F00000100EC13B2 /* UsageWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = UsageWidgetView.swift; path = boringNotch/components/Dashboard/UsageWidgetView.swift; sourceTree = SOURCE_ROOT; };
 		CB1000342F00000100EC13B2 /* DashboardSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DashboardSettingsView.swift; path = boringNotch/components/Dashboard/DashboardSettingsView.swift; sourceTree = SOURCE_ROOT; };
 		CB1000502F00000100EC13B2 /* DashboardComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = DashboardComponents.swift; path = boringNotch/components/Dashboard/DashboardComponents.swift; sourceTree = SOURCE_ROOT; };
-		CB1000512F00000100EC13B2 /* StorageWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = StorageWidgetView.swift; path = boringNotch/components/Dashboard/StorageWidgetView.swift; sourceTree = SOURCE_ROOT; };
 		BA77E5A12F00000100EC13B2 /* BatteryUsageWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = BatteryUsageWidgetView.swift; path = boringNotch/components/Dashboard/BatteryUsageWidgetView.swift; sourceTree = SOURCE_ROOT; };
 		CB1000C12F00000100EC13B2 /* ClaudeCodeStatsWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = ClaudeCodeStatsWidgetView.swift; path = boringNotch/components/Dashboard/ClaudeCodeStatsWidgetView.swift; sourceTree = SOURCE_ROOT; };
 		CB10007A2F00000100EC13B2 /* CustomBuild.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CustomBuild.swift; path = boringNotch/CustomBuild.swift; sourceTree = SOURCE_ROOT; };
@@ -634,7 +632,6 @@
 				CB1000332F00000100EC13B2 /* UsageWidgetView.swift */,
 				CB1000342F00000100EC13B2 /* DashboardSettingsView.swift */,
 				CB1000502F00000100EC13B2 /* DashboardComponents.swift */,
-				CB1000512F00000100EC13B2 /* StorageWidgetView.swift */,
 				BA77E5A12F00000100EC13B2 /* BatteryUsageWidgetView.swift */,
 				FC0004A12F00000100EC13B2 /* SystemStatsWidgetView.swift */,
 				CB1000C12F00000100EC13B2 /* ClaudeCodeStatsWidgetView.swift */,
@@ -1094,7 +1091,6 @@
 				CB1000432F00000100EC13B2 /* UsageWidgetView.swift in Sources */,
 				CB1000442F00000100EC13B2 /* DashboardSettingsView.swift in Sources */,
 				CB1000602F00000100EC13B2 /* DashboardComponents.swift in Sources */,
-				CB1000612F00000100EC13B2 /* StorageWidgetView.swift in Sources */,
 				BA77E5A22F00000100EC13B2 /* BatteryUsageWidgetView.swift in Sources */,
 				FC0004A22F00000100EC13B2 /* SystemStatsWidgetView.swift in Sources */,
 				FC0003A22F00000100EC13B2 /* NotificationHistoryView.swift in Sources */,

@@ -21,7 +21,8 @@ struct DashboardWidgetInfo: Identifiable {
 }
 
 enum DashboardWidgets {
-    static let all: [DashboardWidgetInfo] = usageWidgets + [storageWidget, claudeCodeWidget, batteryUsageWidget, systemStatsWidget]
+    // Storage, battery usage and system load moved to the rainbow cat's system monitor.
+    static let all: [DashboardWidgetInfo] = usageWidgets + [claudeCodeWidget]
 
     private static let usageWidgets: [DashboardWidgetInfo] = UsageSource.all.enumerated().map { index, source in
         DashboardWidgetInfo(
@@ -40,21 +41,6 @@ enum DashboardWidgets {
         )
     }
 
-    private static let storageWidget = DashboardWidgetInfo(
-        id: "storage",
-        title: "Storage",
-        icon: "internaldrive.fill",
-        tint: StorageWidgetView.tint,
-        minWidth: 4,
-        minHeight: 2,
-        maxWidth: 12,
-        maxHeight: 4,
-        defaultPlacement: DashboardPlacement(
-            id: "storage", enabled: true, col: UsageSource.all.count * 4, row: 0, width: 4, height: 4
-        ),
-        content: { size in AnyView(StorageWidgetView(size: size)) }
-    )
-
     private static let claudeCodeWidget = DashboardWidgetInfo(
         id: "claudeCode",
         title: "AI Tokens",
@@ -68,36 +54,6 @@ enum DashboardWidgets {
             id: "claudeCode", enabled: false, col: 0, row: 0, width: 6, height: 4
         ),
         content: { size in AnyView(ClaudeCodeStatsWidgetView(size: size)) }
-    )
-
-    private static let batteryUsageWidget = DashboardWidgetInfo(
-        id: "batteryUsage",
-        title: "Battery Usage",
-        icon: "bolt.fill",
-        tint: BatteryUsageWidgetView.tint,
-        minWidth: 4,
-        minHeight: 2,
-        maxWidth: 12,
-        maxHeight: 4,
-        defaultPlacement: DashboardPlacement(
-            id: "batteryUsage", enabled: false, col: 0, row: 0, width: 4, height: 4
-        ),
-        content: { size in AnyView(BatteryUsageWidgetView(size: size)) }
-    )
-
-    private static let systemStatsWidget = DashboardWidgetInfo(
-        id: "systemStats",
-        title: "System",
-        icon: "cpu",
-        tint: SystemStatsWidgetView.tint,
-        minWidth: 4,
-        minHeight: 2,
-        maxWidth: 12,
-        maxHeight: 4,
-        defaultPlacement: DashboardPlacement(
-            id: "systemStats", enabled: false, col: 0, row: 0, width: 6, height: 2
-        ),
-        content: { size in AnyView(SystemStatsWidgetView(size: size)) }
     )
 
     static func info(for id: String) -> DashboardWidgetInfo? {

@@ -449,6 +449,12 @@ extension Defaults.Keys {
     static let cornerRadiusScaling = Key<Bool>("cornerRadiusScaling", default: true)
 
     static let showNotHumanFace = Key<Bool>("showNotHumanFace", default: false)
+    /// A pixel cat runs on the right of the closed notch, faster as the CPU gets busier.
+    static let rainbowCat = Key<Bool>("rainbowCat", default: false)
+    /// While media plays, the cat takes the waveform's place and its trail moves with the audio.
+    static let rainbowCatInPlayer = Key<Bool>("rainbowCatInPlayer", default: true)
+    /// Hovering over the cat opens the system monitor instead of the usual tabs.
+    static let rainbowCatSystemMonitor = Key<Bool>("rainbowCatSystemMonitor", default: true)
     static let tileShowLabels = Key<Bool>("tileShowLabels", default: false)
     static let showCalendar = Key<Bool>("showCalendar", default: false)
     static let hideCompletedReminders = Key<Bool>("hideCompletedReminders", default: true)
