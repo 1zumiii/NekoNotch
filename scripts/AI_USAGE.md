@@ -69,9 +69,12 @@ swiftc boringNotch/components/Usage/UsageStore.swift scripts/test-claude-quota.s
   first event uses its last-request count to avoid counting inherited counters.
   Cache and reasoning counts are already included in `total_tokens`.
 - Dates use UTC. The last-seven-days figure includes today and the six preceding
-  dates. Totals cover available transcripts, not account-wide billing history.
-  Removing transcripts removes their usage on the next refresh. The adjacent
-  cache stores hashed request identities, dates and token counts only.
+  dates. Totals cover local transcripts, not account-wide billing history.
+- Claude Code deletes transcripts after its retention period (30 days by
+  default), and Codex moves or compresses old ones. The cache keeps the records
+  of a vanished transcript, so the totals never go backwards; a moved copy is
+  deduplicated. Usage from transcripts deleted before this was in place is not
+  recovered. The cache stores hashed request identities, dates and token counts only.
 
 Orange denotes Claude and violet denotes Codex. Mixed days blend their colors
 in proportion to the two token counts. Hover over the card for provider totals,

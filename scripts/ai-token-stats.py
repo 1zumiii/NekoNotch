@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Local transcript usage only. Never reads credentials or sends network requests.
 
-Install alongside a LaunchAgent running every 60 seconds. The cache contains
-only usage metadata, never prompts or responses. Calendar days are UTC.
+Run by ai-usage-sync.py once a minute. The cache contains only usage
+metadata, never prompts or responses, and keeps the records of transcripts that
+have since been deleted. Calendar days are UTC.
 """
 import hashlib
 import json
@@ -172,6 +173,12 @@ def collect(home, output, now=None):
             errors += 1
             if name in cache:
                 files[name] = cache[name]
+    # Claude Code deletes transcripts after its retention period, and Codex
+    # moves or compresses them. Records of a vanished file stay in the cache,
+    # so the totals never go backwards; a moved copy is deduplicated below.
+    for name, entry in cache.items():
+        if name not in files:
+            files[name] = {**entry, "signature": None, "gone": True}
     unique = {}
     for entry in files.values():
         for key, value in entry["records"].items():
