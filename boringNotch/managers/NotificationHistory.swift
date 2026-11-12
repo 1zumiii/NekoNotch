@@ -42,6 +42,8 @@ final class NotificationHistory: ObservableObject {
             abs(entry.notification.receivedAt.timeIntervalSince(notification.receivedAt)) < Self.duplicateWindow
                 && entry.notification.bundleID == notification.bundleID
                 && SystemNotificationManager.dedupeKey(entry.notification) == key
+                // Two database records are two notifications, however alike their text.
+                && !Self.areDifferentRecords(entry.notification, notification)
         }
         guard !isDuplicate else { return }
         entries.insert(NotificationHistoryEntry(notification: notification, silenced: silenced), at: 0)
@@ -49,6 +51,11 @@ final class NotificationHistory: ObservableObject {
         if entries.count > Self.limit {
             entries.removeLast(entries.count - Self.limit)
         }
+    }
+
+    private static func areDifferentRecords(_ a: SystemNotification, _ b: SystemNotification) -> Bool {
+        guard let first = a.recordUUID, let second = b.recordUUID else { return false }
+        return first != second
     }
 
     func remove(_ entry: NotificationHistoryEntry) {
