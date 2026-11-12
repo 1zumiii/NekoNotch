@@ -48,8 +48,8 @@
 
 仪表盘采用 12 × 4 的网格布局，可以在设置中调整每张卡片的位置和尺寸，例如 4 × 4 或 6 × 2。旧版本保存的布局会自动转换为新的网格尺寸。
 
-- Claude 和 Codex 用量：读取 RunCat 集成脚本生成的快照，路径分别为 `~/Library/Application Support/RunCatIntegrations/claude-usage.json` 和 `~/.codex/runcat-usage.json`。标题下方显示数据的更新时间，右侧的圆点表示数据新旧。
-- Claude Code：读取同一目录下的 `claude-code-stats.json`，显示累计 Token 数和最近几周的每日用量热力图。
+- Claude 和 Codex 用量：读取 `scripts/` 下的采集脚本生成的快照，安装方法见 `scripts/AI_USAGE.md`。Claude 卡片可在 App 与 CLI 两个账户之间切换：App 端额度来自桌面端自己的记录，CLI 端额度由 Claude Code 的状态栏脚本在每轮对话后写入，没有会话时不轮询。标题下方显示数据的采样时间，过旧的数据会标出。
+- Claude Code：读取同一目录下的 `ai-token-stats.json`，显示累计 Token 数和最近几周的每日用量热力图。
 - 存储空间：用环形图和文字显示磁盘用量，图表与文字均匀排列。
 - 电池用量：按耗电量列出排名靠前的应用，统计范围为各进程启动以来的能耗。沙盒不允许读取其他进程的信息，因此由 XPC 助手读取，且仅在卡片显示时读取。
 - 系统：显示 CPU 占用、已使用内存（与活动监视器的口径相同）和网络上下行速度，只在卡片显示时每 2 秒采样一次。网速只统计 Wi-Fi 和以太网接口，避免 VPN 流量被重复计算。
