@@ -34114,6 +34114,70 @@
         }
       }
     },
+    "Unavailable device" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unavailable device"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不可用的设备"
+          }
+        }
+      }
+    },
+    "%@ isn't connected. Playing on the system default until it comes back." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ isn't connected. Playing on the system default until it comes back."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 未连接。在它恢复之前，先通过系统默认设备播放。"
+          }
+        }
+      }
+    },
+    "%@ (not connected)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ (not connected)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@（未连接）"
+          }
+        }
+      }
+    },
+    "Allow System Audio Recording to change app volumes" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow System Audio Recording to change app volumes"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要允许“系统音频录制”才能调节各应用的音量"
+          }
+        }
+      }
+    },
     "That output device isn't available" : {
       "localizations" : {
         "en" : {
