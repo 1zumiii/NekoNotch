@@ -116,6 +116,10 @@ final class SystemMonitorReader {
             IORegistryEntryCreateCFProperty(service, key as CFString, kCFAllocatorDefault, 0)?.takeRetainedValue()
         }
         func number(_ key: String) -> Double? { (value(key) as? NSNumber)?.doubleValue }
+        // Capacities and temperature are only in the BatteryData dictionary
+        // on recent macOS; the top level is tried as well, for older ones.
+        let data = value("BatteryData") as? [String: Any] ?? [:]
+        func detail(_ key: String) -> Double? { (data[key] as? NSNumber)?.doubleValue ?? number(key) }
         var battery = SystemMonitorSnapshot.Battery()
         guard let current = number("CurrentCapacity") else { return nil }
         // Apple silicon reports the charge in percent; older Macs in mAh.
@@ -126,41 +130,96 @@ final class SystemMonitorReader {
         }
         battery.pluggedIn = (value("ExternalConnected") as? Bool) ?? false
         battery.charging = (value("IsCharging") as? Bool) ?? false
-        if let design = number("DesignCapacity"), design > 0,
-           let full = number("NominalChargeCapacity") ?? number("AppleRawMaxCapacity"), full > 0 {
+        if let design = detail("DesignCapacity"), design > 0,
+           let full = detail("NominalChargeCapacity") ?? detail("AppleRawMaxCapacity"), full > 0 {
             battery.health = min(full / design, 1)
         }
         battery.cycles = (value("CycleCount") as? NSNumber)?.intValue
-        if let raw = number("Temperature"), raw > 0 { battery.temperature = raw / 100 }
+        // Hundredths of a degree Celsius.
+        if let raw = detail("Temperature"), raw > 0 { battery.temperature = raw / 100 }
         return battery
     }
 }
 
 @MainActor
 final class SystemMonitorModel: ObservableObject {
+    /// Shared, so the history outlives the panel: it is kept up by the
+    /// cat's own load readings while the panel is closed.
+    static let shared = SystemMonitorModel()
+
     @Published private(set) var snapshot = SystemMonitorSnapshot()
-    @Published private(set) var cpuHistory: [Double] = []
-    @Published private(set) var downloadHistory: [Double] = []
+    @Published private(set) var cpuHistory: [TimedValue] = []
+    @Published private(set) var memoryHistory: [TimedValue] = []
+    @Published private(set) var downloadHistory: [TimedValue] = []
+    @Published private(set) var uploadHistory: [TimedValue] = []
     @Published private(set) var energy: [BatteryUsageEntry] = []
 
     private let reader = SystemMonitorReader()
-    static let historyLength = 30
+    /// The sparklines show this much time; readings are placed by when they
+    /// were taken, so a second apart and two apart line up the same.
+    static let window: TimeInterval = 60
+    /// Every second while the panel is open; the cat's two-second readings
+    /// keep the history going while it is closed.
+    private static let openInterval: TimeInterval = 1
     private var ticks = 0
 
+    /// Readings taken while the panel is closed. Kept apart from the
+    /// published history, so nothing is told about them until it opens.
+    private var pending: [(time: TimeInterval, sample: SystemStatsSample)] = []
+
+    private static var now: TimeInterval { ProcessInfo.processInfo.systemUptime }
+
+    /// A reading taken for the cat's pace, kept for the panel's history.
+    func record(_ sample: SystemStatsSample) {
+        guard !isRunning else { return }
+        let time = Self.now
+        pending = pending.filter { time - $0.time <= Self.window } + [(time, sample)]
+    }
+
+    private func takePending() {
+        for (time, sample) in pending {
+            add(cpu: sample.cpu, memory: sample.memoryTotal > 0 ? sample.memoryFraction : nil,
+                download: sample.download, upload: sample.upload, at: time)
+        }
+        pending = []
+    }
+
+    private func add(cpu: Double?, memory: Double?, download: Double?, upload: Double?, at time: TimeInterval) {
+        func appending(_ value: Double?, to history: [TimedValue]) -> [TimedValue] {
+            guard let value else { return history }
+            return history.filter { time - $0.time <= Self.window + 2 } + [TimedValue(time: time, value: value)]
+        }
+        cpuHistory = appending(cpu, to: cpuHistory)
+        memoryHistory = appending(memory, to: memoryHistory)
+        downloadHistory = appending(download, to: downloadHistory)
+        uploadHistory = appending(upload, to: uploadHistory)
+    }
+
+    private var isRunning = false
+
     func run() async {
+        isRunning = true
+        defer { isRunning = false }
+        takePending()
+        ticks = 0
         _ = reader.sample()
         while !Task.isCancelled {
-            try? await Task.sleep(for: .seconds(ticks == 0 ? 0.4 : 2))
+            try? await Task.sleep(for: .seconds(ticks == 0 ? 0.4 : Self.openInterval))
             guard !Task.isCancelled else { return }
             let next = reader.sample()
             snapshot = next
-            if let cpu = next.cpu { cpuHistory = Array((cpuHistory + [cpu.total]).suffix(Self.historyLength)) }
-            if let down = next.download { downloadHistory = Array((downloadHistory + [down]).suffix(Self.historyLength)) }
+            add(cpu: next.cpu?.total, memory: next.memory.total > 0 ? next.memory.fraction : nil,
+                download: next.download, upload: next.upload, at: Self.now)
             // Energy comes through the helper and changes slowly.
-            if ticks % 5 == 0 { energy = await BatteryUsageReader.read(limit: 3) }
+            if ticks % 10 == 0 { energy = await BatteryUsageReader.read(limit: 3) }
             ticks += 1
         }
     }
+}
+
+struct TimedValue {
+    let time: TimeInterval
+    let value: Double
 }
 
 // MARK: Views
@@ -173,20 +232,24 @@ struct SystemMonitorHeader: View {
             let centre = vm.closedNotchSize.width
             let side = max(0, (geometry.size.width - centre) / 2)
             HStack(spacing: 0) {
-                HStack(spacing: 6) {
-                    Image(systemName: "gauge.with.dots.needle.33percent")
-                        .foregroundStyle(SystemMonitorView.tint)
+                HStack(spacing: 7) {
+                    Image(systemName: "waveform.path.ecg")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(SystemMonitorView.cpuTint)
                     Text("System Monitor")
                         .font(.system(size: 13, weight: .semibold))
                 }
-                .padding(.leading, 14)
+                .padding(.leading, 10)
                 .frame(width: side, height: geometry.size.height, alignment: .leading)
                 Rectangle().fill(vm.hasNotch ? .black : .clear).frame(width: centre)
-                Text(Self.uptime())
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.secondary)
-                    .padding(.trailing, 14)
-                    .frame(width: side, height: geometry.size.height, alignment: .trailing)
+                HStack(spacing: 5) {
+                    Image(systemName: "clock")
+                    Text(Self.uptime())
+                }
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.secondary)
+                .padding(.trailing, 10)
+                .frame(width: side, height: geometry.size.height, alignment: .trailing)
             }
         }
     }
@@ -194,158 +257,320 @@ struct SystemMonitorHeader: View {
     private static func uptime() -> String {
         let formatter = DateComponentsFormatter()
         formatter.allowedUnits = [.day, .hour, .minute]
-        formatter.unitsStyle = .abbreviated
+        formatter.unitsStyle = .short
         formatter.maximumUnitCount = 2
+        // In the app's own language, not the region's.
+        var calendar = Calendar.current
+        calendar.locale = Locale(identifier: Bundle.main.preferredLocalizations.first ?? "en")
+        formatter.calendar = calendar
         let value = formatter.string(from: ProcessInfo.processInfo.systemUptime) ?? "—"
         return String(localized: "Up \(value)")
     }
 }
 
+/// One panel, not cards: live load across the top (CPU, memory, network,
+/// each with a minute of history), the devices and the apps using energy
+/// below, divided by space and hairlines. Clicking one of the top three
+/// shows its breakdown in place of the history.
 struct SystemMonitorView: View {
-    static let tint = Color(red: 0.42, green: 0.62, blue: 1.0)
-    @StateObject private var model = SystemMonitorModel()
+    static let cpuTint = Color(red: 0.42, green: 0.62, blue: 1.0)
+    static let memoryTint = Color(red: 0.70, green: 0.58, blue: 0.96)
+    static let networkTint = Color(red: 0.42, green: 0.80, blue: 0.80)
+    static let storageTint = Color(red: 0.86, green: 0.72, blue: 0.46)
+    static let batteryTint = Color(red: 0.45, green: 0.85, blue: 0.48)
+    private static let appTints: [Color] = [
+        Color(red: 0.92, green: 0.62, blue: 0.40), Color(red: 0.62, green: 0.66, blue: 0.76),
+        Color(red: 0.55, green: 0.70, blue: 0.95),
+    ]
 
-    private static let memoryTint = Color(red: 0.74, green: 0.52, blue: 1.0)
-    private static let networkTint = Color(red: 0.30, green: 0.78, blue: 0.86)
-    private static let diskTint = Color(red: 0.30, green: 0.78, blue: 0.62)
-    private static let batteryTint = Color(red: 0.42, green: 0.84, blue: 0.40)
-    private static let energyTint = Color(red: 0.96, green: 0.76, blue: 0.26)
+    private enum Detail { case cpu, memory, network }
+
+    @ObservedObject private var model = SystemMonitorModel.shared
+    @State private var detail: Detail?
 
     var body: some View {
         let s = model.snapshot
-        Grid(horizontalSpacing: 8, verticalSpacing: 8) {
-            GridRow {
-                tile(icon: "cpu", tint: Self.tint, title: "CPU", value: Self.percent(s.cpu?.total),
-                     details: [
-                        (String(localized: "System"), Self.percent(s.cpu?.system)),
-                        (String(localized: "User"), Self.percent(s.cpu?.user)),
-                        (String(localized: "Idle"), Self.percent(s.cpu?.idle)),
-                     ]) {
-                    Sparkline(values: model.cpuHistory, maximum: 1, tint: Self.tint)
-                }
-                tile(icon: "memorychip", tint: Self.memoryTint, title: String(localized: "Memory"),
-                     value: Self.percent(s.memory.total > 0 ? s.memory.fraction : nil),
-                     details: [
-                        (String(localized: "Pressure"), Self.percent(s.memory.pressure)),
-                        (String(localized: "App"), Self.bytes(s.memory.app)),
-                        (String(localized: "Wired"), Self.bytes(s.memory.wired)),
-                        (String(localized: "Compressed"), Self.bytes(s.memory.compressed)),
-                     ]) {
-                    Meter(fraction: s.memory.fraction, tint: Self.memoryTint)
-                }
-                tile(icon: "network", tint: Self.networkTint, title: String(localized: "Network"),
-                     value: nil,
-                     details: [
-                        (String(localized: "Download"), SystemStatsReader.speed(s.download)),
-                        (String(localized: "Upload"), SystemStatsReader.speed(s.upload)),
-                     ]) {
-                    Sparkline(values: model.downloadHistory, maximum: nil, tint: Self.networkTint)
-                }
+        VStack(spacing: 0) {
+            HStack(alignment: .top, spacing: 0) {
+                loadColumn(.cpu) { cpuColumn(s) }
+                hairline
+                loadColumn(.memory) { memoryColumn(s) }
+                hairline
+                loadColumn(.network) { networkColumn(s) }
             }
-            GridRow {
-                tile(icon: "internaldrive", tint: Self.diskTint, title: String(localized: "Storage"),
-                     value: Self.percent(s.disk?.fraction),
-                     details: s.disk.map { disk in [
-                        (String(localized: "Used"), Self.fileBytes(disk.used)),
-                        (String(localized: "Free"), Self.fileBytes(disk.free)),
-                        (String(localized: "Total"), Self.fileBytes(disk.total)),
-                     ] } ?? []) {
-                    Meter(fraction: s.disk?.fraction ?? 0, tint: Self.diskTint)
-                }
-                if let battery = s.battery {
-                    tile(icon: battery.charging ? "battery.100.bolt" : "battery.75", tint: Self.batteryTint,
-                         title: String(localized: "Battery"), value: Self.percent(battery.level),
-                         details: [
-                            (String(localized: "Power"), battery.pluggedIn ? String(localized: "Adapter") : String(localized: "Battery")),
-                            (String(localized: "Health"), Self.percent(battery.health)),
-                            (String(localized: "Cycles"), battery.cycles.map(String.init) ?? "—"),
-                            (String(localized: "Temperature"), battery.temperature.map { String(format: "%.1f°C", $0) } ?? "—"),
-                         ]) {
-                        Meter(fraction: battery.level, tint: Self.batteryTint)
-                    }
-                } else {
-                    tile(icon: "powerplug", tint: Self.batteryTint, title: String(localized: "Power"),
-                         value: nil, details: [(String(localized: "Power"), String(localized: "Adapter"))]) { EmptyView() }
-                }
-                energyTile
+            .frame(height: 62)
+            Rectangle().fill(Color.white.opacity(0.08)).frame(height: 1).padding(.vertical, 6)
+            // Equal heights, so each column's last line sits on one baseline.
+            HStack(alignment: .top, spacing: 18) {
+                storageColumn(s)
+                batteryColumn(s)
+                energyColumn
             }
+            .frame(height: 60)
+            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 12)
-        .padding(.bottom, 10)
+        .padding(.horizontal, 9)
         .padding(.top, 2)
+        .padding(.bottom, 10)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .transaction { $0.disablesAnimations = true }
         .task { await model.run() }
     }
 
-    private var energyTile: some View {
-        DashboardCardChrome(tint: Self.energyTint) {
-            VStack(alignment: .leading, spacing: 5) {
-                Self.titleRow(icon: "bolt.fill", tint: Self.energyTint, title: String(localized: "Energy"), value: nil)
-                if model.energy.isEmpty {
-                    Text("—").font(.system(size: 10)).foregroundStyle(.secondary)
-                } else {
-                    ForEach(model.energy) { entry in
-                        HStack(spacing: 5) {
-                            Image(nsImage: entry.icon).resizable().frame(width: 12, height: 12)
-                            Text(entry.name).font(.system(size: 10)).lineLimit(1)
-                            Spacer(minLength: 2)
-                            Text(Self.percent(entry.share))
-                                .font(.system(size: 10, weight: .medium, design: .rounded))
-                                .foregroundStyle(.secondary)
-                                .monospacedDigit()
-                        }
-                    }
+    private var hairline: some View {
+        Rectangle().fill(Color.white.opacity(0.08)).frame(width: 1).padding(.horizontal, 14)
+    }
+
+    // MARK: Top: live load
+
+    private func loadColumn<Content: View>(_ kind: Detail, @ViewBuilder content: () -> Content) -> some View {
+        content()
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .contentShape(Rectangle())
+            .onTapGesture { detail = detail == kind ? nil : kind }
+    }
+
+    private func columnTitle(_ title: String, _ kind: Detail) -> some View {
+        HStack {
+            Text(title)
+            Spacer(minLength: 4)
+            Image(systemName: detail == kind ? "chevron.down" : "chevron.right")
+                .font(.system(size: 8, weight: .semibold))
+        }
+        .font(.system(size: 10.5, weight: .medium))
+        .foregroundStyle(.secondary)
+    }
+
+    private func bigValue(_ number: String, unit: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 3) {
+            Text(verbatim: number)
+                .font(.system(size: 22, weight: .semibold))
+                .monospacedDigit()
+            Text(verbatim: unit)
+                .font(.system(size: 10.5, weight: .medium))
+                .foregroundStyle(.secondary)
+        }
+        .lineLimit(1)
+        .fixedSize()
+    }
+
+    /// The figure on the left; its history, or once clicked its breakdown,
+    /// fills the rest of the row, so opening one keeps the panel's height.
+    private func valueRow(
+        _ number: String, unit: String, history: [TimedValue], maximum: Double?, tint: Color,
+        kind: Detail, breakdown rows: [(String, String)]
+    ) -> some View {
+        HStack(alignment: .bottom, spacing: 10) {
+            bigValue(number, unit: unit)
+            if detail == kind {
+                breakdown(rows)
+            } else {
+                Sparkline(values: history, maximum: maximum, tint: tint)
+            }
+        }
+        .frame(height: 32, alignment: .bottom)
+    }
+
+    private func footer(_ leading: String, _ trailing: some View) -> some View {
+        HStack {
+            Text(leading)
+            Spacer(minLength: 4)
+            trailing
+        }
+        .font(.system(size: 9.5))
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+    }
+
+    private func breakdown(_ rows: [(String, String)]) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(rows.indices, id: \.self) { index in
+                HStack {
+                    Text(rows[index].0).foregroundStyle(.secondary)
+                    Spacer(minLength: 4)
+                    Text(rows[index].1).monospacedDigit()
                 }
             }
         }
+        .font(.system(size: 9))
+        .lineLimit(1)
+    }
+
+    private func cpuColumn(_ s: SystemMonitorSnapshot) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            columnTitle("CPU", .cpu)
+            valueRow(Self.number(s.cpu?.total), unit: "%", history: model.cpuHistory, maximum: 1, tint: Self.cpuTint,
+                     kind: .cpu, breakdown: [
+                        (String(localized: "System"), Self.percent(s.cpu?.system)),
+                        (String(localized: "User"), Self.percent(s.cpu?.user)),
+                        (String(localized: "Idle"), Self.percent(s.cpu?.idle)),
+                     ])
+            footer(String(localized: "Last 60 seconds"), Text("Load"))
+        }
+    }
+
+    private func memoryColumn(_ s: SystemMonitorSnapshot) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            columnTitle(String(localized: "Memory"), .memory)
+            valueRow(Self.number(s.memory.total > 0 ? s.memory.fraction : nil), unit: "%",
+                     history: model.memoryHistory, maximum: 1, tint: Self.memoryTint,
+                     kind: .memory, breakdown: [
+                    (String(localized: "App"), Self.bytes(s.memory.app)),
+                    (String(localized: "Wired"), Self.bytes(s.memory.wired)),
+                    (String(localized: "Compressed"), Self.bytes(s.memory.compressed)),
+                ])
+            footer(String(localized: "Memory pressure"), HStack(spacing: 4) {
+                Circle().fill(Self.pressureColor(s.memory.pressure)).frame(width: 5, height: 5)
+                Text(verbatim: Self.percent(s.memory.pressure)).monospacedDigit()
+            })
+        }
+    }
+
+    private func networkColumn(_ s: SystemMonitorSnapshot) -> some View {
+        let download = Self.rate(s.download)
+        return VStack(alignment: .leading, spacing: 2) {
+            columnTitle(String(localized: "Network"), .network)
+            valueRow(download.number, unit: download.unit, history: model.downloadHistory, maximum: nil,
+                     tint: Self.networkTint, kind: .network, breakdown: [
+                    (String(localized: "Upload"), SystemStatsReader.speed(s.upload)),
+                    (String(localized: "Peak download"), SystemStatsReader.speed(model.downloadHistory.map(\.value).max())),
+                    (String(localized: "Peak upload"), SystemStatsReader.speed(model.uploadHistory.map(\.value).max())),
+                ])
+            footer(String(localized: "Download"), HStack(spacing: 3) {
+                Image(systemName: "arrow.up").font(.system(size: 8, weight: .semibold))
+                Text(verbatim: SystemStatsReader.speed(s.upload)).monospacedDigit()
+            })
+        }
+    }
+
+    // MARK: Bottom: devices and apps
+
+    private func sectionTitle(_ icon: String, _ title: String, trailing: String?) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon).font(.system(size: 10, weight: .medium))
+            Text(title)
+            Spacer(minLength: 4)
+            if let trailing { Text(verbatim: trailing).monospacedDigit() }
+        }
+        .font(.system(size: 10.5, weight: .medium))
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+    }
+
+    private func storageColumn(_ s: SystemMonitorSnapshot) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            sectionTitle("internaldrive", String(localized: "Storage"), trailing: s.disk.map { Self.percent($0.fraction) })
+            if let disk = s.disk {
+                let free = Self.fileSize(disk.free)
+                Spacer(minLength: 2)
+                HStack(alignment: .firstTextBaseline, spacing: 3) {
+                    Text(verbatim: free.number).font(.system(size: 17, weight: .semibold)).monospacedDigit()
+                    Text(verbatim: free.unit + " " + String(localized: "available"))
+                        .font(.system(size: 10)).foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 2)
+                Meter(fraction: disk.fraction, tint: Self.storageTint)
+                Spacer(minLength: 3)
+                Text(verbatim: String(localized: "Used") + " " + Self.fileBytes(disk.used) + " / " + Self.fileBytes(disk.total))
+                    .font(.system(size: 9.5)).foregroundStyle(.secondary).lineLimit(1)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    private func batteryColumn(_ s: SystemMonitorSnapshot) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if let battery = s.battery {
+                sectionTitle(battery.charging ? "battery.100.bolt" : "battery.75", String(localized: "Battery"),
+                             trailing: battery.temperature.map { String(format: "%.1f°C", $0) })
+                Spacer(minLength: 2)
+                HStack(alignment: .firstTextBaseline, spacing: 3) {
+                    Text(verbatim: "\(Int((battery.level * 100).rounded()))")
+                        .font(.system(size: 17, weight: .semibold)).monospacedDigit()
+                    Text(verbatim: "%").font(.system(size: 10)).foregroundStyle(.secondary)
+                    if battery.pluggedIn {
+                        Image(systemName: "powerplug.fill")
+                            .font(.system(size: 9))
+                            .foregroundStyle(Self.batteryTint)
+                    }
+                    Spacer(minLength: 4)
+                    if let health = battery.health {
+                        Text(verbatim: String(localized: "Health") + " " + Self.wholePercent(health))
+                            .font(.system(size: 9.5)).foregroundStyle(.secondary)
+                    }
+                }
+                Spacer(minLength: 2)
+                Text(verbatim: [
+                    battery.pluggedIn ? String(localized: "On power adapter") : String(localized: "On battery"),
+                    battery.cycles.map { String(localized: "\($0) cycles") },
+                ].compactMap { $0 }.joined(separator: " · "))
+                .font(.system(size: 9.5)).foregroundStyle(.secondary).lineLimit(1)
+            } else {
+                sectionTitle("powerplug", String(localized: "Power"), trailing: nil)
+                Text("On power adapter").font(.system(size: 10)).foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    private var energyColumn: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            sectionTitle("bolt", String(localized: "Energy use"), trailing: String(localized: "Share"))
+            Spacer(minLength: 2)
+            if model.energy.isEmpty {
+                Text(verbatim: "—").font(.system(size: 10)).foregroundStyle(.secondary)
+            }
+            ForEach(Array(model.energy.prefix(2).enumerated()), id: \.element.id) { index, entry in
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 5) {
+                        Circle().fill(Self.appTints[index % Self.appTints.count]).frame(width: 5, height: 5)
+                        Text(entry.name).lineLimit(1)
+                        Spacer(minLength: 4)
+                        Text(verbatim: Self.percent(entry.share)).monospacedDigit().foregroundStyle(.secondary)
+                    }
+                    .font(.system(size: 10))
+                    Meter(fraction: entry.share, tint: Self.appTints[index % Self.appTints.count].opacity(0.8), height: 2)
+                }
+                .padding(.top, index == 0 ? 0 : 5)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .help(String(localized: "Share of the energy apps have used since they started"))
     }
 
-    private func tile<Footer: View>(
-        icon: String, tint: Color, title: String, value: String?,
-        details: [(String, String)], @ViewBuilder footer: () -> Footer
-    ) -> some View {
-        DashboardCardChrome(tint: tint) {
-            VStack(alignment: .leading, spacing: 4) {
-                Self.titleRow(icon: icon, tint: tint, title: title, value: value)
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 6), GridItem(.flexible())], alignment: .leading, spacing: 1) {
-                    ForEach(details.indices, id: \.self) { index in
-                        HStack(spacing: 3) {
-                            Text(details[index].0).foregroundStyle(.secondary)
-                            Spacer(minLength: 2)
-                            Text(details[index].1).monospacedDigit()
-                        }
-                        .font(.system(size: 9.5))
-                        .lineLimit(1)
-                    }
-                }
-                Spacer(minLength: 0)
-                footer()
-            }
-        }
-    }
+    // MARK: Formatting
 
-    private static func titleRow(icon: String, tint: Color, title: String, value: String?) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.system(size: 10, weight: .bold))
-                .foregroundStyle(tint)
-                .frame(width: 18, height: 18)
-                .background(RoundedRectangle(cornerRadius: 6).fill(tint.opacity(0.18)))
-            Text(title).font(.system(size: 12, weight: .semibold)).lineLimit(1)
-            Spacer(minLength: 2)
-            if let value {
-                Text(value)
-                    .font(.system(size: 12, weight: .semibold, design: .rounded))
-                    .monospacedDigit()
-            }
-        }
+    private static func number(_ fraction: Double?) -> String {
+        guard let fraction else { return "—" }
+        return String(format: "%.1f", fraction * 100)
     }
 
     private static func percent(_ fraction: Double?) -> String {
         guard let fraction else { return "—" }
         return String(format: "%.1f%%", fraction * 100)
+    }
+
+    private static func wholePercent(_ fraction: Double) -> String {
+        "\(Int((fraction * 100).rounded()))%"
+    }
+
+    private static func pressureColor(_ pressure: Double?) -> Color {
+        guard let pressure else { return .secondary }
+        return pressure < 0.5 ? .green : pressure < 0.8 ? .yellow : .red
+    }
+
+    /// A rate split into its number and unit, for the large figure.
+    private static func rate(_ bytesPerSecond: Double?) -> (number: String, unit: String) {
+        guard let bytesPerSecond else { return ("—", "KB/s") }
+        let kilobytes = bytesPerSecond / 1000
+        if kilobytes >= 1000 { return (String(format: "%.1f", kilobytes / 1000), "MB/s") }
+        return (String(format: kilobytes >= 100 ? "%.0f" : "%.1f", kilobytes), "KB/s")
+    }
+
+    private static func fileSize(_ bytes: Int64) -> (number: String, unit: String) {
+        let gigabytes = Double(bytes) / 1_000_000_000
+        if gigabytes >= 1000 { return (String(format: "%.2f", gigabytes / 1000), "TB") }
+        return (String(format: "%.1f", gigabytes), "GB")
     }
 
     private static func bytes(_ value: UInt64) -> String {
@@ -360,6 +585,7 @@ struct SystemMonitorView: View {
 private struct Meter: View {
     let fraction: Double
     let tint: Color
+    var height: CGFloat = 4
 
     var body: some View {
         GeometryReader { geometry in
@@ -368,43 +594,56 @@ private struct Meter: View {
                 Capsule().fill(tint).frame(width: geometry.size.width * min(max(fraction, 0), 1))
             }
         }
-        .frame(height: 5)
+        .frame(height: height)
     }
 }
 
-/// Recent readings as a filled line, newest on the right. Without a maximum
-/// the scale follows the largest reading shown.
+/// The last minute of readings as a line over a fading fill, newest on the
+/// right, each at the time it was taken. Without a maximum the scale
+/// follows the largest reading shown.
 private struct Sparkline: View {
-    let values: [Double]
+    let values: [TimedValue]
     let maximum: Double?
     let tint: Color
 
     var body: some View {
         GeometryReader { geometry in
-            let top = max(maximum ?? (values.max() ?? 0), 0.0001)
-            let step = geometry.size.width / CGFloat(max(SystemMonitorModel.historyLength - 1, 1))
-            let start = geometry.size.width - step * CGFloat(max(values.count - 1, 0))
-            let points = values.enumerated().map { index, value in
-                CGPoint(x: start + step * CGFloat(index),
-                        y: geometry.size.height * (1 - CGFloat(min(value / top, 1))))
+            let latest = values.last?.time ?? 0
+            let shown = values.filter { latest - $0.time <= SystemMonitorModel.window }
+            let top = max(maximum ?? (shown.map(\.value).max() ?? 0), 0.0001)
+            let points = shown.map { reading in
+                CGPoint(x: geometry.size.width * CGFloat(1 - (latest - reading.time) / SystemMonitorModel.window),
+                        y: 1 + (geometry.size.height - 2) * (1 - CGFloat(min(reading.value / top, 1))))
             }
-            ZStack {
-                if points.count > 1 {
+            if points.count > 1 {
+                ZStack {
                     Path { path in
                         path.move(to: CGPoint(x: points[0].x, y: geometry.size.height))
                         points.forEach { path.addLine(to: $0) }
                         path.addLine(to: CGPoint(x: points[points.count - 1].x, y: geometry.size.height))
                         path.closeSubpath()
                     }
-                    .fill(tint.opacity(0.25))
+                    .fill(LinearGradient(colors: [tint.opacity(0.16), tint.opacity(0)], startPoint: .top, endPoint: .bottom))
                     Path { path in
                         path.move(to: points[0])
                         points.dropFirst().forEach { path.addLine(to: $0) }
                     }
-                    .stroke(tint, lineWidth: 1.2)
+                    .stroke(tint, style: StrokeStyle(lineWidth: 1.4, lineJoin: .round))
+                }
+                // The oldest readings fade in, so the line and its fill have
+                // no hard edge where the history begins.
+                .mask {
+                    LinearGradient(
+                        stops: [
+                            .init(color: .clear, location: 0),
+                            .init(color: .black, location: min(0.35, 18 / max(points[points.count - 1].x - points[0].x, 1))),
+                        ],
+                        startPoint: UnitPoint(x: points[0].x / max(geometry.size.width, 1), y: 0.5),
+                        endPoint: UnitPoint(x: 1, y: 0.5)
+                    )
                 }
             }
         }
-        .frame(height: 14)
+        .frame(height: 18)
     }
 }

@@ -3,7 +3,8 @@
 //  boringNotch
 //
 //  Total CPU load for the rainbow cat's pace, read every two seconds and
-//  only while a cat is on screen.
+//  only while a cat is on screen. The same reading keeps the system
+//  monitor's history going while the panel is closed.
 //
 import Foundation
 
@@ -24,7 +25,7 @@ final class CPULoadMonitor {
         observers[ObjectIdentifier(owner)] = handler
         handler(load)
         guard timer == nil else { return }
-        _ = reader.sampleCPU()
+        _ = reader.sample()
         let timer = Timer(timeInterval: Self.interval, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
         }
@@ -40,8 +41,12 @@ final class CPULoadMonitor {
         timer = nil
     }
 
+    /// Memory and network come with the reading at little cost, and go to
+    /// the system monitor's history, so it opens with the last minute.
     private func tick() {
-        guard let cpu = reader.sampleCPU() else { return }
+        let sample = reader.sample()
+        SystemMonitorModel.shared.record(sample)
+        guard let cpu = sample.cpu else { return }
         load = cpu
         for handler in observers.values { handler(cpu) }
     }
