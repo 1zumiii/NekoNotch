@@ -354,6 +354,7 @@ struct ContentView: View {
                             // at once the innermost animation wins, so the
                             // open/close springs below keep precedence.
                             .animation(.smooth(duration: 0.3), value: closedNotchContent)
+                            .animation(.smooth(duration: 0.3), value: notificationManager.ticker?.id)
                     }
                     .contentShape(Rectangle())
                     .onHover { hovering in
@@ -660,6 +661,18 @@ struct ContentView: View {
                               .fixedSize()
                       }
                       .zIndex(1)
+            if vm.notchState == .closed, let ticker = notificationManager.ticker {
+                // As wide as the icon-only row above it, so the notch grows
+                // down by this one line and not sideways.
+                NotificationTickerRow(
+                    notification: ticker,
+                    width: vm.closedNotchSize.width + 2 * max(0, vm.effectiveClosedNotchHeight - 12)
+                ) {
+                    notificationManager.finishTicker(ticker.id)
+                }
+                .padding(.top, -4)
+                .transition(.opacity)
+            }
             if vm.notchState == .open {
                 VStack {
                     // An open notch with a live notification is showing the

@@ -355,6 +355,7 @@ struct NotificationSettingsView: View {
                     Text("Real system notification").tag(NotificationTestKind.system)
                     Text("Ordinary (notch only)").tag(NotificationTestKind.ordinary)
                     Text("Time-sensitive (notch only)").tag(NotificationTestKind.timeSensitive)
+                    Text("Full-screen scrolling (notch only)").tag(NotificationTestKind.fullScreenTicker)
                 }
                 Button {
                     testDenied = false
@@ -373,7 +374,7 @@ struct NotificationSettingsView: View {
             } header: {
                 Text("Test")
             } footer: {
-                Text("A real system notification goes through the whole chain and may show a system banner. The notch-only kinds skip the system, which is the only way to try the time-sensitive look.")
+                Text("A real system notification goes through the whole chain and may show a system banner. The notch-only kinds skip the system, which is the only way to try the time-sensitive look and the line that runs under the hidden notch in full screen.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
