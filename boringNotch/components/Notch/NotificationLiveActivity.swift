@@ -186,7 +186,14 @@ struct NotificationLiveActivity: View {
 
     var body: some View {
         HStack {
-            NotificationSourceIcon(bundleID: notification.bundleID, size: itemSize, showsBadge: iconOnly)
+            // Beside the cat: bigger, and centred in what shows of this side,
+            // the wing and the margin before the cutout, like the album art.
+            NotificationSourceIcon(
+                bundleID: notification.bundleID,
+                size: catPlaying == nil ? itemSize : max(0, vm.effectiveClosedNotchHeight - 5),
+                showsBadge: iconOnly
+            )
+                .offset(x: catPlaying == nil ? 0 : liveActivityEdgeMargin / 2)
                 .frame(width: catPlaying == nil ? nil : RainbowCatNSView.wingWidth, alignment: .center)
                 .background {
                     // The cat's sky goes on behind the icon.
