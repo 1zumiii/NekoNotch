@@ -434,7 +434,10 @@ struct ContentView: View {
                         }
                     }
                     .onChange(of: vm.notchState) { _, state in
-                        if state == .closed { openedForNotification = false }
+                        if state == .closed {
+                            openedForNotification = false
+                            dragWatchTask?.cancel()
+                        }
                     }
                     // Activities disappear on their own (a notification
                     // expires, music stops). Keep the selection in range so
@@ -480,6 +483,13 @@ struct ContentView: View {
         .background(dragDetector)
         .preferredColorScheme(.dark)
         .environmentObject(vm)
+        .onDisappear {
+            dragWatchTask?.cancel()
+            anyDropDebounceTask?.cancel()
+        }
+        .onChange(of: dropInteraction.dragOpenGeneration) { _, _ in
+            watchDragOpenedNotch()
+        }
         .onChange(of: dropInteraction.anyDropZoneTargeting) { _, isTargeted in
             anyDropDebounceTask?.cancel()
 
@@ -487,7 +497,7 @@ struct ContentView: View {
                 if Defaults[.boringShelf] && vm.notchState == .closed {
                     if doOpen() {
                         coordinator.currentView = .shelf
-                        watchDragOpenedNotch()
+                        dropInteraction.dragOpenGeneration += 1
                     }
                 }
                 return
@@ -503,7 +513,8 @@ struct ContentView: View {
                 }
 
                 dropInteraction.dropEvent = false
-                if !SharingStateManager.shared.preventNotchClose {
+                if !pointerIsOverOpenNotch(), !vm.isPopoverActive,
+                   !SharingStateManager.shared.preventNotchClose {
                     vm.close()
                 }
             }
@@ -955,12 +966,22 @@ extension ContentView {
             while !Task.isCancelled, NSEvent.pressedMouseButtons & 1 != 0 {
                 try? await Task.sleep(for: .milliseconds(200))
             }
-            try? await Task.sleep(for: .milliseconds(1500))
-            guard !Task.isCancelled, vm.notchState == .open, !pointerIsOverOpenNotch() else { return }
-            vm.close()
+            guard !Task.isCancelled else { return }
             vm.dropInteraction.dragDetectorTargeting = false
             vm.dropInteraction.generalDropTargeting = false
             vm.dropInteraction.dropZoneTargeting = false
+            // Hover callbacks can be lost during a native drag. Keep watching
+            // until the pointer leaves, including after a drop inside the shelf.
+            while !Task.isCancelled, vm.notchState == .open {
+                try? await Task.sleep(for: .milliseconds(1500))
+                guard !Task.isCancelled else { return }
+                if NSEvent.pressedMouseButtons & 1 == 0,
+                   !pointerIsOverOpenNotch(), !vm.isPopoverActive,
+                   !SharingStateManager.shared.preventNotchClose {
+                    vm.close()
+                    return
+                }
+            }
         }
     }
 

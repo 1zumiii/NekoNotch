@@ -368,10 +368,12 @@ final class NotchWindowManager {
         if Defaults[.displayMode] == .allDisplays, let viewModel = contexts[uuid]?.viewModel {
             if viewModel.open() {
                 coordinator.currentView = .shelf
+                viewModel.dropInteraction.dragOpenGeneration += 1
             }
         } else if Defaults[.displayMode] != .allDisplays, let windowScreen = primaryWindow?.screen, screen == windowScreen {
             if primaryViewModel.open() {
                 coordinator.currentView = .shelf
+                primaryViewModel.dropInteraction.dragOpenGeneration += 1
             }
         }
     }
