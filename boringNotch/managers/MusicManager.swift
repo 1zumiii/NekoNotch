@@ -60,6 +60,7 @@ final class MusicManager: ObservableObject {
     static let shared = MusicManager()
     private static let noticeDuration: Duration = .seconds(6)
     private static let runtimeRecoveryDelay: Duration = .seconds(1)
+    private static let maxRuntimeRecoveryDelay: Duration = .seconds(60)
 
     private var controllerCancellables = Set<AnyCancellable>()
     private var averageColorTask: Task<Void, Never>?
@@ -67,6 +68,8 @@ final class MusicManager: ObservableObject {
     private var availabilityTask: Task<Void, Never>?
     private var runtimeFailureTask: Task<Void, Never>?
     private var runtimeRecoveryTask: Task<Void, Never>?
+    /// Recoveries since the stream last delivered playback, for the back-off.
+    private var runtimeRecoveryAttempts = 0
     private var noticeDismissalTask: Task<Void, Never>?
     private var isDestroyed = false
     private var lastNoticedFailure: NowPlayingFailure?
@@ -170,6 +173,7 @@ final class MusicManager: ObservableObject {
         availabilityTask = nil
         runtimeFailureTask = nil
         runtimeRecoveryTask = nil
+        runtimeRecoveryAttempts = 0
         noticeDismissalTask = nil
         controllerCancellables.removeAll()
         flipWorkItem?.cancel()
@@ -375,6 +379,11 @@ final class MusicManager: ObservableObject {
                 else {
                     return
                 }
+                if controller is any NowPlayingRuntimeControlling {
+                    // Real playback means the stream is alive: the next
+                    // failure starts the back-off from the beginning.
+                    self.runtimeRecoveryAttempts = 0
+                }
                 self.updateFromPlaybackState(state)
             }
             .store(in: &controllerCancellables)
@@ -440,10 +449,17 @@ final class MusicManager: ObservableObject {
     }
 
     private func scheduleRuntimeRecovery() {
-        cancelRuntimeRecovery()
+        runtimeRecoveryTask?.cancel()
+        // 1 s, 2 s, 4 s … up to a minute, so an adapter that exits at once
+        // is not started again every second.
+        let delay = min(
+            Self.runtimeRecoveryDelay * (1 << min(runtimeRecoveryAttempts, 6)),
+            Self.maxRuntimeRecoveryDelay
+        )
+        runtimeRecoveryAttempts += 1
         runtimeRecoveryTask = Task { @MainActor [weak self] in
             do {
-                try await Task.sleep(for: Self.runtimeRecoveryDelay)
+                try await Task.sleep(for: delay)
             } catch {
                 return
             }
@@ -463,6 +479,7 @@ final class MusicManager: ObservableObject {
     private func cancelRuntimeRecovery() {
         runtimeRecoveryTask?.cancel()
         runtimeRecoveryTask = nil
+        runtimeRecoveryAttempts = 0
     }
 
     // MARK: - Update Methods
