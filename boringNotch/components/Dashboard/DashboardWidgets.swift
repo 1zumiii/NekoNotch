@@ -57,7 +57,7 @@ enum DashboardWidgets {
 
     private static let claudeCodeWidget = DashboardWidgetInfo(
         id: "claudeCode",
-        title: "Claude Code",
+        title: "AI Tokens",
         icon: "square.grid.3x3.fill",
         tint: ClaudeCodeStatsWidgetView.tint,
         minWidth: 4,

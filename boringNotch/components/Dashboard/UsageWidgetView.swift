@@ -12,16 +12,18 @@ struct UsageWidgetView: View {
     let size: CGSize
 
     @ObservedObject private var store = UsageStore.shared
+    @AppStorage("claudeQuotaClient") private var claudeClient = "app"
 
-    private var snapshot: UsageSnapshot? { store.snapshots[source.id] }
+    private var isClaude: Bool { source.id == "claude" }
+    private var snapshot: UsageSnapshot? { store.snapshots[isClaude && claudeClient == "cli" ? "claudeCLI" : source.id] }
     private var isStrip: Bool { size.height < 90 }
-    private var title: String { snapshot?.title ?? source.displayName }
+    private var title: String { isClaude ? "Claude" : snapshot?.title ?? source.displayName }
     private var icon: String { snapshot?.symbol ?? source.icon }
 
     var body: some View {
         Group {
             if isStrip {
-                strip
+                if isClaude { claudeStrip } else { strip }
             } else {
                 card
             }
@@ -29,6 +31,69 @@ struct UsageWidgetView: View {
         .frame(width: size.width, height: size.height)
         .onAppear { store.beginWatching() }
         .onDisappear { store.endWatching() }
+    }
+
+    private var clientSelector: some View {
+        HStack(spacing: 1) {
+            clientButton("App", value: "app")
+            clientButton("CLI", value: "cli")
+        }
+        .padding(2)
+        .background(Capsule().fill(Color.white.opacity(0.06)))
+        .fixedSize()
+    }
+
+    private func clientButton(_ label: String, value: String) -> some View {
+        Button { claudeClient = value } label: {
+            Text(verbatim: label)
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(claudeClient == value ? Color.white : Color.secondary)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 4)
+                .background(Capsule().fill(claudeClient == value ? source.tint.opacity(0.40) : Color.clear))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Claude \(label)")
+        .accessibilityAddTraits(claudeClient == value ? .isSelected : [])
+    }
+
+    private func sampleDescription(at now: Date) -> String {
+        guard let snapshot else { return String(localized: "No usage data yet") }
+        let age = Freshness.text(of: snapshot.lastUpdatedDate, at: now) ?? "—"
+        let date = snapshot.lastUpdatedDate?.formatted(date: .abbreviated, time: .standard) ?? "—"
+        return snapshot.title + " · " + age + "\n" + String(localized: "Updated") + ": " + date
+            + (snapshot.isStale(at: now) ? "\n" + String(localized: "Older data; showing the last recorded usage.") : "")
+    }
+
+    private var claudeStrip: some View {
+        TimelineView(.periodic(from: .now, by: 30)) { context in
+            DashboardCardChrome(tint: source.tint) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 4) {
+                        Text("Claude").font(.system(size: 12, weight: .semibold))
+                        Spacer(minLength: 0)
+                        clientSelector
+                    }
+                    HStack(spacing: 6) {
+                        if let snapshot {
+                            ForEach(snapshot.windows, id: \.title) { metric in
+                                Text(verbatim: metric.title + " " + metric.formattedValue)
+                                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                            }
+                            Spacer(minLength: 0)
+                            if snapshot.isStale(at: context.date) {
+                                Text("Older data").font(.system(size: 8)).foregroundStyle(.orange)
+                            }
+                        } else {
+                            Text("No usage data yet").font(.system(size: 10)).foregroundStyle(.secondary)
+                        }
+                    }
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                }
+            }
+            .help(sampleDescription(at: context.date))
+        }
     }
 
     // MARK: Two rows tall
@@ -39,9 +104,10 @@ struct UsageWidgetView: View {
         TimelineView(.periodic(from: .now, by: 30)) { context in
             let date = snapshot?.lastUpdatedDate
             let age = Freshness.text(of: date, at: context.date)
-            let subtitle = [snapshot?.model, age].compactMap { $0 }.joined(separator: " · ")
+            let stale = isClaude && snapshot?.isStale(at: context.date) == true
+            let subtitle = stale ? String(localized: "Older data") : [snapshot?.model, age].compactMap { $0 }.joined(separator: " · ")
             DashboardCard(icon: icon, tint: source.tint, title: title, subtitle: subtitle.isEmpty ? nil : subtitle) {
-                FreshnessDot(date: date, now: context.date)
+                if isClaude { clientSelector } else { FreshnessDot(date: date, now: context.date) }
             } content: {
                 if let snapshot {
                     rings(snapshot)
@@ -49,6 +115,7 @@ struct UsageWidgetView: View {
                     emptyState
                 }
             }
+            .help(isClaude ? sampleDescription(at: context.date) : "")
         }
     }
 

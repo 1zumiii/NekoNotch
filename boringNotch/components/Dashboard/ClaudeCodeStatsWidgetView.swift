@@ -4,18 +4,20 @@
 //
 import SwiftUI
 
-/// What `runcat-app-sync.py` writes for this card: total tokens used with
-/// Claude Code, and tokens per UTC day. Read-only.
+/// Deduplicated local transcript usage, grouped by provider and UTC day.
 struct ClaudeCodeStats: Decodable, Equatable {
     let total: Double
     let last7: Double
-    let days: [String: Double]
+    let days: [String: [String: Double]]
+    let totals: [String: Double]
+    let updated: String
+    let readErrors: Int
 }
 
-/// Total tokens and a heat map of the last weeks, like the Stats screen of the
-/// Claude Code terminal app.
+/// Local Claude and Codex totals with a blended-color daily heat map.
 struct ClaudeCodeStatsWidgetView: View {
     static let tint = Color(red: 0.85, green: 0.47, blue: 0.34)
+    static let codexTint = Color(red: 0.64, green: 0.42, blue: 0.92)
 
     let size: CGSize
 
@@ -28,12 +30,12 @@ struct ClaudeCodeStatsWidgetView: View {
     }
 
     private var isStrip: Bool { size.height < 90 }
-    private var title: String { "Claude Code" }
+    private var title: String { String(localized: "AI Tokens") }
 
     private static let fileURL: URL = {
         let path = getpwuid(getuid()).flatMap { String(cString: $0.pointee.pw_dir) } ?? NSHomeDirectory()
         return URL(fileURLWithPath: path, isDirectory: true)
-            .appendingPathComponent("Library/Application Support/RunCatIntegrations/claude-code-stats.json")
+            .appendingPathComponent("Library/Application Support/RunCatIntegrations/ai-token-stats.json")
     }()
 
     private static func load() -> ClaudeCodeStats? {
@@ -60,6 +62,7 @@ struct ClaudeCodeStatsWidgetView: View {
             }
         }
         .frame(width: size.width, height: size.height)
+        .help(details)
         .task {
             // Only while the dashboard is on screen; the file is a few kilobytes.
             while !Task.isCancelled {
@@ -68,6 +71,24 @@ struct ClaudeCodeStatsWidgetView: View {
                 try? await Task.sleep(for: .seconds(10))
             }
         }
+    }
+
+    private var details: String {
+        guard let stats else { return String(localized: "No usage data yet") }
+        let summary = "Claude: \(Self.compact(stats.totals["claude"] ?? 0))\nCodex: \(Self.compact(stats.totals["codex"] ?? 0))"
+        return summary + "\n" + String(localized: "Local transcripts only; includes cache tokens. Claude chats without token records are excluded. Days use UTC.")
+            + "\n" + String(localized: "Updated") + ": " + stats.updated
+            + (stats.readErrors > 0 ? "\n" + String(localized: "Some usage files could not be read") : "")
+    }
+
+    private var legend: some View {
+        HStack(spacing: 9) {
+            Label("Claude", systemImage: "circle.fill").foregroundStyle(Self.tint)
+            Label("Codex", systemImage: "circle.fill").foregroundStyle(Self.codexTint)
+        }
+        .font(.system(size: 8, weight: .medium))
+        .lineLimit(1)
+        .fixedSize()
     }
 
     // MARK: Two rows tall
@@ -79,11 +100,13 @@ struct ClaudeCodeStatsWidgetView: View {
                     .font(.system(size: 10, weight: .semibold, design: .rounded))
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.65)
             }
         } content: {
             if let stats {
                 Spacer(minLength: 4)
-                HStack(alignment: .center, spacing: 12) {
+                HStack(alignment: .center, spacing: 8) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(verbatim: Self.compact(stats.total))
                             .font(.system(size: 24, weight: .bold, design: .rounded))
@@ -96,11 +119,12 @@ struct ClaudeCodeStatsWidgetView: View {
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)
                     }
-                    .frame(width: 74, alignment: .leading)
+                    .frame(width: size.width < 220 ? 62 : 74, alignment: .leading)
                     HeatMap(days: stats.days, tint: Self.tint)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
                 .padding(.top, 2)
+                legend.padding(.top, 5)
             } else {
                 emptyState
             }
@@ -163,7 +187,7 @@ struct ClaudeCodeStatsWidgetView: View {
 /// shade follows the logarithm of the day's tokens, since a few huge days would
 /// otherwise turn every other day into the faintest square.
 private struct HeatMap: View {
-    let days: [String: Double]
+    let days: [String: [String: Double]]
     let tint: Color
 
     private static let gap: CGFloat = 2.5
@@ -195,7 +219,7 @@ private struct HeatMap: View {
                   let firstMonday = calendar.date(byAdding: .weekOfYear, value: -(columns - 1), to: thisMonday)
             else { return }
 
-            let peak = days.values.max() ?? 0
+            let peak = days.values.map { $0.values.reduce(0, +) }.max() ?? 0
             let scale = peak > 0 ? log10(1 + peak) : 1
             let gridWidth = CGFloat(columns) * (side + gap) - gap
             let originX = canvasSize.width - gridWidth
@@ -204,14 +228,24 @@ private struct HeatMap: View {
                 for row in 0..<7 {
                     guard let date = calendar.date(byAdding: .day, value: column * 7 + row, to: firstMonday),
                           date <= today else { continue }
-                    let tokens = days[Self.formatter.string(from: date)] ?? 0
+                    let usage = days[Self.formatter.string(from: date)] ?? [:]
+                    let tokens = usage.values.reduce(0, +)
                     let color: Color
                     if tokens <= 0 {
                         color = Color.white.opacity(0.08)
                     } else {
                         // Four shades, like the terminal screen.
                         let level = min(3, Int((log10(1 + tokens) / scale) * 4))
-                        color = tint.opacity(0.28 + 0.24 * Double(level))
+                        let codexShare = min(1, max(0, (usage["codex"] ?? 0) / tokens))
+                        // Deepen the mixed shade instead of desaturating it.
+                        // Pure-provider days keep their legend color; opacity
+                        // remains tied only to the total token volume.
+                        let overlap = 4 * codexShare * (1 - codexShare)
+                        color = Color(
+                            red: (0.85 + (0.64 - 0.85) * codexShare) * (1 - 0.06 * overlap),
+                            green: (0.47 + (0.42 - 0.47) * codexShare) * (1 - 0.35 * overlap),
+                            blue: (0.34 + (0.92 - 0.34) * codexShare) * (1 - 0.04 * overlap)
+                        ).opacity(0.28 + 0.24 * Double(level))
                     }
                     let rect = CGRect(
                         x: originX + CGFloat(column) * (side + gap),
