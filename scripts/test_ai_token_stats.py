@@ -94,6 +94,25 @@ class StatsTests(unittest.TestCase):
                 stream.write(b'{"partial":')
             self.assertEqual(stats.collect(home, output, now)["total"], 220)
 
+    def test_deleted_transcripts_keep_their_usage(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            home = Path(temporary)
+            old = home / ".claude/projects/old.jsonl"
+            new = home / ".claude/projects/new.jsonl"
+            old.parent.mkdir(parents=True)
+            old.write_bytes(b"".join(lines([claude(10)])))
+            output = home / "output/stats.json"
+            now = datetime(2026, 11, 12, tzinfo=timezone.utc)
+            self.assertEqual(stats.collect(home, output, now)["total"], 70)
+            old.unlink()
+            event = claude(5)
+            event["requestId"] = "other"
+            new.write_bytes(b"".join(lines([event])))
+            result = stats.collect(home, output, now)
+            self.assertEqual(result["total"], 135)
+            self.assertEqual(result["readErrors"], 0)
+            self.assertEqual(stats.collect(home, output, now)["total"], 135)
+
 
 if __name__ == "__main__":
     unittest.main()
