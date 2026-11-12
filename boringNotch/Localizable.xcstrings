@@ -35052,6 +35052,26 @@
         }
       }
     },
+    "Full-screen scrolling (notch only)" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全屏滚动（仅刘海）"
+          }
+        }
+      }
+    },
+    "In full screen the notch stays hidden, so a notification's text runs once through this line under it, and the icon shows where it came from." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全屏时刘海保持隐藏，通知文字会在刘海下方这一行滚动一遍，图标表示通知来源。"
+          }
+        }
+      }
+    },
     "Send test notification" : {
       "localizations" : {
         "zh-Hans" : {
@@ -35092,12 +35112,12 @@
         }
       }
     },
-    "A real system notification goes through the whole chain and may show a system banner. The notch-only kinds skip the system, which is the only way to try the time-sensitive look." : {
+    "A real system notification goes through the whole chain and may show a system banner. The notch-only kinds skip the system, which is the only way to try the time-sensitive look and the line that runs under the hidden notch in full screen." : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "真实系统通知用于测试完整的接收流程，可能短暂显示系统横幅。“仅刘海”测试会直接在刘海中显示通知；预览时间敏感通知效果需选择此类测试。"
+            "value" : "真实系统通知用于测试完整的接收流程，可能短暂显示系统横幅。“仅刘海”测试会直接在刘海中显示通知；预览时间敏感通知，或全屏时刘海下方滚动的一行通知，需选择此类测试。"
           }
         }
       }

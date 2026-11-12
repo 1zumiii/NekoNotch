@@ -3,6 +3,7 @@
 //  boringNotch
 //
 
+import Defaults
 import SwiftUI
 
 struct NotificationSourceIcon: View {
@@ -213,6 +214,64 @@ struct NotificationLiveActivity: View {
             ringScale = 1.8
             ringOpacity = 0
         }
+    }
+}
+
+/// One line of a notification's text under the closed notch. Text that fits
+/// stays for the icon-only time; longer text waits, runs to its end at a
+/// steady pace, waits again, and then the row asks to be taken away.
+struct NotificationTickerRow: View {
+    let notification: SystemNotification
+    let width: CGFloat
+    let onFinish: () -> Void
+
+    @State private var offset: CGFloat = 0
+
+    private static let fontSize: CGFloat = 11
+    private static let pointsPerSecond: CGFloat = 45
+    private static let hold: Double = 1.2
+
+    static func text(for notification: SystemNotification) -> String {
+        [notification.title, notification.subtitle, notification.body]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: "  ·  ")
+            .replacingOccurrences(of: "\n", with: " ")
+    }
+
+    private var text: String { Self.text(for: notification) }
+
+    private var textWidth: CGFloat {
+        let font = NSFont.systemFont(ofSize: Self.fontSize, weight: .medium)
+        return ceil((text as NSString).size(withAttributes: [.font: font]).width)
+    }
+
+    var body: some View {
+        let overflow = max(0, textWidth - width)
+        Text(text)
+            .font(.system(size: Self.fontSize, weight: .medium))
+            .foregroundStyle(.white.opacity(0.9))
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+            .offset(x: offset)
+            .frame(width: width, alignment: overflow > 0 ? .leading : .center)
+            .clipped()
+            .padding(.bottom, 5)
+            .allowsHitTesting(false)
+            .task(id: notification.id) {
+                offset = 0
+                if overflow > 0 {
+                    let run = Double(overflow / Self.pointsPerSecond)
+                    try? await Task.sleep(for: .seconds(Self.hold))
+                    guard !Task.isCancelled else { return }
+                    withAnimation(.linear(duration: run)) { offset = -overflow }
+                    try? await Task.sleep(for: .seconds(run + Self.hold))
+                } else {
+                    try? await Task.sleep(for: .seconds(max(2, Defaults[.notificationIconOnlyDuration])))
+                }
+                guard !Task.isCancelled else { return }
+                onFinish()
+            }
     }
 }
 
