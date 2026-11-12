@@ -35,11 +35,16 @@ final class SystemNotificationManager: ObservableObject {
     /// A notification from an icon-only app: just its icon, for a short while,
     /// apart from the active one and its queue.
     @Published private(set) var iconPeek: SystemNotification?
+    /// A notification whose text runs through one line under the closed notch,
+    /// for a full-screen app that the full view would cover. Its icon is
+    /// `iconPeek` for as long as the line is up.
+    @Published private(set) var ticker: SystemNotification?
 
     private let queueLimit = 5
     private var displayDuration: TimeInterval { Defaults[.notificationDisplayDuration] }
     private var dismissTask: Task<Void, Never>?
     private var iconPeekTask: Task<Void, Never>?
+    private var tickerTask: Task<Void, Never>?
     private var notificationObserver: NSObjectProtocol?
     private var isUserPresent = false
     private var recentKeys: [String: Date] = [:]
@@ -186,6 +191,8 @@ final class SystemNotificationManager: ObservableObject {
         isUserPresent = false
         iconPeekTask?.cancel()
         iconPeek = nil
+        tickerTask?.cancel()
+        ticker = nil
         dismissActive()
     }
 
@@ -330,8 +337,14 @@ final class SystemNotificationManager: ObservableObject {
         let silenced = isSilencedByFocus(notification)
         NotificationHistory.shared.record(notification, silenced: silenced)
         guard !silenced else { return }
-        if isIconOnly(notification) {
-            showIconPeek(notification)
+        // The settings page previews the full-screen line without a full-screen app.
+        let previewsTicker = token.hasPrefix(Self.tickerTestPrefix)
+        if previewsTicker || isIconOnly(notification) {
+            if previewsTicker || runsAsTicker(notification) {
+                showTicker(notification)
+            } else {
+                showIconPeek(notification)
+            }
             return
         }
         if highlightsPriority, activeNotification?.priority == .high, notification.priority != .high {
@@ -556,6 +569,40 @@ final class SystemNotificationManager: ObservableObject {
         }
     }
 
+    /// The line under the notch takes the place of the icon's own timer: the
+    /// view reports when the text has run through. The limit only covers a
+    /// view that never reports, as on a screen that draws no notch.
+    private func showTicker(_ notification: SystemNotification) {
+        iconPeekTask?.cancel()
+        tickerTask?.cancel()
+        iconPeek = notification
+        ticker = notification
+        let id = notification.id
+        tickerTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(Self.tickerLimit))
+            guard !Task.isCancelled else { return }
+            self?.finishTicker(id)
+        }
+    }
+
+    func finishTicker(_ id: String) {
+        guard ticker?.id == id else { return }
+        tickerTask?.cancel()
+        ticker = nil
+        if iconPeek?.id == id { iconPeek = nil }
+    }
+
+    private static let tickerLimit: TimeInterval = 90
+
+    /// Hidden for a full-screen app, a notification with text still shows it,
+    /// in one line. An app the user set to icon only keeps to its icon.
+    private func runsAsTicker(_ notification: SystemNotification) -> Bool {
+        guard FullscreenMediaDetector.shared.hidesNotchOnAnyScreen, !notification.isPlaceholder,
+              !Self.list(Defaults[.notificationIconOnlyApps], contains: notification.bundleID, appName: notification.appName)
+        else { return false }
+        return !NotificationTickerRow.text(for: notification).isEmpty
+    }
+
     private func promoteNext() {
         guard activeNotification == nil, !queuedNotifications.isEmpty else { return }
         show(queuedNotifications.removeFirst())
@@ -721,6 +768,9 @@ enum NotificationTestKind: String, CaseIterable, Identifiable {
     /// Handed straight to the notch, skipping the system.
     case ordinary
     case timeSensitive
+    /// The one-line text under the closed notch that a full-screen app gets,
+    /// shown whether or not anything is full screen.
+    case fullScreenTicker
 
     var id: String { rawValue }
 }
@@ -732,18 +782,24 @@ extension SystemNotificationManager {
         switch kind {
         case .system:
             TestNotificationSender.shared.send(completion: completion)
-        case .ordinary, .timeSensitive:
+        case .ordinary, .timeSensitive, .fullScreenTicker:
+            let ticker = kind == .fullScreenTicker
             add([
-                "token": "test-\(UUID().uuidString)",
+                "token": (ticker ? Self.tickerTestPrefix : "test-") + UUID().uuidString,
                 "appName": "Boring Notch",
                 "bundleID": Bundle.main.bundleIdentifier ?? "",
                 "title": String(localized: "Test notification"),
-                "body": String(localized: "If you can read this, notifications reach the notch."),
+                "body": ticker
+                    ? String(localized: "In full screen the notch stays hidden, so a notification's text runs once through this line under it, and the icon shows where it came from.")
+                    : String(localized: "If you can read this, notifications reach the notch."),
                 "priority": kind == .timeSensitive ? "high" : "normal"
             ])
             completion(true)
         }
     }
+
+    /// Test tokens start with "test-", which also lets them past the app filter.
+    static let tickerTestPrefix = "test-ticker-"
 }
 
 /// Posts a real notification from Boring Notch itself. The delegate lets it
