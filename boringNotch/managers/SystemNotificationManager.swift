@@ -47,7 +47,9 @@ final class SystemNotificationManager: ObservableObject {
     private var tickerTask: Task<Void, Never>?
     private var notificationObserver: NSObjectProtocol?
     private var isUserPresent = false
-    private var recentKeys: [String: Date] = [:]
+    /// Recent notifications by text, with the database records seen under
+    /// that text, for `isRecentDuplicate`.
+    private var recentKeys: [String: (date: Date, records: Set<String>)] = [:]
     private var earlyObserver: NSObjectProtocol?
     private var wakeObserver: NSObjectProtocol?
     private var interruptionObserver: NSObjectProtocol?
@@ -310,6 +312,7 @@ final class SystemNotificationManager: ObservableObject {
             subtitle: nonEmpty(payload["subtitle"]),
             body: nonEmpty(payload["body"]),
             receivedAt: Date(),
+            recordUUID: nonEmpty(payload["recordUUID"]),
             priority: NotificationPriority(rawValue: payload["priority"] ?? "") ?? .normal
         )
         if !token.hasPrefix("test-") { noteSource(bundleID: bundleID, name: appName) }
@@ -520,13 +523,29 @@ final class SystemNotificationManager: ObservableObject {
         }
     }
 
+    /// The same notification arrives from the banner reader, which knows only
+    /// its text, and from the database, which also knows its record. Copies
+    /// are matched by text, but two different records are two notifications,
+    /// however alike their text: an app that hides its previews sends the
+    /// same words every time.
     private func isRecentDuplicate(_ notification: SystemNotification) -> Bool {
         let key = Self.dedupeKey(notification)
         let now = Date()
-        recentKeys = recentKeys.filter { now.timeIntervalSince($0.value) < Self.duplicateWindow }
-        if recentKeys[key] != nil { return true }
-        recentKeys[key] = now
-        return false
+        recentKeys = recentKeys.filter { now.timeIntervalSince($0.value.date) < Self.duplicateWindow }
+        let record = notification.recordUUID
+        guard var entry = recentKeys[key] else {
+            recentKeys[key] = (now, record.map { [$0] } ?? [])
+            return false
+        }
+        if let record {
+            if entry.records.contains(record) { return true }
+            let isAnotherRecord = !entry.records.isEmpty
+            entry.records.insert(record)
+            if isAnotherRecord { entry.date = now }
+            recentKeys[key] = entry
+            return !isAnotherRecord
+        }
+        return true
     }
 
     private static let duplicateWindow: TimeInterval = 12
