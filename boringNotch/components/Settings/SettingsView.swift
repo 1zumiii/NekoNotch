@@ -17,6 +17,7 @@ private enum SettingsTab: String, CaseIterable, Identifiable {
     case calendar
     case shelf
     case dashboard
+    case rainbowCat
     case mixer
     case mirror
     case battery
@@ -41,6 +42,7 @@ private enum SettingsTab: String, CaseIterable, Identifiable {
         case .calendar: "Calendar"
         case .shelf: "Shelf"
         case .dashboard: "Dashboard"
+        case .rainbowCat: "Rainbow Cat"
         case .mixer: "Mixer"
         case .mirror: "Mirror"
         case .battery: "Battery"
@@ -60,6 +62,7 @@ private enum SettingsTab: String, CaseIterable, Identifiable {
         case .calendar: .system("calendar")
         case .shelf: .system("tray.and.arrow.down")
         case .dashboard: .system("square.grid.2x2")
+        case .rainbowCat: .system("pawprint")
         case .mixer: .system("headphones")
         case .mirror: .system("video")
         case .battery: .system("battery.100.bolt")
@@ -117,6 +120,8 @@ struct SettingsView: View {
                     ShelfSettingsView()
                 case .dashboard:
                     DashboardSettingsView()
+                case .rainbowCat:
+                    RainbowCatSettingsView()
                 case .mixer:
                     MixerSettingsView()
                 case .mirror:

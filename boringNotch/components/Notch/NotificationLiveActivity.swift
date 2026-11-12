@@ -173,6 +173,9 @@ struct NotificationLiveActivity: View {
     let notification: SystemNotification
     /// Just the app's icon on the left, for an icon-only app.
     var iconOnly = false
+    /// With the rainbow cat on, it keeps the right wing (running with notes
+    /// when this is true) and the icon gets a wing as wide on the left.
+    var catPlaying: Bool? = nil
 
     @State private var ringScale: CGFloat = 1
     @State private var ringOpacity = 0.0
@@ -184,11 +187,32 @@ struct NotificationLiveActivity: View {
     var body: some View {
         HStack {
             NotificationSourceIcon(bundleID: notification.bundleID, size: itemSize, showsBadge: iconOnly)
+                .frame(width: catPlaying == nil ? nil : RainbowCatNSView.wingWidth, alignment: .center)
+                .background {
+                    // The cat's sky goes on behind the icon.
+                    if catPlaying != nil {
+                        RainbowStars().frame(width: RainbowCatNSView.wingWidth, height: vm.effectiveClosedNotchHeight)
+                    }
+                }
+                .zIndex(1)
 
             Rectangle()
                 .fill(.black)
                 .frame(width: vm.closedNotchSize.width - cornerRadiusInsets.closed.top)
 
+            if let catPlaying {
+                RainbowCat(isPlaying: catPlaying, isActive: vm.notchState == .closed)
+                    .frame(width: RainbowCatNSView.wingWidth, height: vm.effectiveClosedNotchHeight)
+            } else {
+                dot
+            }
+        }
+        .frame(height: vm.effectiveClosedNotchHeight)
+        .onAppear { pulse() }
+        .onChange(of: notification.id) { _, _ in pulse() }
+    }
+
+    private var dot: some View {
             ZStack {
                 if !iconOnly {
                     Circle()
@@ -201,10 +225,6 @@ struct NotificationLiveActivity: View {
                 }
             }
             .frame(width: itemSize, height: itemSize)
-        }
-        .frame(height: vm.effectiveClosedNotchHeight)
-        .onAppear { pulse() }
-        .onChange(of: notification.id) { _, _ in pulse() }
     }
 
     private func pulse() {
