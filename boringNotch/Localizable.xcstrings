@@ -35052,6 +35052,166 @@
         }
       }
     },
+    "Enable Camera Access" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开启摄像头访问"
+          }
+        }
+      }
+    },
+    "Boring Notch includes a mirror feature that lets you quickly check your appearance using your camera, right from the notch. Camera access is required only to show this live preview. You can turn the mirror feature on or off at any time in the app." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Boring Notch 提供镜子功能，可直接在刘海中通过摄像头快速查看自己的仪容。摄像头权限仅用于显示实时画面，镜子功能可随时在应用中开启或关闭。"
+          }
+        }
+      }
+    },
+    "Your camera is never used without your consent, and nothing is recorded or stored." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未经同意不会使用摄像头，也不会录制或存储任何内容。"
+          }
+        }
+      }
+    },
+    "Enable Calendar Access" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开启日历访问"
+          }
+        }
+      }
+    },
+    "Boring Notch can show all your upcoming events in one place. Access to your calendar is needed to display your schedule." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Boring Notch 可在一处集中显示所有即将到来的日程，显示日程需要日历访问权限。"
+          }
+        }
+      }
+    },
+    "Your calendar data is only used to show your events and is never shared." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日历数据仅用于显示日程，不会与他人共享。"
+          }
+        }
+      }
+    },
+    "Enable Reminders Access" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开启提醒事项访问"
+          }
+        }
+      }
+    },
+    "Boring Notch can show your scheduled reminders alongside your calendar events. Access to Reminders is needed to display your reminders." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Boring Notch 可在日程旁显示已安排时间的提醒事项，显示提醒事项需要相应的访问权限。"
+          }
+        }
+      }
+    },
+    "Your reminders data is only used to show your reminders and is never shared." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提醒事项数据仅用于显示提醒，不会与他人共享。"
+          }
+        }
+      }
+    },
+    "Enable Real-Time Audio" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开启实时音频"
+          }
+        }
+      }
+    },
+    "Boring Notch can analyze the audio playing from your music app to draw a live FFT waveform in the notch, with only a minimal impact on CPU usage." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Boring Notch 可分析音乐应用正在播放的音频，在刘海中绘制实时 FFT 波形，对 CPU 占用的影响很小。"
+          }
+        }
+      }
+    },
+    "Audio is processed locally for the visualizer and never recorded, stored, or shared." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音频仅在本机处理，用于绘制可视化效果，不会被录制、存储或共享。"
+          }
+        }
+      }
+    },
+    "Boring Notch Settings" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Boring Notch 设置"
+          }
+        }
+      }
+    },
+    "Onboarding" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "欢迎使用"
+          }
+        }
+      }
+    },
+    "Select Files for %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择要通过 %@ 发送的文件"
+          }
+        }
+      }
+    },
+    "Choose files to share via %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择要通过 %@ 共享的文件"
+          }
+        }
+      }
+    },
     "Full-screen scrolling (notch only)" : {
       "localizations" : {
         "zh-Hans" : {
