@@ -9,7 +9,7 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-    target-branch: "custom-main"
+    target-branch: "main"
     groups:
       github-actions:
         patterns: ["*"]

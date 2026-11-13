@@ -8,6 +8,6 @@
 
 ## Checklist
 
-- [ ] The pull request targets `custom-main`.
+- [ ] The pull request targets `main`.
 - [ ] The app builds in the Release configuration and runs.
 - [ ] I tried the change on a Mac and it works as described.

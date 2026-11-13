@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches:
-      - custom-main
+      - main
     # Documentation and images cannot break the build, so they do not spend a
     # run. A push that also touches anything else still triggers one.
     paths-ignore:
