@@ -266,5 +266,5 @@ def collect(home, output, now=None):
 
 if __name__ == "__main__":
     home = Path.home()
-    export_app_quota(home, home / "Library/Application Support/RunCatIntegrations/claude-app-quota.json")
-    collect(home, home / "Library/Application Support/RunCatIntegrations/ai-token-stats.json")
+    export_app_quota(home, home / "Library/Application Support/NekoNotch/claude-app-quota.json")
+    collect(home, home / "Library/Application Support/NekoNotch/ai-token-stats.json")

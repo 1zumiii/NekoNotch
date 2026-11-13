@@ -18,7 +18,7 @@ import tempfile
 import time
 from pathlib import Path
 
-OUTPUT = Path.home() / "Library/Application Support/RunCatIntegrations/claude-cli-limits.json"
+OUTPUT = Path.home() / "Library/Application Support/NekoNotch/claude-cli-limits.json"
 
 
 def number(value):
