@@ -5,11 +5,11 @@
 	<key>CFBundleAllowMixedLocalizations</key>
 	<true/>
 	<key>SUBundleName</key>
-	<string>Boring Notch</string>
+	<string>NekoNotch</string>
 	<key>SUEnableAutomaticChecks</key>
 	<false/>
 	<key>NSAudioCaptureUsageDescription</key>
-	<string>boring.notch analyzes audio from your music app to draw a real-time waveform in the notch. Audio is processed locally and never leaves your Mac.</string>
+	<string>NekoNotch analyzes the audio that is playing to draw the waveform and the rainbow cat's notes in the notch, and to set each app's volume in the mixer. Audio is processed on this Mac and never leaves it.</string>
 	<key>BNUpdateChannel</key>
 	<string>stable</string>
 	<key>SUEnableDownloaderService</key>

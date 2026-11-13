@@ -55,3 +55,6 @@ build/
 
 
 __pycache__/
+
+# Local code signing for one Mac
+Configuration/LocalSigning.xcconfig
