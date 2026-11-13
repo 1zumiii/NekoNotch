@@ -5,14 +5,22 @@
 //  Created by Alexander on 2025-11-16.
 //
 
+import CryptoKit
 import Foundation
 import Security
 
-/// Who may connect: the app this helper ships in. With a Team ID (a
-/// developer-signed build) the requirement also pins Apple's anchor and that
-/// team. An ad-hoc signed build has no team to pin, so it checks the
-/// identifier alone; the system already limits an embedded XPC service to
-/// its own app, and this is a second check on top of that.
+/// Who may connect: the app this helper ships in. The requirement always
+/// checks the app's identifier, and adds one more check taken from the
+/// helper's own signature:
+/// - With a Team ID (a developer-signed build), it also pins Apple's anchor
+///   and that team.
+/// - Without a Team ID but with a certificate (a build signed with a
+///   self-signed certificate), it pins the SHA-1 of that leaf certificate,
+///   so the app must be signed with the same certificate as the helper.
+/// - An ad-hoc signed build has no certificate to pin, so it checks the
+///   identifier alone.
+/// The system already limits an embedded XPC service to its own app, and
+/// this is a second check on top of that.
 private enum XPCClientRequirement {
     static let appIdentifier = "io.github.1zumiii.nekonotch"
 
@@ -24,12 +32,22 @@ private enum XPCClientRequirement {
         guard SecCodeCopySelf(SecCSFlags(), &code) == errSecSuccess, let code,
               SecCodeCopyStaticCode(code, SecCSFlags(), &staticCode) == errSecSuccess, let staticCode,
               SecCodeCopySigningInformation(staticCode, SecCSFlags(rawValue: kSecCSSigningInformation), &info) == errSecSuccess,
-              let team = (info as? [CFString: Any])?[kSecCodeInfoTeamIdentifier] as? String,
-              !team.isEmpty, team.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber) })
+              let info = info as? [CFString: Any]
         else {
             return identifier
         }
-        return identifier + #" and anchor apple generic and certificate leaf[subject.OU] = "\#(team)""#
+        if let team = info[kSecCodeInfoTeamIdentifier] as? String,
+           !team.isEmpty, team.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber) }) {
+            return identifier + #" and anchor apple generic and certificate leaf[subject.OU] = "\#(team)""#
+        }
+        guard let certificates = info[kSecCodeInfoCertificates] as? [SecCertificate],
+              let leaf = certificates.first
+        else {
+            return identifier
+        }
+        let digest = Insecure.SHA1.hash(data: SecCertificateCopyData(leaf) as Data)
+        let hash = digest.map { String(format: "%02x", $0) }.joined()
+        return identifier + #" and certificate leaf = H"\#(hash)""#
     }()
 }
 
