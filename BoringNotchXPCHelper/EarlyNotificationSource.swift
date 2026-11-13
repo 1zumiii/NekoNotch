@@ -114,7 +114,7 @@ final class EarlyNotificationSource {
         do {
             try process.run()
         } catch {
-            NSLog("[boringNotch] early notification signal could not start: \(error.localizedDescription)")
+            NSLog("[NekoNotch] early notification signal could not start: \(error.localizedDescription)")
             return false
         }
         self.process = process

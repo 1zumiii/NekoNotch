@@ -10,37 +10,6 @@ import Defaults
 import KeyboardShortcuts
 import SwiftUI
 
-@MainActor
-enum LegacyAppBundleMigration {
-    static let legacyBundleName = BoringNotchAppBundleNames.legacy
-    static let currentBundleName = BoringNotchAppBundleNames.current
-    static var isRelaunching = false
-
-    enum MigrationError: Swift.Error {
-        case destinationExists(URL)
-    }
-
-    static func destinationURL(for bundleURL: URL) -> URL? {
-        guard bundleURL.lastPathComponent == legacyBundleName else { return nil }
-        return bundleURL.deletingLastPathComponent()
-            .appendingPathComponent(currentBundleName, isDirectory: true)
-    }
-
-    @discardableResult
-    static func migrateIfNeeded(
-        at bundleURL: URL,
-        fileManager: FileManager = .default
-    ) throws -> URL? {
-        guard let destinationURL = destinationURL(for: bundleURL) else { return nil }
-        guard !fileManager.fileExists(atPath: destinationURL.path) else {
-            throw MigrationError.destinationExists(destinationURL)
-        }
-
-        try fileManager.moveItem(at: bundleURL, to: destinationURL)
-        return destinationURL
-    }
-}
-
 @main
 struct DynamicNotchApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -52,20 +21,6 @@ struct DynamicNotchApp: App {
         OTPDetector.runSelfCheck()
         #endif
         Task { @MainActor in
-            let sourceURL = Bundle.main.bundleURL
-            if let destinationURL = LegacyAppBundleMigration.destinationURL(for: sourceURL) {
-                let migrated = await XPCHelperClient.shared.migrateLegacyAppBundle(
-                    from: sourceURL,
-                    to: destinationURL
-                )
-                if migrated {
-                    ApplicationRelauncher.restart(at: destinationURL) {
-                        LegacyAppBundleMigration.isRelaunching = true
-                    }
-                    return
-                }
-                NSLog("Failed to migrate legacy NekoNotch app bundle at %@", sourceURL.path)
-            }
             UpdateChecker.shared.start()
         }
     }
@@ -145,8 +100,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        if LegacyAppBundleMigration.isRelaunching { return }
-
         // Flush debounced shelf persistence to avoid losing recent changes
         ShelfStateViewModel.shared.flushSync()
 
