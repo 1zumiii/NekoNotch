@@ -158,7 +158,7 @@ App 和 XPC 助手都用这张证书签名，系统改为按 Bundle ID 和证书
 
 ## 参与开发
 
-欢迎提交 issue 和 PR，开发说明见 [CONTRIBUTING.md](CONTRIBUTING.md)，各版本的改动见 [CHANGELOG.md](CHANGELOG.md)。
+欢迎提交 issue 和 PR，各版本的改动见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 致谢与许可
 
