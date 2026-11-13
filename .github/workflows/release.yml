@@ -1,0 +1,116 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and draft the release
+    runs-on: macos-26
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Verify the tag matches the app version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          # The tag may carry a suffix such as -rc1; the app version does not.
+          base="${tag%%-*}"
+          # The test target keeps its own 1.0; the app and its XPC helper must
+          # agree on a single version.
+          version="$(
+            grep -oE 'MARKETING_VERSION = [^;]+;' boringNotch.xcodeproj/project.pbxproj \
+              | sed -E 's/MARKETING_VERSION = ([^;]+);/\1/' \
+              | sort -u \
+              | grep -vx '1.0'
+          )"
+          echo "tag=$tag base=$base MARKETING_VERSION=$version"
+          test "$(printf '%s\n' "$version" | wc -l | tr -d ' ')" = "1"
+          test "$base" = "$version"
+
+      - name: Select the newest Xcode
+        run: |
+          xcode="$(ls -d /Applications/Xcode_*.app | grep -iv beta | sort -V | tail -1)"
+          sudo xcode-select -s "$xcode"
+          xcodebuild -version
+
+      - name: Test the AI usage collectors
+        run: python3 -m unittest discover -s scripts -p "test_*.py" -v
+
+      # Signed ad hoc: the project has no Developer ID, so the app is not
+      # notarized and the release notes say how to open it.
+      - name: Build
+        run: |
+          xcodebuild build \
+            -project boringNotch.xcodeproj \
+            -scheme boringNotch \
+            -configuration Release \
+            -destination "generic/platform=macOS" \
+            -derivedDataPath build \
+            -skipMacroValidation \
+            -skipPackagePluginValidation \
+            ONLY_ACTIVE_ARCH=NO
+
+      - name: Prepare artifacts
+        id: artifacts
+        run: |
+          # Named after the tag so the file still says what it is once it is in
+          # someone's downloads folder, and so the checksum file names the same
+          # file the release actually carries.
+          asset="NekoNotch-$GITHUB_REF_NAME.zip"
+          mkdir -p artifacts
+          ditto -c -k --sequesterRsrc --keepParent \
+            build/Build/Products/Release/NekoNotch.app \
+            "artifacts/$asset"
+          cd artifacts
+          shasum -a 256 "$asset" > "$asset.sha256"
+          {
+            echo "asset=$asset"
+            echo "checksum=$(cut -d' ' -f1 "$asset.sha256")"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create the draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CHECKSUM: ${{ steps.artifacts.outputs.checksum }}
+          ASSET: ${{ steps.artifacts.outputs.asset }}
+        run: |
+          # A tag carrying a suffix such as v1.2.0-rc1 is published as a
+          # prerelease, which keeps it out of "latest" and therefore out of the
+          # in-app update check.
+          case "$GITHUB_REF_NAME" in
+            *-*) prerelease="--prerelease" ;;
+            *) prerelease="" ;;
+          esac
+          echo "ref=$GITHUB_REF_NAME prerelease=${prerelease:-no}"
+          cat > notes.md <<EOF
+          NekoNotch is not notarized. After unzipping it and moving it to
+          Applications, open it the first time with right-click → Open, or run:
+
+          \`\`\`
+          xattr -dr com.apple.quarantine /Applications/NekoNotch.app
+          \`\`\`
+
+          SHA-256 (\`$ASSET\`): \`$CHECKSUM\`
+          EOF
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --draft \
+            $prerelease \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file notes.md \
+            "artifacts/$ASSET" \
+            "artifacts/$ASSET.sha256"

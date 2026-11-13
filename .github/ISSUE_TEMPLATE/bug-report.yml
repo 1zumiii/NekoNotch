@@ -1,0 +1,55 @@
+name: Bug report
+description: Something in NekoNotch does not work as it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. "Report a bug" on the About page fills in the
+        version and the macOS release for you.
+
+  - type: input
+    id: version
+    attributes:
+      label: NekoNotch version
+      description: Shown on the About page in Settings.
+      placeholder: "1.1.0 (1)"
+    validations:
+      required: true
+
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      placeholder: "Version 26.1 (Build 25B78)"
+    validations:
+      required: true
+
+  - type: input
+    id: mac
+    attributes:
+      label: Mac model
+      description: And whether the screen has a notch.
+      placeholder: "MacBook Pro 14-inch (M4), built-in display with notch"
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the notch
+        2. ...
+
+  - type: textarea
+    id: media
+    attributes:
+      label: Screenshots, recordings or logs
+      description: Drag files here. A crash report from Console.app helps with crashes.
