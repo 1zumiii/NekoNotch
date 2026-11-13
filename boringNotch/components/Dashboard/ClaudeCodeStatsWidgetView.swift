@@ -5,11 +5,14 @@
 import SwiftUI
 
 /// Deduplicated local transcript usage, grouped by provider and UTC day.
+/// `estimated` is the part of the Claude numbers recovered from Claude Code's
+/// stats-cache.json for sessions whose transcripts were deleted.
 struct ClaudeCodeStats: Decodable, Equatable {
     let total: Double
     let last7: Double
     let days: [String: [String: Double]]
     let totals: [String: Double]
+    let estimated: Double?
     let updated: String
     let readErrors: Int
 }
@@ -76,7 +79,10 @@ struct ClaudeCodeStatsWidgetView: View {
     private var details: String {
         guard let stats else { return String(localized: "No usage data yet") }
         let summary = "Claude: \(Self.compact(stats.totals["claude"] ?? 0))\nCodex: \(Self.compact(stats.totals["codex"] ?? 0))"
-        return summary + "\n" + String(localized: "Local transcripts only; includes cache tokens. Claude chats without token records are excluded. Days use UTC.")
+        let estimate = (stats.estimated ?? 0) > 0
+            ? "\n" + String(localized: "Includes \(Self.compact(stats.estimated ?? 0)) estimated from Claude Code's statistics for sessions whose transcripts were deleted.")
+            : ""
+        return summary + estimate + "\n" + String(localized: "Local transcripts only; includes cache tokens. Claude chats without token records are excluded. Days use UTC.")
             + "\n" + String(localized: "Updated") + ": " + stats.updated
             + (stats.readErrors > 0 ? "\n" + String(localized: "Some usage files could not be read") : "")
     }
