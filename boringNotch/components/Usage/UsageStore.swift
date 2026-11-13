@@ -68,21 +68,21 @@ struct UsageSource: Identifiable {
             id: "claude",
             displayName: "Claude",
             icon: "staroflife",
-            relativePath: "Library/Application Support/RunCatIntegrations/claude-app-quota.json",
+            relativePath: "Library/Application Support/NekoNotch/claude-app-quota.json",
             tint: Color(red: 0.85, green: 0.47, blue: 0.34)
         ),
         UsageSource(
             id: "codex",
             displayName: "Codex",
             icon: "camera.aperture",
-            relativePath: ".codex/runcat-usage.json",
+            relativePath: "Library/Application Support/NekoNotch/codex-usage.json",
             tint: Color(red: 0.36, green: 0.62, blue: 1.0)
         )
     ]
 
     static let claudeCLI = UsageSource(
         id: "claudeCLI", displayName: "Claude CLI", icon: "staroflife",
-        relativePath: "Library/Application Support/RunCatIntegrations/claude-cli-limits.json",
+        relativePath: "Library/Application Support/NekoNotch/claude-cli-limits.json",
         tint: Color(red: 0.85, green: 0.47, blue: 0.34)
     )
 }

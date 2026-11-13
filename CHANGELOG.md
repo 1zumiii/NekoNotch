@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- The AI usage collector has new names: its folder is `~/Library/Application Support/NekoNotch` instead of `RunCatIntegrations`, the Codex file is `codex-usage.json` in that folder instead of `~/.codex/runcat-usage.json`, and the LaunchAgent is `io.github.1zumiii.nekonotch.ai-usage`. The app reads only the new locations and no longer needs access to `~/.codex`. If you installed the collector before, run `python3 scripts/install-ai-usage.py` again after updating: it moves the existing data, token cache included, retires the old agent and updates the Claude Code status line.
+
+### Removed
+
+- The move of an app installed as `boringNotch.app` to `NekoNotch.app` at launch, which went through the XPC helper.
+
 ## 1.1.1
 
 ### Added

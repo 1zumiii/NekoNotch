@@ -33,8 +33,7 @@
 	<array>
 		<string>/Library/Group Containers/group.com.apple.usernoted/</string>
 		<string>/Library/DoNotDisturb/DB/</string>
-		<string>/Library/Application Support/RunCatIntegrations/</string>
-		<string>/.codex/runcat-usage.json</string>
+		<string>/Library/Application Support/NekoNotch/</string>
 	</array>
 	<key>com.apple.security.temporary-exception.mach-lookup.global-name</key>
 	<array>

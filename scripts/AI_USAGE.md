@@ -1,19 +1,38 @@
 # Local AI usage for the dashboard
 
 Run `python3 scripts/install-ai-usage.py` on macOS. It copies the three scripts
-into `~/Library/Application Support/RunCatIntegrations` (the folder the sandboxed
-app is allowed to read), installs one LaunchAgent, `dev.izumi.boringnotch-ai-usage`,
+into `~/Library/Application Support/NekoNotch` (the folder the sandboxed app is
+allowed to read), installs one LaunchAgent, `io.github.1zumiii.nekonotch.ai-usage`,
 that runs `ai-usage-sync.py` every 60 seconds, and registers `claude-statusline.py`
 as the Claude Code status line in `~/.claude/settings.json` (a backup of the file
 is kept beside it). Without Claude Code, the status line is skipped. Each source
 is optional: a missing Claude App, Claude Code or Codex leaves its card empty
-and does not stop the others. The two earlier agents are removed and the files of the
-earlier RunCat integration are moved into a `legacy` subfolder. Re-run the
-installer after changing a script. Compressed Codex transcripts require `zstd`
-on PATH or at `/opt/homebrew/bin/zstd`.
+and does not stop the others. Re-run the installer after changing a script; a
+second run changes nothing. Compressed Codex transcripts require `zstd` on PATH
+or at `/opt/homebrew/bin/zstd`.
 
-Nothing here reads credentials. The folder name is kept because the app's
-sandbox entitlement names it.
+Nothing here reads credentials. The folder name is fixed by the app's sandbox
+entitlement, which allows reading only this folder.
+
+## Updating from an earlier installation
+
+Earlier versions used `~/Library/Application Support/RunCatIntegrations`,
+`~/.codex/runcat-usage.json` and the LaunchAgent `dev.izumi.boringnotch-ai-usage`.
+The app now reads only the new locations, so if you installed the collector
+before, run the installer again after you update the app. The installer:
+
+- stops and deletes the old LaunchAgent, and the two agents before it;
+- moves the outputs, the token cache and the `legacy` subfolder into the new
+  folder. A file that already exists there and is newer is kept, and the old
+  copy stays where it was. The old folder is deleted when it is empty and
+  otherwise left in place;
+- moves `~/.codex/runcat-usage.json` to `codex-usage.json` in the new folder,
+  or deletes it if that file already exists;
+- points a status line command that names the old folder at the new one.
+
+The token cache keeps the totals of deleted transcripts, so it is moved, never
+rebuilt. Files of the earlier RunCat integration are moved into the `legacy`
+subfolder.
 
 ## Files the app reads
 
@@ -21,7 +40,7 @@ sandbox entitlement names it.
 | --- | --- | --- |
 | `claude-app-quota.json` | `ai-usage-sync.py`, from the desktop app's own `~/Library/Application Support/Claude/plan-usage-history.json` | Claude, App |
 | `claude-cli-limits.json` | `claude-statusline.py` after every turn of a Claude Code session; `ai-usage-sync.py` as a fallback | Claude, CLI |
-| `~/.codex/runcat-usage.json` | `ai-usage-sync.py`, from the newest main Codex session | Codex |
+| `codex-usage.json` | `ai-usage-sync.py`, from the newest main Codex session | Codex |
 | `ai-token-stats.json` | `ai-usage-sync.py`, through `ai-token-stats.collect` | AI Tokens (Claude and Codex) |
 
 ## Active and idle periods
@@ -98,6 +117,7 @@ python3 -m unittest discover -s scripts -p 'test_*.py'
 ```
 
 To remove the collector, run
-`launchctl bootout gui/$(id -u)/dev.izumi.boringnotch-ai-usage`, delete its
+`launchctl bootout gui/$(id -u)/io.github.1zumiii.nekonotch.ai-usage`, delete its
 plist from `~/Library/LaunchAgents`, and remove the `statusLine` entry from
-`~/.claude/settings.json`.
+`~/.claude/settings.json`. The collected data is in
+`~/Library/Application Support/NekoNotch`.

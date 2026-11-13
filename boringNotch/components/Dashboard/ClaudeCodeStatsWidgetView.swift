@@ -38,7 +38,7 @@ struct ClaudeCodeStatsWidgetView: View {
     private static let fileURL: URL = {
         let path = getpwuid(getuid()).flatMap { String(cString: $0.pointee.pw_dir) } ?? NSHomeDirectory()
         return URL(fileURLWithPath: path, isDirectory: true)
-            .appendingPathComponent("Library/Application Support/RunCatIntegrations/ai-token-stats.json")
+            .appendingPathComponent("Library/Application Support/NekoNotch/ai-token-stats.json")
     }()
 
     private static func load() -> ClaudeCodeStats? {

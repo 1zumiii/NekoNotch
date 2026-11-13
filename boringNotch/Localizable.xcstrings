@@ -1335,22 +1335,6 @@
         }
       }
     },
-    "A second page beside the player with Claude and Codex usage, read from the files RunCat's integration scripts write." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "A second page beside the player with Claude and Codex usage, read from the files RunCat's integration scripts write."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在播放器旁添加用量页，显示 Claude 和 Codex 的用量。数据来自 RunCat 集成脚本生成的文件。"
-          }
-        }
-      }
-    },
     "Read notifications from the system database" : {
       "localizations" : {
         "en" : {

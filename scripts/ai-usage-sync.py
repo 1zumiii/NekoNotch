@@ -12,7 +12,7 @@ every source is compared by file signature before anything is parsed.
   CLI_FALLBACK_SECONDS, which covers usage from other machines while no local
   session runs.
 - Codex: the last token count and rate limits of the newest main session,
-  written to ~/.codex/runcat-usage.json (the path the app's sandbox allows).
+  written to codex-usage.json beside the other outputs.
 - Token statistics: ai-token-stats.collect, for the Claude Code card.
 
 Nothing here reads credentials; the CLI signs in by itself.
@@ -33,7 +33,7 @@ from zoneinfo import ZoneInfo
 ROOT = Path(__file__).resolve().parent
 HOME = Path.home()
 STATE = ROOT / "ai-usage-state.json"
-CODEX_OUTPUT = HOME / ".codex/runcat-usage.json"
+CODEX_OUTPUT = ROOT / "codex-usage.json"
 CLI_LIMITS = ROOT / "claude-cli-limits.json"
 APP_QUOTA = ROOT / "claude-app-quota.json"
 TOKEN_STATS = ROOT / "ai-token-stats.json"
