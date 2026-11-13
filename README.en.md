@@ -9,19 +9,16 @@
 
 <table>
   <tr>
-    <td align="center"><img src="docs/images/rainbow-cat-idle.gif" alt="Rainbow cat: idle" width="424"><br>Idle</td>
-    <td align="center"><img src="docs/images/rainbow-cat-half.gif" alt="Rainbow cat: half load" width="424"><br>Half load</td>
+    <td align="center"><img src="docs/images/rainbow-cat-idle.gif" alt="Rainbow cat: idle" width="380"><br>Idle</td>
+    <td align="center"><img src="docs/images/rainbow-cat-half.gif" alt="Rainbow cat: half load" width="380"><br>Half load</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/images/rainbow-cat-warp.gif" alt="Rainbow cat: warp" width="424"><br>Warp</td>
-    <td align="center"><img src="docs/images/rainbow-cat-full.gif" alt="Rainbow cat: full load" width="424"><br>Full load</td>
+    <td align="center"><img src="docs/images/rainbow-cat-warp.gif" alt="Rainbow cat: warp" width="380"><br>Warp</td>
+    <td align="center"><img src="docs/images/rainbow-cat-singing.gif" alt="Rainbow cat singing while music plays" width="380"><br>Singing while music plays</td>
   </tr>
   <tr>
-    <td align="center" colspan="2"><img src="docs/images/rainbow-cat-singing.gif" alt="Rainbow cat singing while music plays" width="424"><br>Singing while music plays</td>
-  </tr>
-  <tr>
-    <td align="center"><img src="docs/images/system-monitor.png" alt="System monitor panel" width="424"><br>System monitor</td>
-    <td align="center"><img src="docs/images/mixer.png" alt="Mixer" width="424"><br>Mixer</td>
+    <td align="center"><img src="docs/images/system-monitor.png" alt="System monitor panel" width="380"><br>System monitor</td>
+    <td align="center"><img src="docs/images/mixer.png" alt="Mixer" width="380"><br>Mixer</td>
   </tr>
 </table>
 

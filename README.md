@@ -9,19 +9,16 @@
 
 <table>
   <tr>
-    <td align="center"><img src="docs/images/rainbow-cat-idle.gif" alt="彩虹猫：空闲" width="424"><br>空闲</td>
-    <td align="center"><img src="docs/images/rainbow-cat-half.gif" alt="彩虹猫：半载" width="424"><br>半载</td>
+    <td align="center"><img src="docs/images/rainbow-cat-idle.gif" alt="彩虹猫：空闲" width="380"><br>空闲</td>
+    <td align="center"><img src="docs/images/rainbow-cat-half.gif" alt="彩虹猫：半载" width="380"><br>半载</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/images/rainbow-cat-warp.gif" alt="彩虹猫：跃迁" width="424"><br>跃迁</td>
-    <td align="center"><img src="docs/images/rainbow-cat-full.gif" alt="彩虹猫：满载" width="424"><br>满载</td>
+    <td align="center"><img src="docs/images/rainbow-cat-warp.gif" alt="彩虹猫：跃迁" width="380"><br>跃迁</td>
+    <td align="center"><img src="docs/images/rainbow-cat-singing.gif" alt="彩虹猫：播放音乐时唱歌" width="380"><br>播放音乐时唱歌</td>
   </tr>
   <tr>
-    <td align="center" colspan="2"><img src="docs/images/rainbow-cat-singing.gif" alt="彩虹猫：播放音乐时唱歌" width="424"><br>播放音乐时唱歌</td>
-  </tr>
-  <tr>
-    <td align="center"><img src="docs/images/system-monitor.png" alt="系统监测面板" width="424"><br>系统监测</td>
-    <td align="center"><img src="docs/images/mixer.png" alt="混音器" width="424"><br>混音器</td>
+    <td align="center"><img src="docs/images/system-monitor.png" alt="系统监测面板" width="380"><br>系统监测</td>
+    <td align="center"><img src="docs/images/mixer.png" alt="混音器" width="380"><br>混音器</td>
   </tr>
 </table>
 
