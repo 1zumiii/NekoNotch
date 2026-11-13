@@ -3,8 +3,8 @@
 <p align="center"><a href="README.md">简体中文</a> · English</p>
 
 <p align="center">
-  A personal fork of <a href="https://github.com/TheBoredTeam/boring.notch">Boring Notch</a>, with a rainbow cat, a system monitor, notifications, a dashboard, and an app mixer in the notch.<br>
-  The original upstream documentation is kept in <a href="README.upstream.md">README.upstream.md</a>.
+  Read notifications, monitor system load, control app audio, and track Claude and Codex usage from your Mac's notch.<br>
+  A rainbow cat changes speed with CPU load and adds floating notes while music plays.
 </p>
 
 <table>
@@ -29,7 +29,7 @@
 
 ## About this fork
 
-This fork is based on [TheBoredTeam/boring.notch](https://github.com/TheBoredTeam/boring.notch) `v2.8-rc.2`. I've added features I wanted for daily use and fixed issues I ran into on macOS 26 and 27.
+The project began with [TheBoredTeam/boring.notch](https://github.com/TheBoredTeam/boring.notch) `v2.8-rc.2`. This page covers subsequent additions and improvements. Documentation for inherited features is preserved in [README.upstream.md](README.upstream.md).
 
 - The default branch is `custom-main`. Updates are merged from upstream; this fork does not push changes or submit PRs upstream.
 - In-app updates (Sparkle) are disabled to prevent official builds from overwriting the custom changes. The About page shows `Izumi Edition ✨ 1.1.0`. To pick up upstream updates, merge them into `custom-main` and rebuild.
@@ -42,7 +42,7 @@ This fork is based on [TheBoredTeam/boring.notch](https://github.com/TheBoredTea
 While no media plays, a pixel cat with a piano keyboard for a body runs on the right of the closed notch. The left side shows a starry sky of the same width.
 
 - Speed: the cat and the stars speed up with CPU load. Their top speeds at full load are set separately in settings; the defaults are 3× for the cat and 4× for the stars.
-- Warp: past a CPU load threshold (70% by default), the stars rush out of sight and streaks of light take their place. The stars return once the load drops 10% below the threshold. Warp can be turned off.
+- Warp: when CPU load reaches the threshold (70% by default), the stars rush out of sight and streaks of light take their place. The stars return when the load falls more than 10 percentage points below the threshold. Warp can be turned off.
 - Sky: stars come in two layers of depth, with near ones bigger, brighter and faster; a few of them twinkle. Stars drift in from the outer edge, pass behind the notch and come out on the other side. When the notch closes again, the sky appears already full.
 - Media: the cat replaces the waveform beside the album art and sings as it runs. Colored notes rise from its head, more of them the louder the music.
 - Notifications: the cat runs beside a notification's icon.
@@ -67,12 +67,13 @@ Notifications can appear directly in the notch. You can also turn off an app's s
 - App filtering: shows notifications from all apps or only the apps you select.
 - Excluded apps: apps on this list are not shown in the notch, and their system banners are left alone. Apps that sent notifications recently are listed in settings so they can be added directly. macOS background agents (such as Background Items) share one name and icon.
 - Icon only: for the chosen apps, a notification shows only the app's icon on the left of the closed notch, in place of the album art while music plays. A small dot on the icon marks it as a notification.
+- Full-screen notifications: when full-screen mode hides the notch, notification text scrolls once beneath it alongside the source app's icon. Apps set to icon-only mode continue to show just their icon.
 - Click to open: clicking a notification read from a banner presses the system banner itself, so the app opens the right conversation or item.
 - Database reading: reads the Notification Center database directly and requires Full Disk Access. With this enabled, an app's notifications still appear in the notch when its system banners are disabled, avoiding a brief flash of the system banner.
 - Source app preview: when an app with banners disabled sends a notification, its icon appears first. About 5 seconds later, the system writes the body to the database, and the text is filled in at the same position. The early signal comes from `usernoted` log entries indicating that the notification has been stored.
 - Time-sensitive notifications: notifications marked as time-sensitive or critical in the database get a rotating rainbow border along the sides and bottom, and stay visible for twice as long. Ordinary notifications wait in the queue until they close. Classification uses the database record's `intrp` field. The passive level has been verified with real notifications; the time-sensitive and critical levels are inferred from the system's level definitions and have not yet been verified with real notifications.
 - Service status: the top of the notification settings page shows the status of the background helper, banner capture, database reader, and early signal source, along with the time of the latest event. If notifications aren't appearing, check these statuses or click “Restart Service.”
-- Test notifications: select a real system notification, an ordinary notification, or a time-sensitive notification from the dropdown, then send it.
+- Test notifications: send a real system notification, or directly preview ordinary, time-sensitive, and full-screen scrolling notifications in the notch.
 
 App icon lookup also covers `/System/Applications/Utilities`. The app-name-to-Bundle-ID index is now built in the background, avoiding a 1–2 second pause during lookup.
 
@@ -80,6 +81,7 @@ App icon lookup also covers `/System/Applications/Utilities`. The app-name-to-Bu
 
 - Notifications tab: a new tab in the notch lists the last 50 notifications, newest first, with app, time, title, and body. Click one to open its app, hover to remove it, or clear everything from the left panel. A red dot on the tab icon marks notifications not yet seen.
 - Privacy: the history is kept in memory only, never written to disk, and cleared when the app quits. Turning off “Keep a history” in the notification settings also hides the tab.
+- Duplicate handling: a notification arriving through both the banner reader and the database is counted once. Separate database records are shown and retained even when their text is identical, including notifications from apps that hide message previews.
 - Focus: while a Focus is on, the system shows no banners but still writes notifications to the database. The default, “Follow the Focus”, shows in the notch only what the system lets through: notifications that still get a banner, and time-sensitive ones. The rest go to the history with a moon mark. The alternatives are “Show all notifications” and “Show none”.
 - The Focus state is read from `~/Library/DoNotDisturb/DB` and requires Full Disk Access. A Focus turned on by hand is detected; one that starts on a schedule is not.
 
@@ -87,8 +89,11 @@ App icon lookup also covers `/System/Applications/Utilities`. The app-name-to-Bu
 
 The dashboard uses a 12 × 4 grid. You can adjust each card's position and size in settings, such as 4×4 or 6×2. Layouts saved by older versions are converted once.
 
-- Claude and Codex usage: reads snapshots written by the collector scripts under `scripts/`; see `scripts/AI_USAGE.md` for installation. The Claude card switches between the App and CLI accounts: the App quota comes from the desktop app's own records, and the CLI quota is written by the Claude Code status line script after every turn, with no polling while no session runs. The sample time is shown under the title, and older data is labeled.
-- Claude Code: reads `ai-token-stats.json` from the same folder and shows total tokens and a heat map of daily use over the last weeks. Usage stays counted after its transcript is deleted; Claude sessions deleted before the cache existed are estimated from Claude Code's own statistics.
+- Claude and Codex quotas: reads snapshots written by the collector scripts under `scripts/`; see [the collector guide](scripts/AI_USAGE.md) for installation. The Claude card remembers the selected App or CLI account. App quotas come from the desktop app's records; CLI quotas are written by the Claude Code status line after each turn. The collector attempts a fallback refresh when CLI data is missing or more than 30 minutes old. The card shows the sample time and labels stale data.
+- AI Tokens: reads `~/Library/Application Support/RunCatIntegrations/ai-token-stats.json` and combines Claude and Codex token totals with a daily usage heat map. Recorded usage is retained after transcripts are deleted. Usage from Claude sessions deleted before the cache existed is estimated from Claude Code's statistics, with the estimated amount shown in the tooltip.
+- Heat map: orange denotes Claude and violet denotes Codex. Days with both sources blend the colors in proportion to token usage; intensity represents the daily total. Dates use UTC, and the seven-day total includes today and the preceding six days.
+
+Quota cards show each account's quota utilization; AI Tokens counts tokens. These are different measures. Token totals include cache usage and deduplicate repeated transcript records. Claude chats without local token details or recoverable statistics are excluded, so these totals do not represent complete account-wide usage across all devices.
 
 The former storage, battery usage and system cards have moved to the system monitor.
 
@@ -101,13 +106,19 @@ The mixer provides per-app volume control similar to SoundSource, using Core Aud
 - Adjust the volume of each app playing audio, with mute and solo controls.
 - Adjust left/right balance or switch to mono.
 - Choose an output device for each app.
+- Control system output and microphone input, including device selection and the volume and mute controls supported by each device.
+- Automatically retain per-app volume, mute, balance, mono, and output settings. Save the current settings as a named scene, restore a scene, or reset an individual app.
+- If an assigned output disconnects, fall back to the system default while retaining volume and channel settings. Switch back automatically when the original device returns; the device button indicates the fallback state.
+- Keep app rows in place while the page is open, so controls do not move when playback changes. Apply saved settings as soon as an app starts playing.
 - View live level meters, calculated only while the page is visible. With the mixer enabled and the page hidden, CPU usage is about 0.2%–0.3% of a single core.
 
 When no apps are playing audio, a single-line message appears in the center of the page. On first use, follow the prompt to grant the system audio recording permission.
 
 ### Clipboard area
 
-The Shelf tab includes a temporary clipboard area. Items are arranged vertically, with one line per item and an ellipsis for overflow. You can clear all items at once or disable the area in settings.
+The Shelf tab includes a text clipboard area containing the 20 most recent entries, limited to 2,000 characters each. Copying the same text moves it to the top. Entries can be copied again, removed individually, or cleared together.
+
+History stays in memory and is cleared when the app quits or the clipboard area is disabled. Clipboard content marked as concealed, transient, or automatically generated is excluded, including recognized password-manager markers. Each entry occupies one line, with an ellipsis for overflow.
 
 ### Battery and charging alerts
 

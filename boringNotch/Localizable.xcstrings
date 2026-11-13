@@ -46,7 +46,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "每个按钮会在这里和刘海上同时展示对应状态 15 秒，之后恢复为真实的 CPU 占用率。“跃迁”使用比下方阈值略高的占用率。"
+            "value" : "点击按钮后，预览区和刘海会同步展示对应状态，持续 15 秒后恢复按实际 CPU 占用率显示。“跃迁”测试使用略高于下方阈值的模拟占用率。"
           }
         }
       }
@@ -56,7 +56,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "满载时猫的速度"
+            "value" : "猫的满载速度"
           }
         }
       }
@@ -66,7 +66,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "满载时星空的速度"
+            "value" : "星空的满载速度"
           }
         }
       }
@@ -96,7 +96,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "猫和星空随 CPU 占用率加速，从静止时的速度逐渐加快，满载时达到上面设定的倍数。开启跃迁效果后，CPU 占用率超过阈值时星星会变成一道道光线；降到阈值以下 10% 后恢复成星星。"
+            "value" : "CPU 占用率越高，猫和星空的移动速度越快，满载时达到设定倍数。开启跃迁效果后，占用率达到阈值时，星星变为光线；低于阈值 10 个百分点时，恢复星星效果。"
           }
         }
       }
@@ -34225,7 +34225,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "不可用的设备"
+            "value" : "设备不可用"
           }
         }
       }
@@ -34241,7 +34241,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ 未连接。在它恢复之前，先通过系统默认设备播放。"
+            "value" : "%@ 未连接，暂用系统默认设备播放。重新连接后将自动切回。"
           }
         }
       }
@@ -34273,7 +34273,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "需要允许“系统音频录制”才能调节各应用的音量"
+            "value" : "允许“系统音频录制”后，即可调节各应用的音量"
           }
         }
       }
@@ -35157,7 +35157,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "开启摄像头访问"
+            "value" : "允许访问摄像头"
           }
         }
       }
@@ -35167,7 +35167,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Boring Notch 提供镜子功能，可直接在刘海中通过摄像头快速查看自己的仪容。摄像头权限仅用于显示实时画面，镜子功能可随时在应用中开启或关闭。"
+            "value" : "Boring Notch 的镜子功能可在刘海中显示摄像头画面，便于整理仪容。摄像头权限仅用于实时预览，可随时在应用中开启或关闭此功能。"
           }
         }
       }
@@ -35177,7 +35177,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "未经同意不会使用摄像头，也不会录制或存储任何内容。"
+            "value" : "摄像头仅在获得授权并开启镜子功能后使用，不会录制或保存画面。"
           }
         }
       }
@@ -35187,7 +35187,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "开启日历访问"
+            "value" : "允许访问日历"
           }
         }
       }
@@ -35197,7 +35197,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Boring Notch 可在一处集中显示所有即将到来的日程，显示日程需要日历访问权限。"
+            "value" : "允许访问日历后，Boring Notch 可在刘海中集中显示即将开始的日程。"
           }
         }
       }
@@ -35207,7 +35207,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "日历数据仅用于显示日程，不会与他人共享。"
+            "value" : "日历数据仅用于显示日程，不会对外共享。"
           }
         }
       }
@@ -35217,7 +35217,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "开启提醒事项访问"
+            "value" : "允许访问提醒事项"
           }
         }
       }
@@ -35227,7 +35227,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Boring Notch 可在日程旁显示已安排时间的提醒事项，显示提醒事项需要相应的访问权限。"
+            "value" : "允许访问提醒事项后，Boring Notch 可在日程旁显示已设定时间的提醒事项。"
           }
         }
       }
@@ -35237,7 +35237,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "提醒事项数据仅用于显示提醒，不会与他人共享。"
+            "value" : "提醒事项数据仅用于显示提醒，不会对外共享。"
           }
         }
       }
@@ -35247,7 +35247,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "开启实时音频"
+            "value" : "启用实时音频可视化"
           }
         }
       }
@@ -35257,7 +35257,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Boring Notch 可分析音乐应用正在播放的音频，在刘海中绘制实时 FFT 波形，对 CPU 占用的影响很小。"
+            "value" : "Boring Notch 可分析音乐应用正在播放的音频，通过 FFT 绘制刘海中的实时波形，CPU 开销较低。"
           }
         }
       }
@@ -35267,7 +35267,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "音频仅在本机处理，用于绘制可视化效果，不会被录制、存储或共享。"
+            "value" : "音频仅在本机处理，用于绘制实时波形，不会录制、保存或对外共享。"
           }
         }
       }
@@ -35307,7 +35307,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "选择要通过 %@ 共享的文件"
+            "value" : "选择要通过 %@ 发送的文件"
           }
         }
       }
@@ -35367,7 +35367,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "联动"
+            "value" : "联动内存"
           }
         }
       }
@@ -35517,7 +35517,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "播放时代替音频波形"
+            "value" : "播放时用彩虹猫替代波形"
           }
         }
       }
@@ -35527,7 +35527,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "从猫展开系统监测"
+            "value" : "通过彩虹猫打开系统监测"
           }
         }
       }
@@ -35537,7 +35537,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "没有播放媒体时，一只以钢琴键盘为身体的像素猫会在收起的刘海右侧奔跑，左侧留出同样宽度的空白以保持对称。CPU 越忙，它跑得越快。"
+            "value" : "未播放媒体时，键盘造型的像素猫在收起的刘海右侧奔跑，左侧显示等宽星空。CPU 占用率越高，奔跑速度越快。"
           }
         }
       }
@@ -35547,7 +35547,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "播放媒体时，猫会代替专辑封面旁的音频波形，身后的彩虹换成飘出的彩色音符，音乐越响，音符越多。将指针悬停在猫上或点按它，展开后显示 CPU、内存、网络、存储空间、电池和耗电情况，而不是平常的标签页。"
+            "value" : "播放媒体时，彩虹猫可替代专辑封面旁的音频波形，并随音乐飘出彩色音符。音量越大，音符越多。启用系统监测入口后，悬停或点击彩虹猫即可查看 CPU、内存、网络、存储、电池和应用耗电情况。"
           }
         }
       }
@@ -35667,7 +35667,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "全屏滚动（仅刘海）"
+            "value" : "全屏滚动通知（仅刘海）"
           }
         }
       }
@@ -35677,7 +35677,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "全屏时刘海保持隐藏，通知文字会在刘海下方这一行滚动一遍，图标表示通知来源。"
+            "value" : "全屏时，刘海保持收起。通知文字在刘海下方单行滚动一次，并显示来源应用的图标。"
           }
         }
       }
@@ -35727,7 +35727,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "真实系统通知用于测试完整的接收流程，可能短暂显示系统横幅。“仅刘海”测试会直接在刘海中显示通知；预览时间敏感通知，或全屏时刘海下方滚动的一行通知，需选择此类测试。"
+            "value" : "“真实系统通知”用于测试完整的接收流程，可能显示系统横幅。“仅刘海”测试直接预览刘海中的通知样式。测试时间敏感通知或全屏滚动通知时，请选择对应的“仅刘海”选项。"
           }
         }
       }
@@ -36215,14 +36215,14 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "其中 %@ 是已删除会话的用量，按 Claude Code 自带的统计估算。"
+            "value" : "其中 %@ 为已删除会话的估算用量，依据 Claude Code 的统计记录计算。"
           }
         }
       }
     },
     "Local transcripts only; includes cache tokens. Claude chats without token records are excluded. Days use UTC." : {
       "localizations" : {
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "仅统计本地会话记录，包含缓存 Token。不含未提供 Token 明细的 Claude 聊天。日期按 UTC 划分。" } }
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "基于本地会话记录统计，包含缓存 Token。已删除的 Claude 会话可根据统计记录估算补回；无 Token 明细或统计记录的聊天不计入。日期按 UTC 划分。" } }
       }
     },
     "Some usage files could not be read" : {
