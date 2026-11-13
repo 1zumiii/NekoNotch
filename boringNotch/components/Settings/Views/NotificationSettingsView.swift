@@ -254,6 +254,12 @@ struct NotificationSettingsView: View {
             rows.append(ServiceRow(id: "database", title: "Database reader", state: .failed, status: "Stopped"))
         } else if database.isFailing {
             rows.append(ServiceRow(id: "database", title: "Database reader", state: .failed, status: "Cannot read the database"))
+        } else if database.isUnreadable {
+            // Banners still reach the notch; only apps whose banners are off
+            // depend on the database alone.
+            rows.append(ServiceRow(id: "database", title: "Database reader", state: .failed,
+                                   status: "Notifications in an unknown format",
+                                   detail: String(localized: "Apps with banners turned off cannot show in the notch")))
         } else {
             rows.append(ServiceRow(id: "database", title: "Database reader", state: .running, status: "Running",
                                    detail: lastEvent(manager.lastDatabaseAt)))
