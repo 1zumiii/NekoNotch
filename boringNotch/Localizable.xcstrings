@@ -1015,22 +1015,6 @@
         }
       }
     },
-    "This is a customised build. Software updates are turned off so an official release can't overwrite your changes. To update, merge upstream into your fork and rebuild." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This is a customised build. Software updates are turned off so an official release can't overwrite your changes. To update, merge upstream into your fork and rebuild."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此版本为自定义版本，已关闭软件更新，以免官方版本覆盖自定义改动。如需更新，请将上游改动合并到 fork 后重新编译。"
-          }
-        }
-      }
-    },
     "Storage" : {
       "localizations" : {
         "en" : {
@@ -2031,38 +2015,6 @@
         }
       }
     },
-    "Automatically check for updates" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Automatically check for updates"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "自动检查更新"
-          }
-        }
-      }
-    },
-    "Automatically download updates" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Automatically download updates"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "自动下载更新"
-          }
-        }
-      }
-    },
     "Automatically switch displays" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2224,17 +2176,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "NekoNotch"
-          }
-        }
-      }
-    },
-    "NekoNotch can check for updates in the background. You can still check manually from the menu bar at any time." : {
-      "comment" : "A description of the software update permission.",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "NekoNotch 可在后台检查更新，也可随时从菜单栏手动检查。"
           }
         }
       }
@@ -4126,17 +4067,6 @@
         }
       }
     },
-    "Keep NekoNotch Updated" : {
-      "comment" : "A title for a view that allows users to configure NekoNotch's update preferences.",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "保持 NekoNotch 处于最新版本"
-          }
-        }
-      }
-    },
     "Keep newer shelf items in front" : {
       "comment" : "A toggle that allows users to reverse the order of shelf items.",
       "localizations" : {
@@ -4286,22 +4216,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未安装 Lunar 或无法连接"
-          }
-        }
-      }
-    },
-    "Made with 🫶🏻 by not so boring not.people" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Made with 🫶🏻 by not so boring not.people"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "由 not.people 团队制作"
           }
         }
       }
@@ -4635,17 +4549,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下一个"
-          }
-        }
-      }
-    },
-    "Nightly" : {
-      "comment" : "Update channel: nightly",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "每夜构建版"
           }
         }
       }
@@ -5473,22 +5376,6 @@
         }
       }
     },
-    "Release name" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Release name"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "版本名称"
-          }
-        }
-      }
-    },
     "Remember last tab" : {
       "localizations" : {
         "en" : {
@@ -6283,22 +6170,6 @@
         }
       }
     },
-    "Software updates" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Software updates"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "软件更新"
-          }
-        }
-      }
-    },
     "Speed" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -6340,17 +6211,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "方形"
-          }
-        }
-      }
-    },
-    "Stable" : {
-      "comment" : "Update channel: stable",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "稳定版"
           }
         }
       }
@@ -6617,17 +6477,6 @@
         }
       }
     },
-    "Update channel" : {
-      "comment" : "Software updates channel picker label",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "更新渠道"
-          }
-        }
-      }
-    },
     "Upgrade to Pro" : {
       "localizations" : {
         "en" : {
@@ -6803,22 +6652,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "版本"
-          }
-        }
-      }
-    },
-    "Version info" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Version info"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "版本信息"
           }
         }
       }
@@ -9360,6 +9193,116 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "内存"
+          }
+        }
+      }
+    },
+    "Check Now" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "立即检查"
+          }
+        }
+      }
+    },
+    "Updates" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新"
+          }
+        }
+      }
+    },
+    "Looks up the latest release on GitHub, at most once a day. New versions are installed by hand from the release page." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每天最多在 GitHub 上查询一次最新发布版本。新版本需要从发布页面手动下载安装。"
+          }
+        }
+      }
+    },
+    "Made by 1zumiii, built on Boring Notch by The Bored Team." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "由 1zumiii 制作，基于 The Bored Team 的 Boring Notch。"
+          }
+        }
+      }
+    },
+    "Not checked yet" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未检查"
+          }
+        }
+      }
+    },
+    "Up to date" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已是最新版本"
+          }
+        }
+      }
+    },
+    "Version %@ is available" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有新版本 %@"
+          }
+        }
+      }
+    },
+    "Couldn't reach GitHub" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法连接 GitHub"
+          }
+        }
+      }
+    },
+    "NekoNotch %@ is available" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NekoNotch %@ 已发布"
+          }
+        }
+      }
+    },
+    "Open the About page in Settings to download it." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在设置的“关于”页中下载。"
+          }
+        }
+      }
+    },
+    "Download NekoNotch %@…" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载 NekoNotch %@…"
           }
         }
       }
