@@ -4,22 +4,8 @@
 <dict>
 	<key>CFBundleAllowMixedLocalizations</key>
 	<true/>
-	<key>SUBundleName</key>
-	<string>NekoNotch</string>
-	<key>SUEnableAutomaticChecks</key>
-	<false/>
 	<key>NSAudioCaptureUsageDescription</key>
 	<string>NekoNotch analyzes the audio that is playing to draw the waveform and the rainbow cat's notes in the notch, and to set each app's volume in the mixer. Audio is processed on this Mac and never leaves it.</string>
-	<key>BNUpdateChannel</key>
-	<string>stable</string>
-	<key>SUEnableDownloaderService</key>
-	<true/>
-	<key>SUEnableInstallerLauncherService</key>
-	<true/>
-	<key>SUFeedURL</key>
-	<string>https://TheBoredTeam.github.io/boring.notch/appcast.xml</string>
-	<key>SUPublicEDKey</key>
-	<string>B1Y47t8C/v8ImurYA+9arEsuCrpxwJSviekiflMElbI=</string>
 	<key>UTImportedTypeDeclarations</key>
 	<array>
 		<dict/>

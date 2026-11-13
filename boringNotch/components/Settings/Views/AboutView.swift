@@ -6,34 +6,28 @@
 //
 
 import Defaults
-import Sparkle
 import SwiftUI
 
 struct AboutView: View {
-    @State private var showBuildNumber: Bool = false
-    let updaterController: SPUStandardUpdaterController
-    @Environment(\.openWindow) var openWindow
-
-    /// The exact version this build reports, in the format the bug report
-    /// form's validator recognizes (see .github/scripts/validate-issue-version.js).
-    private var reportVersion: String {
-        let version = Bundle.main.releaseVersionNumber ?? "unknown"
-        let build = Bundle.main.buildVersionNumber ?? "unknown"
-        let channel = UpdateChannel.bundled
-        let channelSuffix = channel == .stable ? "" : ", \(channel.rawValue) channel"
-        return "\(version) (build \(build)\(channelSuffix))"
-    }
-
-    static let repositoryURL = URL(string: "https://github.com/1zumiii/NekoNotch")!
+    static let repositoryURL = URL(string: "https://github.com/\(UpdateChecker.repository)")!
     static let upstreamURL = URL(string: "https://github.com/TheBoredTeam/boring.notch")!
+    /// The upstream release this project started from.
+    static let upstreamBase = "2.8-rc.2"
+
+    @ObservedObject private var updates = UpdateChecker.shared
+    @Default(.checkForUpdates) private var checkForUpdates
+    @State private var showBuildNumber = false
+
+    private var version: String { UpdateChecker.currentVersion }
+    private var build: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "" }
 
     /// Opens a new issue on this project's repository with the version and
     /// the macOS release filled in.
     private var bugReportURL: URL? {
-        var components = URLComponents(string: "https://github.com/1zumiii/NekoNotch/issues/new")
+        var components = URLComponents(string: "\(Self.repositoryURL.absoluteString)/issues/new")
         components?.queryItems = [
             URLQueryItem(name: "body", value: """
-                **Version:** \(CustomBuild.version) (\(reportVersion))
+                **Version:** \(version) (\(build))
                 **macOS:** \(ProcessInfo.processInfo.operatingSystemVersionString)
 
                 **What happened:**
@@ -44,61 +38,59 @@ struct AboutView: View {
     }
 
     var body: some View {
-        VStack {
+        VStack(spacing: 0) {
             Form {
                 Section {
-                    HStack {
-                        Text("Release name")
-                        Spacer()
-                        Text(CustomBuild.releaseName)
-                            .foregroundStyle(.secondary)
-                    }
                     HStack {
                         Text("Version")
                         Spacer()
                         if showBuildNumber {
-                            Text("(\(Bundle.main.buildVersionNumber ?? ""))")
-                                .foregroundStyle(.secondary)
+                            Text(verbatim: "(\(build))").foregroundStyle(.secondary)
                         }
-                        Text(CustomBuild.version)
-                            .foregroundStyle(.secondary)
+                        Text(verbatim: version).foregroundStyle(.secondary)
                     }
-                    HStack {
-                        Text("Based on Boring Notch")
-                        Spacer()
-                        Text(Bundle.main.releaseVersionNumber ?? "unknown")
-                            .foregroundStyle(.secondary)
-                    }
-                    .onTapGesture {
-                        withAnimation {
-                            showBuildNumber.toggle()
-                        }
-                    }
-                } header: {
-                    Text("Version info")
-                }
-
-                Section {
+                    .contentShape(Rectangle())
+                    .onTapGesture { withAnimation { showBuildNumber.toggle() } }
                     HStack {
                         Text("Repository")
                         Spacer()
-                        Link("1zumiii/NekoNotch", destination: Self.repositoryURL)
+                        Link(UpdateChecker.repository, destination: Self.repositoryURL)
                     }
                     HStack {
                         Text("Based on")
                         Spacer()
-                        Link("TheBoredTeam/boring.notch", destination: Self.upstreamURL)
+                        Link(destination: Self.upstreamURL) {
+                            Text(verbatim: "Boring Notch \(Self.upstreamBase)")
+                        }
                     }
                 }
 
-                UpdaterSettingsView(updater: updaterController.updater)
+                Section {
+                    Toggle("Check for updates automatically", isOn: $checkForUpdates)
+                    HStack {
+                        updateStatus
+                        Spacer()
+                        if case .available(_, let page) = updates.state {
+                            Button("Download") { NSWorkspace.shared.open(page) }
+                                .buttonStyle(.borderedProminent)
+                        }
+                        Button("Check Now") {
+                            Task { await updates.check(userInitiated: true) }
+                        }
+                        .disabled(updates.state == .checking)
+                    }
+                } header: {
+                    Text("Updates")
+                } footer: {
+                    Text("Looks up the latest release on GitHub, at most once a day. New versions are installed by hand from the release page.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
 
                 HStack(spacing: 30) {
                     Spacer(minLength: 0)
                     Button {
-                        if let url = bugReportURL {
-                            NSWorkspace.shared.open(url)
-                        }
+                        if let url = bugReportURL { NSWorkspace.shared.open(url) }
                     } label: {
                         VStack(spacing: 5) {
                             Image(systemName: "exclamationmark.bubble")
@@ -125,20 +117,37 @@ struct AboutView: View {
                 }
                 .buttonStyle(PlainButtonStyle())
             }
+            .formStyle(.grouped)
             VStack(spacing: 0) {
                 Divider()
-                Text("Made with 🫶🏻 by not so boring not.people")
+                Text("Made by 1zumiii, built on Boring Notch by The Bored Team.")
                     .foregroundStyle(.secondary)
-                    .padding(.top, 5)
-                    .padding(.bottom, 7)
+                    .padding(.vertical, 6)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 10)
             }
             .frame(maxWidth: .infinity, alignment: .center)
         }
-        .toolbar {
-            CheckForUpdatesView(updater: updaterController.updater)
-        }
         .navigationTitle("About")
+    }
+
+    @ViewBuilder
+    private var updateStatus: some View {
+        switch updates.state {
+        case .idle:
+            Text("Not checked yet").foregroundStyle(.secondary)
+        case .checking:
+            HStack(spacing: 6) {
+                ProgressView().controlSize(.small)
+                Text("Checking…").foregroundStyle(.secondary)
+            }
+        case .upToDate:
+            Label("Up to date", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+        case .available(let latest, _):
+            Label("Version \(latest) is available", systemImage: "arrow.down.circle.fill")
+                .foregroundStyle(Color.accentColor)
+        case .failed:
+            Label("Couldn't reach GitHub", systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
+        }
     }
 }
