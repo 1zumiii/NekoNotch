@@ -14,7 +14,7 @@ import Security
 /// identifier alone; the system already limits an embedded XPC service to
 /// its own app, and this is a second check on top of that.
 private enum XPCClientRequirement {
-    static let appIdentifier = "theboringteam.boringnotch"
+    static let appIdentifier = "io.github.1zumiii.nekonotch"
 
     static let value: String = {
         let identifier = #"identifier "\#(appIdentifier)""#
