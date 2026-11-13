@@ -41,7 +41,9 @@ final class SystemNotificationManager: ObservableObject {
     @Published private(set) var ticker: SystemNotification?
 
     private let queueLimit = 5
-    private var displayDuration: TimeInterval { Defaults[.notificationDisplayDuration] }
+    private let environment: Environment
+    private var settings: Settings { environment.settings() }
+    private var displayDuration: TimeInterval { settings.displayDuration }
     private var dismissTask: Task<Void, Never>?
     private var iconPeekTask: Task<Void, Never>?
     private var tickerTask: Task<Void, Never>?
@@ -73,7 +75,11 @@ final class SystemNotificationManager: ObservableObject {
     private static let heldLimit = 3
     private var recentArrivals: [(date: Date, bundleID: String?, appName: String?)] = []
 
-    private init() {
+    /// `observesSystem` is false for a manager made by a test, which hands
+    /// it notifications itself.
+    init(environment: Environment = .live, observesSystem: Bool = true) {
+        self.environment = environment
+        guard observesSystem else { return }
         notificationObserver = NotificationCenter.default.addObserver(
             forName: .systemNotificationDidAppear, object: nil, queue: .main
         ) { [weak self] note in
@@ -209,10 +215,11 @@ final class SystemNotificationManager: ObservableObject {
         queuedNotifications.removeAll()
         guard let notification = activeNotification else { return }
         dismissTask?.cancel()
+        let sleep = environment.sleep
         dismissTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(delay))
+            await sleep(delay)
             guard !Task.isCancelled else { return }
-            await self?.dismissActive(token: notification.id, byUser: false)
+            self?.dismissActive(token: notification.id, byUser: false)
         }
     }
 
@@ -282,9 +289,12 @@ final class SystemNotificationManager: ObservableObject {
         return false
     }
 
-    private func add(_ payload: [String: String]) {
+    /// A notification from the banner reader or the database. Internal so
+    /// tests can hand it notifications.
+    func add(_ payload: [String: String]) {
         guard let token = payload["token"], !token.isEmpty else { return }
-        if token.hasPrefix("db-") { lastDatabaseAt = Date() } else { lastBannerAt = Date() }
+        let now = environment.now()
+        if token.hasPrefix("db-") { lastDatabaseAt = now } else { lastBannerAt = now }
         var appName = nonEmpty(payload["appName"])
         var bundleID = nonEmpty(payload["bundleID"]).map {
             normalizeBundleIdentifier($0.trimmingCharacters(in: .whitespacesAndNewlines))
@@ -293,9 +303,9 @@ final class SystemNotificationManager: ObservableObject {
         // The helper only has the banner's display name and can miss when the
         // source is a helper process or is no longer running. Re-resolve here
         // so both the icon and launch action get the real application.
-        if bundleID.map(isLaunchable) != true,
+        if bundleID.map(environment.isLaunchable) != true,
            let appName,
-           let resolved = BundleIDResolver.shared.bundleID(forAppNamed: appName) {
+           let resolved = environment.bundleIDForAppNamed(appName) {
             let resolved = normalizeBundleIdentifier(resolved)
             bundleID = resolved
         }
@@ -311,11 +321,11 @@ final class SystemNotificationManager: ObservableObject {
             title: nonEmpty(payload["title"]),
             subtitle: nonEmpty(payload["subtitle"]),
             body: nonEmpty(payload["body"]),
-            receivedAt: Date(),
+            receivedAt: now,
             recordUUID: nonEmpty(payload["recordUUID"]),
             priority: NotificationPriority(rawValue: payload["priority"] ?? "") ?? .normal
         )
-        if !token.hasPrefix("test-") { noteSource(bundleID: bundleID, name: appName) }
+        if !token.hasPrefix("test-") { environment.noteSource(bundleID, appName) }
         // Test notifications from the settings page ignore the app filter.
         guard token.hasPrefix("test-") || isAllowed(notification) else { return }
         noteArrival(notification)
@@ -323,12 +333,12 @@ final class SystemNotificationManager: ObservableObject {
         // The text for a notification already on screen as a placeholder.
         if let uuid = nonEmpty(payload["recordUUID"]) {
             if dismissedPlaceholders.remove(uuid) != nil {
-                NotificationHistory.shared.record(notification)
+                environment.recordHistory(notification, false)
                 return
             }
             if let placeholderID = placeholderIDs.removeValue(forKey: uuid),
                upgradePlaceholder(placeholderID, to: notification, uuid: uuid) {
-                NotificationHistory.shared.record(notification)
+                environment.recordHistory(notification, false)
                 return
             }
         }
@@ -338,7 +348,7 @@ final class SystemNotificationManager: ObservableObject {
             return
         }
         let silenced = isSilencedByFocus(notification)
-        NotificationHistory.shared.record(notification, silenced: silenced)
+        environment.recordHistory(notification, silenced)
         guard !silenced else { return }
         // The settings page previews the full-screen line without a full-screen app.
         let previewsTicker = token.hasPrefix(Self.tickerTestPrefix)
@@ -373,7 +383,7 @@ final class SystemNotificationManager: ObservableObject {
     // MARK: Early placeholder
 
     private func noteArrival(_ notification: SystemNotification) {
-        let now = Date()
+        let now = environment.now()
         recentArrivals.removeAll { now.timeIntervalSince($0.date) > 10 }
         recentArrivals.append((now, notification.bundleID.map(Self.normalizedID), notification.appName.map(Self.normalizedID)))
     }
@@ -385,24 +395,26 @@ final class SystemNotificationManager: ObservableObject {
     /// A notification just reached the system: if nothing real for that app
     /// shows up soon (the banner reader would have, within a fraction of a
     /// second), show the app now and let the text catch up.
-    private func handleEarlySignal(_ payload: [String: String]) {
-        lastEarlyAt = Date()
-        guard Defaults[.notificationLiveActivity], Defaults[.notificationFromDatabase],
-              Defaults[.notificationEarlyPlaceholder],
+    /// Internal so tests can hand it signals.
+    func handleEarlySignal(_ payload: [String: String]) {
+        let signalTime = environment.now()
+        lastEarlyAt = signalTime
+        let settings = settings
+        guard settings.liveActivity, settings.fromDatabase, settings.earlyPlaceholder,
               let rawBundleID = nonEmpty(payload["bundleID"]),
               let uuid = nonEmpty(payload["recordUUID"]) else { return }
 
-        let signalTime = Date()
         // The identifier may differ in case from the installed app's.
-        let info = Self.appInfo(forBundleID: rawBundleID)
-        noteSource(bundleID: info.bundleID, name: info.name)
+        let info = environment.appInfo(rawBundleID)
+        environment.noteSource(info.bundleID, info.name)
+        let sleep = environment.sleep
         Task { [weak self] in
-            try? await Task.sleep(for: .seconds(Self.placeholderDelay))
-            await self?.showPlaceholder(bundleID: info.bundleID, appName: info.name, uuid: uuid, signalTime: signalTime)
+            await sleep(Self.placeholderDelay)
+            self?.showPlaceholder(bundleID: info.bundleID, appName: info.name, uuid: uuid, signalTime: signalTime)
         }
     }
 
-    private static func appInfo(forBundleID rawBundleID: String) -> (bundleID: String, name: String) {
+    fileprivate static func appInfo(forBundleID rawBundleID: String) -> (bundleID: String, name: String) {
         if let agent = SystemNotificationAgents.info(bundleID: rawBundleID) {
             return (normalizeBundleIdentifier(rawBundleID), agent.name)
         }
@@ -507,7 +519,7 @@ final class SystemNotificationManager: ObservableObject {
         [notification.title ?? "", String((notification.body ?? "").prefix(40))].joined(separator: "\u{1F}")
     }
 
-    private var highlightsPriority: Bool { Defaults[.notificationPriorityHighlight] }
+    private var highlightsPriority: Bool { settings.priorityHighlight }
 
     /// The banner reader shows a notification before the database says how
     /// important it is; when the database copy arrives, promote the one on screen.
@@ -530,7 +542,7 @@ final class SystemNotificationManager: ObservableObject {
     /// same words every time.
     private func isRecentDuplicate(_ notification: SystemNotification) -> Bool {
         let key = Self.dedupeKey(notification)
-        let now = Date()
+        let now = environment.now()
         recentKeys = recentKeys.filter { now.timeIntervalSince($0.value.date) < Self.duplicateWindow }
         let record = notification.recordUUID
         guard var entry = recentKeys[key] else {
@@ -548,12 +560,12 @@ final class SystemNotificationManager: ObservableObject {
         return true
     }
 
-    private static let duplicateWindow: TimeInterval = 12
-    private static let highPriorityDurationFactor: Double = 2
-    private static let placeholderMinimumDuration: TimeInterval = 9
+    static let duplicateWindow: TimeInterval = 12
+    static let highPriorityDurationFactor: Double = 2
+    static let placeholderMinimumDuration: TimeInterval = 9
     /// How long to wait for the banner reader or the database to produce
     /// the real notification before showing a placeholder for it.
-    private static let placeholderDelay: TimeInterval = 0.6
+    static let placeholderDelay: TimeInterval = 0.6
 
     private func show(_ notification: SystemNotification) {
         dismissTask?.cancel()
@@ -570,19 +582,21 @@ final class SystemNotificationManager: ObservableObject {
         if highlightsPriority, activeNotification?.id == token, activeNotification?.priority == .high {
             duration *= Self.highPriorityDurationFactor
         }
+        let sleep = environment.sleep
         dismissTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(duration))
+            await sleep(duration)
             guard !Task.isCancelled else { return }
-            await self?.dismissActive(token: token, byUser: false)
+            self?.dismissActive(token: token, byUser: false)
         }
     }
 
     private func showIconPeek(_ notification: SystemNotification) {
         iconPeekTask?.cancel()
         iconPeek = notification
-        let duration = Defaults[.notificationIconOnlyDuration]
+        let duration = settings.iconOnlyDuration
+        let sleep = environment.sleep
         iconPeekTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(duration))
+            await sleep(duration)
             guard !Task.isCancelled else { return }
             self?.iconPeek = nil
         }
@@ -597,8 +611,9 @@ final class SystemNotificationManager: ObservableObject {
         iconPeek = notification
         ticker = notification
         let id = notification.id
+        let sleep = environment.sleep
         tickerTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(Self.tickerLimit))
+            await sleep(Self.tickerLimit)
             guard !Task.isCancelled else { return }
             self?.finishTicker(id)
         }
@@ -616,8 +631,8 @@ final class SystemNotificationManager: ObservableObject {
     /// Hidden for a full-screen app, a notification with text still shows it,
     /// in one line. An app the user set to icon only keeps to its icon.
     private func runsAsTicker(_ notification: SystemNotification) -> Bool {
-        guard FullscreenMediaDetector.shared.hidesNotchOnAnyScreen, !notification.isPlaceholder,
-              !Self.list(Defaults[.notificationIconOnlyApps], contains: notification.bundleID, appName: notification.appName)
+        guard environment.hidesNotchForFullScreen(), !notification.isPlaceholder,
+              !Self.list(settings.iconOnlyApps, contains: notification.bundleID, appName: notification.appName)
         else { return false }
         return !NotificationTickerRow.text(for: notification).isEmpty
     }
@@ -637,7 +652,7 @@ final class SystemNotificationManager: ObservableObject {
     }
 
     /// Remembers an app that just notified, newest first, for the exclusion list.
-    private func noteSource(bundleID: String?, name: String?) {
+    fileprivate static func noteSource(bundleID: String?, name: String?) {
         guard let bundleID, !bundleID.isEmpty else { return }
         let entry = "\(bundleID.lowercased())|\(name ?? bundleID)"
         var sources = Defaults[.notificationRecentSources]
@@ -649,12 +664,12 @@ final class SystemNotificationManager: ObservableObject {
     }
 
     private func isExcluded(bundleID: String?, appName: String?) -> Bool {
-        Self.list(Defaults[.notificationExcludedApps], contains: bundleID, appName: appName)
+        Self.list(settings.excludedApps, contains: bundleID, appName: appName)
     }
 
     private func isIconOnly(_ notification: SystemNotification) -> Bool {
         // Hidden for a full-screen app, the notch shows no more than the icon.
-        FullscreenMediaDetector.shared.hidesNotchOnAnyScreen || Self.list(Defaults[.notificationIconOnlyApps], contains: notification.bundleID, appName: notification.appName)
+        environment.hidesNotchForFullScreen() || Self.list(settings.iconOnlyApps, contains: notification.bundleID, appName: notification.appName)
     }
 
     /// Whether a list of lower-cased bundle identifiers names the sender, by
@@ -672,8 +687,8 @@ final class SystemNotificationManager: ObservableObject {
     /// Whether a Focus keeps this notification out of the notch; it still
     /// goes to the history. Test notifications always come through.
     private func isSilencedByFocus(_ notification: SystemNotification) -> Bool {
-        guard FocusStatusMonitor.shared.isFocused, !notification.id.hasPrefix("test-") else { return false }
-        switch Defaults[.notificationFocusBehavior] {
+        guard environment.isFocused(), !notification.id.hasPrefix("test-") else { return false }
+        switch settings.focusBehavior {
         case .showAll:
             return false
         case .hideAll:
@@ -690,15 +705,16 @@ final class SystemNotificationManager: ObservableObject {
 
     private func isAllowed(_ notification: SystemNotification) -> Bool {
         if isExcluded(bundleID: notification.bundleID, appName: notification.appName) { return false }
-        if Defaults[.notificationsFromAllApps] || isIconOnly(notification) { return true }
+        let settings = settings
+        if settings.fromAllApps || isIconOnly(notification) { return true }
         if let bundleID = notification.bundleID {
-            return Defaults[.notificationAllowedApps].contains(bundleID)
+            return settings.allowedApps.contains(bundleID)
         }
         guard let appName = notification.appName.map(BundleIDResolver.normalizedAppName),
               !appName.isEmpty else {
             return false
         }
-        return Defaults[.notificationAllowedApps].contains { bundleID in
+        return settings.allowedApps.contains { bundleID in
             guard let lastComponent = bundleID.split(separator: ".").last else { return false }
             return appName == BundleIDResolver.normalizedAppName(String(lastComponent))
         }
@@ -706,12 +722,10 @@ final class SystemNotificationManager: ObservableObject {
 
     private func candidateBundleIDs(for notification: SystemNotification) -> [String] {
         let resolved: String?
-        if let bundleID = notification.bundleID, isLaunchable(bundleID) {
+        if let bundleID = notification.bundleID, environment.isLaunchable(bundleID) {
             resolved = nil
         } else {
-            resolved = notification.appName.flatMap {
-                BundleIDResolver.shared.bundleID(forAppNamed: $0)
-            }
+            resolved = notification.appName.flatMap(environment.bundleIDForAppNamed)
         }
         return Self.bundleIDCandidates(for: notification, resolvedBundleID: resolved)
     }
@@ -729,7 +743,7 @@ final class SystemNotificationManager: ObservableObject {
         return result
     }
 
-    private func isLaunchable(_ bundleID: String) -> Bool {
+    fileprivate static func isLaunchable(_ bundleID: String) -> Bool {
         let workspace = NSWorkspace.shared
         return workspace.urlForApplication(withBundleIdentifier: bundleID) != nil
             || workspace.runningApplications.contains { application in
@@ -754,6 +768,74 @@ final class SystemNotificationManager: ObservableObject {
     private func nonEmpty(_ value: String?) -> String? {
         guard let value, !value.isEmpty else { return nil }
         return value
+    }
+}
+
+// MARK: - What the manager depends on
+
+extension SystemNotificationManager {
+    /// The settings the manager's decisions read, taken together.
+    struct Settings {
+        var liveActivity = true
+        var fromDatabase = true
+        var earlyPlaceholder = true
+        var priorityHighlight = true
+        var fromAllApps = true
+        var displayDuration: TimeInterval = 4
+        var iconOnlyDuration: TimeInterval = 4
+        var excludedApps: Set<String> = []
+        var iconOnlyApps: Set<String> = []
+        var allowedApps: Set<String> = []
+        var focusBehavior: FocusNotificationBehavior = .follow
+
+        static var current: Settings {
+            Settings(
+                liveActivity: Defaults[.notificationLiveActivity],
+                fromDatabase: Defaults[.notificationFromDatabase],
+                earlyPlaceholder: Defaults[.notificationEarlyPlaceholder],
+                priorityHighlight: Defaults[.notificationPriorityHighlight],
+                fromAllApps: Defaults[.notificationsFromAllApps],
+                displayDuration: Defaults[.notificationDisplayDuration],
+                iconOnlyDuration: Defaults[.notificationIconOnlyDuration],
+                excludedApps: Defaults[.notificationExcludedApps],
+                iconOnlyApps: Defaults[.notificationIconOnlyApps],
+                allowedApps: Defaults[.notificationAllowedApps],
+                focusBehavior: Defaults[.notificationFocusBehavior]
+            )
+        }
+    }
+
+    /// Everything outside the manager that its decisions depend on: the time,
+    /// the settings, Focus and full-screen state, waiting, looking up apps,
+    /// and the records it keeps elsewhere. Tests replace these, so they
+    /// neither wait in real time nor touch the user's settings.
+    struct Environment {
+        var now: @MainActor () -> Date
+        var settings: @MainActor () -> Settings
+        var isFocused: @MainActor () -> Bool
+        var hidesNotchForFullScreen: @MainActor () -> Bool
+        /// Waits this many seconds; returns early when the task is cancelled.
+        var sleep: @MainActor (TimeInterval) async -> Void
+        var isLaunchable: @MainActor (String) -> Bool
+        var bundleIDForAppNamed: @MainActor (String) -> String?
+        /// The installed app's identifier and name for a sender's identifier.
+        var appInfo: @MainActor (String) -> (bundleID: String, name: String)
+        var recordHistory: @MainActor (SystemNotification, _ silenced: Bool) -> Void
+        /// Remembers an app that notified, for the exclusion list.
+        var noteSource: @MainActor (_ bundleID: String?, _ name: String?) -> Void
+
+        @MainActor static let live = Environment(
+            now: { Date() },
+            settings: { .current },
+            isFocused: { FocusStatusMonitor.shared.isFocused },
+            hidesNotchForFullScreen: { FullscreenMediaDetector.shared.hidesNotchOnAnyScreen },
+            sleep: { try? await Task.sleep(for: .seconds($0)) },
+            isLaunchable: { SystemNotificationManager.isLaunchable($0) },
+            bundleIDForAppNamed: { BundleIDResolver.shared.bundleID(forAppNamed: $0) },
+            appInfo: { SystemNotificationManager.appInfo(forBundleID: $0) },
+            recordHistory: { NotificationHistory.shared.record($0, silenced: $1) },
+            noteSource: { SystemNotificationManager.noteSource(bundleID: $0, name: $1) }
+        )
     }
 }
 
