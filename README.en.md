@@ -138,6 +138,10 @@ Requires macOS 14 or later.
 
 When a new version is out, the About page and the menu bar menu link to it. The app never downloads or installs updates itself.
 
+To update, replace the old version in Applications with the new one. From 1.1.1 on, releases are signed with a fixed certificate, so macOS knows the app by its bundle ID and that certificate and keeps the permissions it has granted.
+
+Accessibility, Full Disk Access and the others have to be granted again when updating from 1.1.0, which was signed ad hoc and had its permissions recorded against the code hash, and when swapping between a build of your own and a release, which use different certificates. Remove the old NekoNotch entry from each list in System Settings, then add it again.
+
 ## Build from source
 
 Requires macOS 15.6 or later and Xcode 26 or later.
