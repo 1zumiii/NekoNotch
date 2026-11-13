@@ -19,11 +19,15 @@ final class CPULoadMonitor {
     private var timer: Timer?
     private var observers: [ObjectIdentifier: (Double) -> Void] = [:]
     private static let interval: TimeInterval = 2
+    /// A load the settings' test buttons show for a few seconds instead of
+    /// the real one; the system monitor's history still gets real readings.
+    private var simulated: Double?
+    private var simulationEnd: Task<Void, Never>?
 
     /// The handler gets the current load at once, then each new reading.
     func observe(_ owner: AnyObject, handler: @escaping (Double) -> Void) {
         observers[ObjectIdentifier(owner)] = handler
-        handler(load)
+        handler(simulated ?? load)
         guard timer == nil else { return }
         _ = reader.sample()
         let timer = Timer(timeInterval: Self.interval, repeats: true) { [weak self] _ in
@@ -48,6 +52,26 @@ final class CPULoadMonitor {
         SystemMonitorModel.shared.record(sample)
         guard let cpu = sample.cpu else { return }
         load = cpu
-        for handler in observers.values { handler(cpu) }
+        broadcast()
+    }
+
+    /// Shows `load` to every cat and sky for `seconds`, then the real load
+    /// again; nil ends a simulation at once.
+    func simulate(_ load: Double?, for seconds: TimeInterval) {
+        simulationEnd?.cancel()
+        simulated = load
+        broadcast()
+        guard load != nil else { return }
+        simulationEnd = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(seconds))
+            guard !Task.isCancelled, let self else { return }
+            self.simulated = nil
+            self.broadcast()
+        }
+    }
+
+    private func broadcast() {
+        let value = simulated ?? load
+        for handler in observers.values { handler(value) }
     }
 }

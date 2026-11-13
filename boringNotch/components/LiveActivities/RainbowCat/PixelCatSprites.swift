@@ -47,14 +47,30 @@ enum PixelCatSprites {
         "DDDDDDDDDDDDD",
     ]
     // A grey head, dark against the white keys, mostly over the keyboard
-    // with about a third of it out in front.
+    // with about a third of it out in front. The mouth is drawn finer, see
+    // `mouth`.
     private static let head = [
         "G.....G",
         "GG...GG",
         "GGGGGGG",
         "GKGGGKG",
-        "PGGKGGP",
+        "PGGGGGP",
         ".GGGGG.",
+    ]
+    private static let headOrigin = (row: 3, column: 11)
+    /// A cat's "ω" in half pixels (one point each), filling the middle three
+    /// columns of the head's cheek row.
+    private static let mouth = [
+        "X.XX.X",
+        ".X..X.",
+    ]
+    private static let mouthOrigin = (row: headOrigin.row + 4, column: headOrigin.column + 2)
+    /// The keyboard's visible corners as (row, column, left, top); the front
+    /// bottom one is behind the head.
+    private static let bodyCorners = [
+        (1, bodyLeftColumn, true, true),
+        (1, bodyLeftColumn + 12, false, true),
+        (8, bodyLeftColumn, true, false),
     ]
 
     /// Paws step back and forth under the keyboard; the tail swings.
@@ -77,7 +93,7 @@ enum PixelCatSprites {
             }
         }
         stamp(body, row: 1, column: bodyLeftColumn)
-        stamp(head, row: 3, column: 11)
+        stamp(head, row: headOrigin.row, column: headOrigin.column)
         for column in paws { grid[9][column] = "G" }
         for (row, column) in tail { grid[row][column] = "G" }
         // Bobbing up a pixel while the paws pass under the body.
@@ -85,11 +101,13 @@ enum PixelCatSprites {
         return grid.map { String($0) }
     }
 
+    private static let bobs = [false, true, false, true]
+
     static let frames: [[String]] = [
-        frame(paws: pawsForward, tail: tailUp, bob: false),
-        frame(paws: pawsBack, tail: tailLevel, bob: true),
-        frame(paws: pawsForward, tail: tailDown, bob: false),
-        frame(paws: pawsBack, tail: tailLevel, bob: true),
+        frame(paws: pawsForward, tail: tailUp, bob: bobs[0]),
+        frame(paws: pawsBack, tail: tailLevel, bob: bobs[1]),
+        frame(paws: pawsForward, tail: tailDown, bob: bobs[2]),
+        frame(paws: pawsBack, tail: tailLevel, bob: bobs[3]),
     ]
 
     static let rainbow: [(CGFloat, CGFloat, CGFloat)] = [
@@ -99,7 +117,37 @@ enum PixelCatSprites {
 
     /// The cat's frames as images, one device pixel per `scale`.
     static func catImages(scale: CGFloat) -> [CGImage] {
-        frames.compactMap { image(rows: $0, scale: scale) { palette[$0] } }
+        frames.enumerated().compactMap { index, rows in
+            let lift = bobs[index] ? 1 : 0
+            return image(rows: rows, scale: scale, color: { palette[$0] }) { context, side in
+                // Device-pixel cell origin; Core Graphics counts rows from the bottom.
+                func origin(_ row: Int, _ column: Int) -> (x: Int, y: Int) {
+                    (column * side, (rows.count - 1 - (row - lift)) * side)
+                }
+                // A slight bevel: a small step of device pixels off each corner.
+                let cut = max(1, side / 2)
+                for (row, column, left, top) in bodyCorners {
+                    let cell = origin(row, column)
+                    for dx in 0..<cut {
+                        for dy in 0..<(cut - dx) {
+                            let x = left ? cell.x + dx : cell.x + side - 1 - dx
+                            let y = top ? cell.y + side - 1 - dy : cell.y + dy
+                            context.clear(CGRect(x: x, y: y, width: 1, height: 1))
+                        }
+                    }
+                }
+                let half = max(1, side / 2)
+                let rgb = palette["K"]!
+                context.setFillColor(red: rgb.0, green: rgb.1, blue: rgb.2, alpha: 1)
+                let cell = origin(mouthOrigin.row, mouthOrigin.column)
+                for (r, line) in mouth.enumerated() {
+                    for (c, character) in line.enumerated() where character == "X" {
+                        let y = cell.y + side - (r + 1) * half
+                        context.fill(CGRect(x: cell.x + c * half, y: y, width: half, height: half))
+                    }
+                }
+            }
+        }
     }
 
     /// One trail column: the six rainbow stripes, one pixel each.
@@ -138,6 +186,32 @@ enum PixelCatSprites {
         return tints.compactMap { tint in image(rows: shape, scale: scale) { $0 == "X" ? tint : nil } }
     }
 
+    /// Streaks of light for warp speed, in the stars' white and pale yellow:
+    /// a bright head on the left (they fly left) and a tail fading out
+    /// behind it. Far ones are thin and shorter, near ones thick and longer. The
+    /// image is twice the streak's length with the head in the middle, so a
+    /// streak born out of sight has its whole tail out of sight too.
+    static func streakImages(scale: CGFloat, near: Bool) -> [CGImage] {
+        let length = Int(((near ? 48 : 28) * scale).rounded())
+        let thickness = max(1, Int(((near ? 2 : 1) * scale).rounded()))
+        let tints: [(CGFloat, CGFloat, CGFloat)] = [(1, 1, 1), (1.0, 0.92, 0.55)]
+        return tints.compactMap { tint in
+            guard let context = CGContext(
+                data: nil, width: 2 * length, height: thickness, bitsPerComponent: 8, bytesPerRow: 0,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ) else { return nil }
+            for x in 0..<length {
+                // Squared, so the light stays near the head.
+                let fade = 1 - CGFloat(x) / CGFloat(length)
+                let alpha = fade * fade
+                context.setFillColor(red: tint.0, green: tint.1, blue: tint.2, alpha: alpha)
+                context.fill(CGRect(x: length + x, y: 0, width: 1, height: thickness))
+            }
+            return context.makeImage()
+        }
+    }
+
     /// Music notes in each rainbow colour, single and beamed in turn: one
     /// point a pixel with a half-point white outline (two device pixels and
     /// one, on Retina), so they stand out against the dark notch.
@@ -173,8 +247,11 @@ enum PixelCatSprites {
         return context.makeImage()
     }
 
+    /// `details` draws on top, given the context and the device pixels per
+    /// sprite pixel.
     private static func image(
-        rows: [String], scale: CGFloat, color: (Character) -> (CGFloat, CGFloat, CGFloat)?
+        rows: [String], scale: CGFloat, color: (Character) -> (CGFloat, CGFloat, CGFloat)?,
+        details: ((CGContext, Int) -> Void)? = nil
     ) -> CGImage? {
         let side = max(1, Int((pixel * scale).rounded()))
         let columns = rows.map(\.count).max() ?? 0
@@ -192,6 +269,7 @@ enum PixelCatSprites {
                 context.fill(CGRect(x: column * side, y: y, width: side, height: side))
             }
         }
+        details?(context, side)
         return context.makeImage()
     }
 }

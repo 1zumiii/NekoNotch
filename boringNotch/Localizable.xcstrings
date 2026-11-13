@@ -1,6 +1,106 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Half load" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "半载"
+          }
+        }
+      }
+    },
+    "Warp" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跃迁"
+          }
+        }
+      }
+    },
+    "Full load" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "满载"
+          }
+        }
+      }
+    },
+    "Singing" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "唱歌"
+          }
+        }
+      }
+    },
+    "Each button shows a state for fifteen seconds, here and on the notch, then the cat goes back to the real CPU load. Warp uses a load just past the threshold set below." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每个按钮会在这里和刘海上同时展示对应状态 15 秒，之后恢复为真实的 CPU 占用率。“跃迁”使用比下方阈值略高的占用率。"
+          }
+        }
+      }
+    },
+    "Cat at full load" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "满载时猫的速度"
+          }
+        }
+      }
+    },
+    "Stars at full load" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "满载时星空的速度"
+          }
+        }
+      }
+    },
+    "Warp speed" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跃迁效果"
+          }
+        }
+      }
+    },
+    "Warp from CPU load" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跃迁阈值（CPU 占用率）"
+          }
+        }
+      }
+    },
+    "The cat and the stars speed up with the CPU load, from their resting pace up to the speeds above at full load. With warp speed on, past the threshold the stars give way to streaks of light; they come back once the load drops 10% below it." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "猫和星空随 CPU 占用率加速，从静止时的速度逐渐加快，满载时达到上面设定的倍数。开启跃迁效果后，CPU 占用率超过阈值时星星会变成一道道光线；降到阈值以下 10% 后恢复成星星。"
+          }
+        }
+      }
+    },
     "Home" : {
       "localizations" : {
         "en" : {

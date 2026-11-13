@@ -7,23 +7,59 @@ import SwiftUI
 
 struct RainbowCatSettingsView: View {
     @Default(.rainbowCat) private var enabled
+    @Default(.rainbowCatMaxSpeed) private var catMaxSpeed
+    @Default(.rainbowCatSkyMaxSpeed) private var skyMaxSpeed
+    @Default(.rainbowCatWarp) private var warp
+    @Default(.rainbowCatWarpThreshold) private var warpThreshold
+    @State private var test: PreviewTest?
+    @State private var testEnd: Task<Void, Never>?
+
+    /// States the test buttons show for a few seconds, in the preview above
+    /// and on the notch alike.
+    private enum PreviewTest: CaseIterable {
+        case idle, busy, warp, full, singing
+
+        var title: LocalizedStringKey {
+            switch self {
+            case .idle: "Idle"
+            case .busy: "Half load"
+            case .warp: "Warp"
+            case .full: "Full load"
+            case .singing: "Singing"
+            }
+        }
+    }
+
+    private static let testDuration: TimeInterval = 15
 
     var body: some View {
         Form {
             Section {
-                HStack {
-                    Spacer()
-                    RainbowCat()
-                        .frame(width: RainbowCatNSView.size.width, height: RainbowCatNSView.size.height)
-                        .scaleEffect(2)
-                        .frame(width: RainbowCatNSView.size.width * 2, height: RainbowCatNSView.size.height * 2)
-                        .padding(.vertical, 14)
-                        .padding(.horizontal, 24)
-                        .background(Capsule().fill(.black))
-                    Spacer()
-                }
-                .listRowBackground(Color.clear)
+                preview
+                    .listRowBackground(Color.clear)
             }
+
+            Section {
+                HStack {
+                    ForEach(PreviewTest.allCases, id: \.self) { item in
+                        Button {
+                            run(item)
+                        } label: {
+                            Text(item.title)
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(test == item ? .accentColor : nil)
+                    }
+                }
+            } header: {
+                Text("Test")
+            } footer: {
+                Text("Each button shows a state for fifteen seconds, here and on the notch, then the cat goes back to the real CPU load. Warp uses a load just past the threshold set below.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .disabled(!enabled)
 
             Section {
                 Defaults.Toggle(key: .rainbowCat) {
@@ -48,9 +84,82 @@ struct RainbowCatSettingsView: View {
                     .foregroundStyle(.secondary)
             }
             .disabled(!enabled)
+
+            Section {
+                speedSlider("Cat at full load", value: $catMaxSpeed, range: 1...6, step: 0.5)
+                speedSlider("Stars at full load", value: $skyMaxSpeed, range: 1...10, step: 0.5)
+                Toggle(isOn: $warp) {
+                    Text("Warp speed")
+                }
+                HStack {
+                    Text("Warp from CPU load")
+                    Slider(value: $warpThreshold, in: 0.3...0.95, step: 0.05)
+                    Text(verbatim: "\(Int((warpThreshold * 100).rounded()))%")
+                        .monospacedDigit()
+                        .frame(width: 40, alignment: .trailing)
+                }
+                .disabled(!warp)
+            } header: {
+                Text("Speed")
+            } footer: {
+                Text("The cat and the stars speed up with the CPU load, from their resting pace up to the speeds above at full load. With warp speed on, past the threshold the stars give way to streaks of light; they come back once the load drops 10% below it.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .disabled(!enabled)
         }
         .formStyle(.grouped)
         .accentColor(.effectiveAccent)
         .navigationTitle("Rainbow Cat")
+    }
+
+    /// The closed notch at twice the size, across the whole row, with the
+    /// cutout left out: one sky behind it all and the cat on the right.
+    private var preview: some View {
+        let scale: CGFloat = 2
+        let cat = RainbowCatNSView.size
+        return GeometryReader { geometry in
+            let width = max(cat.width, (geometry.size.width - 24) / scale)
+            ZStack(alignment: .trailing) {
+                RainbowStars()
+                    .frame(width: width, height: cat.height)
+                    .clipped()
+                RainbowCat(isPlaying: test == .singing, showsSky: false)
+                    .frame(width: cat.width, height: cat.height)
+            }
+            .scaleEffect(scale)
+            .frame(width: width * scale, height: cat.height * scale)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(.black))
+        }
+        .frame(height: cat.height * scale + 28)
+    }
+
+    private func run(_ item: PreviewTest) {
+        let load: Double? = switch item {
+        case .idle: 0
+        case .busy: 0.5
+        case .warp: min(1, warpThreshold + 0.05)
+        case .full: 1
+        case .singing: nil
+        }
+        CPULoadMonitor.shared.simulate(load, for: Self.testDuration)
+        test = item
+        testEnd?.cancel()
+        testEnd = Task {
+            try? await Task.sleep(for: .seconds(Self.testDuration))
+            guard !Task.isCancelled else { return }
+            test = nil
+        }
+    }
+
+    private func speedSlider(_ title: LocalizedStringKey, value: Binding<Double>, range: ClosedRange<Double>, step: Double) -> some View {
+        HStack {
+            Text(title)
+            Slider(value: value, in: range, step: step)
+            Text(verbatim: String(format: "%.1f×", value.wrappedValue))
+                .monospacedDigit()
+                .frame(width: 40, alignment: .trailing)
+        }
     }
 }
