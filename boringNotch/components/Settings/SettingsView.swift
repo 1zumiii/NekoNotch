@@ -62,7 +62,7 @@ private enum SettingsTab: String, CaseIterable, Identifiable {
         case .calendar: .system("calendar")
         case .shelf: .system("tray.and.arrow.down")
         case .dashboard: .system("square.grid.2x2")
-        case .rainbowCat: .system("pawprint")
+        case .rainbowCat: .custom("pixel-cat-head")
         case .mixer: .system("headphones")
         case .mirror: .system("video")
         case .battery: .system("battery.100.bolt")
