@@ -1,5 +1,7 @@
 <h1 align="center">NekoNotch</h1>
 
+<p align="center"><img src="docs/images/icon.png" alt="NekoNotch icon" width="128"></p>
+
 <p align="center"><a href="README.md">简体中文</a> · English</p>
 
 <p align="center">
@@ -17,8 +19,8 @@
     <td align="center"><img src="docs/images/rainbow-cat-singing.gif" alt="Rainbow cat singing while music plays" width="380"><br>Singing while music plays</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/images/system-monitor.png" alt="System monitor panel" width="380"><br>System monitor</td>
-    <td align="center"><img src="docs/images/mixer.png" alt="Mixer" width="380"><br>Mixer</td>
+    <td align="center"><img src="docs/images/screenshot-system-monitor.png" alt="System monitor panel" width="380"><br>System monitor</td>
+    <td align="center"><img src="docs/images/screenshot-mixer.png" alt="Mixer" width="380"><br>Mixer</td>
   </tr>
 </table>
 

@@ -1,5 +1,7 @@
 <h1 align="center">NekoNotch</h1>
 
+<p align="center"><img src="docs/images/icon.png" alt="NekoNotch 图标" width="128"></p>
+
 <p align="center">简体中文 · <a href="README.en.md">English</a></p>
 
 <p align="center">
@@ -17,8 +19,8 @@
     <td align="center"><img src="docs/images/rainbow-cat-singing.gif" alt="彩虹猫：播放音乐时唱歌" width="380"><br>播放音乐时唱歌</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/images/system-monitor.png" alt="系统监测面板" width="380"><br>系统监测</td>
-    <td align="center"><img src="docs/images/mixer.png" alt="混音器" width="380"><br>混音器</td>
+    <td align="center"><img src="docs/images/screenshot-system-monitor.png" alt="系统监测面板" width="380"><br>系统监测</td>
+    <td align="center"><img src="docs/images/screenshot-mixer.png" alt="混音器" width="380"><br>混音器</td>
   </tr>
 </table>
 
