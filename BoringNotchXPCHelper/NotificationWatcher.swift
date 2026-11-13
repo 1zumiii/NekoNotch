@@ -323,7 +323,7 @@ final class NotificationWatcher {
                     let header: CapturedNotification
                     if mirrorAllApps && excludedBundleIDs.isEmpty {
                         guard park(window, for: token) else {
-                            NSLog("[boringNotch] could not hide notification banner \(token)")
+                            NSLog("[NekoNotch] could not hide notification banner \(token)")
                             continue
                         }
                         header = captureHeader(banner, token: token)
@@ -331,7 +331,7 @@ final class NotificationWatcher {
                         header = captureHeader(banner, token: token)
                         guard (mirrorAllApps || isAllowed(header)), !isExcluded(header) else { continue }
                         guard park(window, for: token) else {
-                            NSLog("[boringNotch] could not hide notification banner \(token)")
+                            NSLog("[NekoNotch] could not hide notification banner \(token)")
                             continue
                         }
                     }

@@ -7,11 +7,6 @@
 
 import Foundation
 
-enum BoringNotchAppBundleNames {
-    static let legacy = "boringNotch.app"
-    static let current = "NekoNotch.app"
-}
-
 @objc protocol BoringNotchXPCHelperLunarListener {
     func lunarEventDidUpdate(_ event: BNLunarBrightnessEvent)
     func lunarStreamDidStop(_ reason: String?)
@@ -44,7 +39,6 @@ final class BNLunarBrightnessEvent: NSObject, NSSecureCoding {
 
 @objc protocol BoringNotchXPCHelperProtocol {
     func isAccessibilityAuthorized(with reply: @escaping (Bool) -> Void)
-    func migrateLegacyAppBundle(from sourcePath: String, to destinationPath: String, with reply: @escaping (Bool) -> Void)
     func requestAccessibilityAuthorization()
     func ensureAccessibilityAuthorization(_ promptIfNeeded: Bool, with reply: @escaping (Bool) -> Void)
     func currentKeyboardBrightness(with reply: @escaping (NSNumber?) -> Void)

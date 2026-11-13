@@ -9,10 +9,7 @@ import AppKit
 
 @MainActor
 enum ApplicationRelauncher {
-    static func restart(
-        at appURL: URL? = nil,
-        beforeTerminate: (() -> Void)? = nil
-    ) {
+    static func restart(at appURL: URL? = nil) {
         let workspace = NSWorkspace.shared
         let applicationURL: URL
 
@@ -36,7 +33,6 @@ enum ApplicationRelauncher {
                 }
 
                 workspace.noteFileSystemChanged(applicationURL.deletingLastPathComponent().path)
-                beforeTerminate?()
                 NSApplication.shared.terminate(nil)
             }
         }
