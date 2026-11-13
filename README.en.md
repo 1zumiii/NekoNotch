@@ -157,18 +157,25 @@ git checkout custom-main
 open boringNotch.xcodeproj
 ```
 
-Open the project in Xcode and run it. To preserve Accessibility and Full Disk Access permissions across rebuilds, re-sign each build with a fixed code-signing requirement:
+Open the project in Xcode and run it. By default the build is signed ad hoc, so macOS records permissions against the code hash and asks for Accessibility, Full Disk Access and the others again after every rebuild.
+
+To keep permissions across rebuilds, sign with a fixed certificate. Create a code signing certificate in Keychain Access (self-signed is enough), then create `Configuration/LocalSigning.xcconfig` with its name or SHA-1. The file is listed in `.gitignore` and is never committed:
+
+```
+CODE_SIGN_IDENTITY = <certificate name or SHA-1>
+CODE_SIGN_IDENTITY[sdk=macosx*] = <certificate name or SHA-1>
+CODE_SIGN_STYLE = Manual
+DEVELOPMENT_TEAM =
+```
+
+Then build with it:
 
 ```bash
 xcodebuild -project boringNotch.xcodeproj -scheme boringNotch -configuration Release \
-  -derivedDataPath build CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO build
-
-codesign --force --sign - --preserve-metadata=entitlements,flags,runtime \
-  -r='designated => identifier "theboringteam.boringnotch"' \
-  "build/Build/Products/Release/Boring Notch.app"
+  -xcconfig Configuration/LocalSigning.xcconfig build
 ```
 
-**Sign only the outer app bundle. Do not add `--deep`.** It breaks the XPC helper's signature and causes notification handling to report missing Accessibility permission.
+The app and its XPC helper are both signed with that certificate, macOS identifies them by bundle ID and certificate, and permissions survive a rebuild.
 
 ## Permissions
 

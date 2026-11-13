@@ -157,18 +157,25 @@ git checkout custom-main
 open boringNotch.xcodeproj
 ```
 
-在 Xcode 中打开项目后即可运行。如果需要在重新构建后保留辅助功能和完全磁盘访问授权，每次构建后都要使用固定的代码签名要求重新签名：
+在 Xcode 中打开项目后即可运行。默认使用 ad-hoc 签名，系统按代码哈希记录授权，每次重新编译后都需要重新授予辅助功能、完全磁盘访问等权限。
+
+如需在重新编译后保留授权，可以改用一张固定的证书签名。先在“钥匙串访问”中创建一个代码签名证书（自签名即可），再新建 `Configuration/LocalSigning.xcconfig`，填入证书名称或 SHA-1。此文件已加入 `.gitignore`，不会被提交：
+
+```
+CODE_SIGN_IDENTITY = <证书名称或 SHA-1>
+CODE_SIGN_IDENTITY[sdk=macosx*] = <证书名称或 SHA-1>
+CODE_SIGN_STYLE = Manual
+DEVELOPMENT_TEAM =
+```
+
+然后带上这个配置编译：
 
 ```bash
 xcodebuild -project boringNotch.xcodeproj -scheme boringNotch -configuration Release \
-  -derivedDataPath build CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO build
-
-codesign --force --sign - --preserve-metadata=entitlements,flags,runtime \
-  -r='designated => identifier "theboringteam.boringnotch"' \
-  "build/Build/Products/Release/Boring Notch.app"
+  -xcconfig Configuration/LocalSigning.xcconfig build
 ```
 
-**只对最外层 App 签名，不要加 `--deep`。** `--deep` 会破坏 XPC 助手的签名，导致通知接管提示缺少辅助功能权限。
+App 和 XPC 助手都会用这张证书签名，系统改为按 Bundle ID 和证书识别，重新编译后授权保持有效。
 
 ## 需要的权限
 
