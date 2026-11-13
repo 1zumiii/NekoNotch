@@ -189,8 +189,12 @@ struct ContentView: View {
 
     private var catIsShown: Bool {
         if showsIdleCat { return true }
-        if showsCatInPlayer, case .music = selectedActivity { return true }
-        return false
+        switch selectedActivity {
+        case .music: return showsCatInPlayer
+        // The cat runs beside a notification's icon too.
+        case .notification, .notificationIcon: return catInNotification != nil
+        case nil: return false
+        }
     }
 
     /// Right of the cutout, on the cat's wing, at the height of the closed notch.
