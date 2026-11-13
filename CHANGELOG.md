@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.1.1
+
+### Added
+
+- The starry wing left of the notch makes way for app menus: when it covers the last of an app's menus, it folds away as the pointer comes over it and comes back once the pointer has left the menu bar and no menu is open. It can be turned off in the rainbow cat settings.
+
+### Changed
+
+- Releases are signed with a fixed self-signed certificate instead of ad hoc, so macOS keeps the permissions it has granted across updates. Updating from 1.1.0 still needs them granted once more.
+
+### Fixed
+
+- Full-screen scrolling notifications: with the rainbow cat on, the line under the notch is as wide as the row above it, so the text comes in at the right edge instead of leaving a gap there. Long text starts clear of the rounded corner and stops a little short of the right edge.
+- swiftui-introspect is updated to 26.2.0; the earlier update changed only the resolved packages, so builds kept using 26.1.0.
+
 ## 1.1.0
 
 The first version as NekoNotch, based on Boring Notch `v2.8-rc.2`.
