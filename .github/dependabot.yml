@@ -1,13 +1,27 @@
 version: 2
 updates:
+  # One pull request per ecosystem each week, and only minor and patch
+  # releases: a major version can break the build and is upgraded by hand.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
     target-branch: "custom-main"
+    groups:
+      github-actions:
+        patterns: ["*"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "swift"
     directory: "/"
     schedule:
       interval: "weekly"
     target-branch: "custom-main"
+    groups:
+      swift-packages:
+        patterns: ["*"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
