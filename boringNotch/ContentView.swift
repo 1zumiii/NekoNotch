@@ -54,7 +54,10 @@ struct ContentView: View {
 
     @Namespace var albumArtNamespace
 
-    @Default(.showNotHumanFace) var showNotHumanFace
+    // Observed, so turning the cat on or off in Settings redraws the notch
+    // at once instead of on its next unrelated update.
+    @Default(.rainbowCat) private var rainbowCatEnabled
+    @Default(.rainbowCatInPlayer) private var rainbowCatInPlayer
 
     // Use standardized animations from StandardAnimations enum
     private let animationSpring = StandardAnimations.interactive
@@ -221,7 +224,6 @@ struct ContentView: View {
         case batteryStatus
         case osd(SneakContentType)
         case activities([LiveActivityItem])
-        case face
         case cat
         case idle
     }
@@ -241,13 +243,6 @@ struct ContentView: View {
             return .activities(liveActivities)
         }
         if showsIdleCat { return .cat }
-        if !coordinator.expandingView.show,
-           !musicManager.isPlaying,
-           musicManager.isPlayerIdle,
-           Defaults[.showNotHumanFace],
-           !vm.hideOnClosed {
-            return .face
-        }
         return .idle
     }
 
@@ -284,10 +279,6 @@ struct ContentView: View {
             }
         } else if vm.notchState == .closed && showsIdleCat {
             chinWidth += 2 * catWingWidth + 2 * liveActivityEdgeMargin
-        } else if !coordinator.expandingView.show && vm.notchState == .closed
-            && (!musicManager.isPlaying && musicManager.isPlayerIdle) && Defaults[.showNotHumanFace]
-            && !vm.hideOnClosed {
-            chinWidth += (2 * max(0, displayClosedNotchHeight - 12) + 20)
         }
 
         return chinWidth
@@ -573,15 +564,16 @@ struct ContentView: View {
         VStack(alignment: .leading) {
             VStack(alignment: .leading) {
                 if coordinator.helloAnimationRunning {
-                    Spacer()
+                    // As wide as the closed bar with the cat's wings, drawn
+                    // just below the hardware notch with little to spare.
                     HelloAnimation(onFinish: {
                         vm.closeHello()
                     }).frame(
-                        width: getClosedNotchSize().width,
-                        height: 80
+                        width: vm.closedNotchSize.width + 2 * catWingWidth + 2 * liveActivityEdgeMargin,
+                        height: 52
                     )
-                    .padding(.top, 40)
-                    Spacer()
+                    .padding(.top, displayClosedNotchHeight + 2)
+                    .padding(.bottom, 6)
                 } else {
                     if shouldDisplayNowPlayingFallbackNotice,
                        let notice = musicManager.nowPlayingNotice {
@@ -645,8 +637,6 @@ struct ContentView: View {
                           }
                       } else if vm.notchState == .closed && showsIdleCat {
                           RainbowCatIdle()
-                      } else if !coordinator.expandingView.show && vm.notchState == .closed && (!musicManager.isPlaying && musicManager.isPlayerIdle) && Defaults[.showNotHumanFace] && !vm.hideOnClosed {
-                          BoringFaceAnimation()
                        } else if vm.notchState == .open && showsSystemMonitor && openNotification == nil {
                            SystemMonitorHeader()
                                .frame(height: max(38, displayClosedNotchHeight))
@@ -835,7 +825,7 @@ struct ContentView: View {
     /// the cat has the right wing to itself. That includes the notch hidden
     /// for a full-screen app, and media playing without the music pill.
     private var showsIdleCat: Bool {
-        Defaults[.rainbowCat]
+        rainbowCatEnabled
             && !coordinator.expandingView.show
             && liveActivities.isEmpty
     }
@@ -843,12 +833,12 @@ struct ContentView: View {
     /// A notification in the closed notch keeps the cat in the right wing,
     /// in place of its dot. Nil when the cat is off.
     private var catInNotification: Bool? {
-        Defaults[.rainbowCat] ? musicManager.isPlaying : nil
+        rainbowCatEnabled ? musicManager.isPlaying : nil
     }
 
     /// The cat stands in for the waveform beside the album art.
     private var showsCatInPlayer: Bool {
-        Defaults[.rainbowCat] && Defaults[.rainbowCatInPlayer]
+        rainbowCatEnabled && rainbowCatInPlayer
     }
 
     /// Each wing beside the cutout. The cat's wing is a window onto its sky,
@@ -876,20 +866,6 @@ struct ContentView: View {
             catWing(isPlaying: musicManager.isPlaying)
         }
         .frame(height: displayClosedNotchHeight, alignment: .center)
-    }
-
-    @ViewBuilder
-    func BoringFaceAnimation() -> some View {
-        HStack {
-            Rectangle()
-                .fill(.black)
-                .frame(width: vm.closedNotchSize.width + 20)
-            let faceScale = min(1.0, displayClosedNotchHeight / 30.0)
-            AnimatedFace(height: 24.0 * faceScale, width: 30.0 * faceScale)
-        }.frame(
-            height: displayClosedNotchHeight,
-            alignment: .center
-        )
     }
 
     /// True while the song-change peek is expanding the closed pill inline.

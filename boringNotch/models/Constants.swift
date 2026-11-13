@@ -11,7 +11,7 @@ import Defaults
 // MARK: - File System Paths
 let documentsDirectory: URL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
     ?? URL(fileURLWithPath: NSTemporaryDirectory())
-let bundleIdentifier: String = Bundle.main.bundleIdentifier ?? "theboringteam.boringnotch"
+let bundleIdentifier: String = Bundle.main.bundleIdentifier ?? "io.github.1zumiii.nekonotch"
 let appVersion = "\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""))"
 
 let temporaryDirectory: URL = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
@@ -39,13 +39,27 @@ struct AppLanguage: RawRepresentable, Hashable, Identifiable, Defaults.Serializa
         self.rawValue = rawValue
     }
 
+    /// The languages the whole interface is translated into. Others were
+    /// only partly translated and showed a mix with English, so they were
+    /// dropped; a system in another language gets English.
+    static let supported = ["en", "zh-Hans"]
+
     static var allCases: [AppLanguage] {
-        let languages = Bundle.main.localizations
+        let languages = supported
             .filter(isSelectableLocalization)
             .map(AppLanguage.init(rawValue:))
             .sorted { $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending }
 
         return [.system] + languages
+    }
+
+    /// A language picked before the others were dropped goes back to the
+    /// system's, with its override removed.
+    static func migrateUnsupportedChoice() {
+        let current = Defaults[.appLanguage]
+        guard current != .system, !supported.contains(current.rawValue) else { return }
+        Defaults[.appLanguage] = .system
+        AppLanguage.system.applyAppleLanguagesOverride()
     }
 
     var displayName: String {
@@ -200,6 +214,8 @@ enum AccessibilityPermission {
 extension Notification.Name {
     // MARK: - Display
     static let selectedScreenChanged = Notification.Name("SelectedScreenChanged")
+    /// Settings asks for the setup walkthrough again.
+    static let showOnboarding = Notification.Name("ShowOnboarding")
     static let notchHeightChanged = Notification.Name("NotchHeightChanged")
     static let showOnAllDisplaysChanged = Notification.Name("showOnAllDisplaysChanged")
     static let automaticallySwitchDisplayChanged = Notification.Name("automaticallySwitchDisplayChanged")
@@ -417,9 +433,9 @@ extension Defaults.Keys {
     static let updateChannel = Key<UpdateChannel>("updateChannel", default: UpdateChannel.bundled)
 
     // MARK: Behavior
-    static let minimumHoverDuration = Key<TimeInterval>("minimumHoverDuration", default: 0.3)
+    static let minimumHoverDuration = Key<TimeInterval>("minimumHoverDuration", default: 0.2)
     static let enableOpeningAnimation = Key<Bool>("enableOpeningAnimation", default: true)
-    static let animationSpeedMultiplier = Key<Double>("animationSpeedMultiplier", default: 1.0)
+    static let animationSpeedMultiplier = Key<Double>("animationSpeedMultiplier", default: 1.2)
     static let enableHaptics = Key<Bool>("enableHaptics", default: true)
     static let openNotchOnHover = Key<Bool>("openNotchOnHover", default: true)
     static let extendHoverArea = Key<Bool>("extendHoverArea", default: false)
@@ -439,7 +455,7 @@ extension Defaults.Keys {
 
     // MARK: Appearance
     // static let alwaysShowTabs = Key<Bool>("alwaysShowTabs", default: true)
-    static let showMirror = Key<Bool>("showMirror", default: false)
+    static let showMirror = Key<Bool>("showMirror", default: true)
     static let isMirrored = Key<Bool>("isMirrored", default: true)
     static let mirrorShape = Key<MirrorShapeEnum>("mirrorShape", default: MirrorShapeEnum.rectangle)
     static let mirrorCameraID = Key<String?>("mirrorCameraID", default: nil)
@@ -448,9 +464,8 @@ extension Defaults.Keys {
     static let enableShadow = Key<Bool>("enableShadow", default: true)
     static let cornerRadiusScaling = Key<Bool>("cornerRadiusScaling", default: true)
 
-    static let showNotHumanFace = Key<Bool>("showNotHumanFace", default: false)
     /// A pixel cat runs on the right of the closed notch, faster as the CPU gets busier.
-    static let rainbowCat = Key<Bool>("rainbowCat", default: false)
+    static let rainbowCat = Key<Bool>("rainbowCat", default: true)
     /// While media plays, the cat takes the waveform's place and its trail moves with the audio.
     static let rainbowCatInPlayer = Key<Bool>("rainbowCatInPlayer", default: true)
     /// Hovering over the cat opens the system monitor instead of the usual tabs.
@@ -463,7 +478,7 @@ extension Defaults.Keys {
     static let rainbowCatWarp = Key<Bool>("rainbowCatWarp", default: true)
     static let rainbowCatWarpThreshold = Key<Double>("rainbowCatWarpThreshold", default: 0.7)
     static let tileShowLabels = Key<Bool>("tileShowLabels", default: false)
-    static let showCalendar = Key<Bool>("showCalendar", default: false)
+    static let showCalendar = Key<Bool>("showCalendar", default: true)
     static let hideCompletedReminders = Key<Bool>("hideCompletedReminders", default: true)
     static let sliderColor = Key<SliderColorEnum>(
         "sliderUseAlbumArtColor",
@@ -474,17 +489,17 @@ extension Defaults.Keys {
     // MARK: Gestures
     static let enableGestures = Key<Bool>("enableGestures", default: true)
     static let enableHorizontalMediaGestures = Key<Bool>("enableHorizontalMediaGestures", default: false)
-    static let closeGestureEnabled = Key<Bool>("closeGestureEnabled", default: true)
+    static let closeGestureEnabled = Key<Bool>("closeGestureEnabled", default: false)
     static let gestureSensitivity = Key<CGFloat>("gestureSensitivity", default: 200.0)
 
     // MARK: Media playback
     static let coloredSpectrogram = Key<Bool>("coloredSpectrogram", default: true)
-    static let realtimeAudioWaveform = Key<Bool>("realtimeAudioWaveform", default: false)
+    static let realtimeAudioWaveform = Key<Bool>("realtimeAudioWaveform", default: true)
     /// Every bar of the closed-notch waveform gets its own hue, slowly rotating.
-    static let rainbowWaveform = Key<Bool>("rainbowWaveform", default: false)
+    static let rainbowWaveform = Key<Bool>("rainbowWaveform", default: true)
     /// Multiplier on how fast the rainbow hues rotate (1 = one full turn in 12 s).
     static let rainbowWaveformSpeed = Key<Double>("rainbowWaveformSpeed", default: 1.0)
-    static let enableSneakPeek = Key<Bool>("enableSneakPeek", default: false)
+    static let enableSneakPeek = Key<Bool>("enableSneakPeek", default: true)
     static let sneakPeekStyles = Key<SneakPeekStyle>("sneakPeekStyles", default: .standard)
     static let waitInterval = Key<Double>("waitInterval", default: 3)
     static let showShuffleAndRepeat = Key<Bool>("showShuffleAndRepeat", default: false)
@@ -504,9 +519,9 @@ extension Defaults.Keys {
     static let showPowerStatusNotifications = Key<Bool>("showPowerStatusNotifications", default: true)
     /// Announce in the notch when the battery drops to each chosen level.
     /// A thin line along the bottom of the closed notch that shows the charge.
-    static let batteryEdgeLine = Key<Bool>("batteryEdgeLine", default: false)
-    static let batteryAlertsEnabled = Key<Bool>("batteryAlertsEnabled", default: false)
-    static let batteryAlertThresholds = Key<[Int]>("batteryAlertThresholds", default: [20, 10, 5])
+    static let batteryEdgeLine = Key<Bool>("batteryEdgeLine", default: true)
+    static let batteryAlertsEnabled = Key<Bool>("batteryAlertsEnabled", default: true)
+    static let batteryAlertThresholds = Key<[Int]>("batteryAlertThresholds", default: [50, 30, 20, 10])
     static let showBatteryIndicator = Key<Bool>("showBatteryIndicator", default: true)
     static let showBatteryPercentage = Key<Bool>("showBatteryPercentage", default: true)
     static let showPowerStatusIcons = Key<Bool>("showPowerStatusIcons", default: true)
@@ -519,7 +534,7 @@ extension Defaults.Keys {
     static let selectedDownloadIconStyle = Key<DownloadIconStyle>("selectedDownloadIconStyle", default: DownloadIconStyle.onlyAppIcon)
 
     // MARK: OSD
-    static let osdReplacement = Key<Bool>(PreferenceCompatibility.migratedKeyName("osdReplacement", from: "hudReplacement"), default: false)
+    static let osdReplacement = Key<Bool>(PreferenceCompatibility.migratedKeyName("osdReplacement", from: "hudReplacement"), default: true)
     static let inlineOSD = Key<Bool>(PreferenceCompatibility.migratedKeyName("inlineOSD", from: "inlineHUD"), default: false)
 
     // MARK: Layout
@@ -530,22 +545,22 @@ extension Defaults.Keys {
 
     // MARK: Notifications
     /// Off by default: mirroring banners needs Accessibility access.
-    static let notificationLiveActivity = Key<Bool>("notificationLiveActivity", default: false)
-    static let notificationsFromAllApps = Key<Bool>("notificationsFromAllApps", default: false)
+    static let notificationLiveActivity = Key<Bool>("notificationLiveActivity", default: true)
+    static let notificationsFromAllApps = Key<Bool>("notificationsFromAllApps", default: true)
     /// Open the notch on its own when a notification arrives, instead of
     /// waiting for the pointer.
-    static let notificationAutoExpand = Key<Bool>("notificationAutoExpand", default: false)
+    static let notificationAutoExpand = Key<Bool>("notificationAutoExpand", default: true)
     /// Read notifications from Notification Center's database (Full Disk
     /// Access) so system banners can be switched off instead of hidden.
-    static let notificationFromDatabase = Key<Bool>("notificationFromDatabase", default: false)
+    static let notificationFromDatabase = Key<Bool>("notificationFromDatabase", default: true)
     /// For apps whose banners are off, show the app the moment its notification
     /// arrives and fill in the text when the database delivers it.
-    static let notificationEarlyPlaceholder = Key<Bool>("notificationEarlyPlaceholder", default: false)
+    static let notificationEarlyPlaceholder = Key<Bool>("notificationEarlyPlaceholder", default: true)
     /// Give time-sensitive notifications a rainbow outline, a longer stay, and
     /// priority over ordinary ones (the database reader supplies the level).
     static let notificationPriorityHighlight = Key<Bool>("notificationPriorityHighlight", default: true)
     /// Seconds a mirrored notification stays before it is dismissed.
-    static let notificationDisplayDuration = Key<Double>("notificationDisplayDuration", default: 8)
+    static let notificationDisplayDuration = Key<Double>("notificationDisplayDuration", default: 4)
     /// Apps whose notifications are left to the system: not mirrored, and
     /// their banners are not hidden. Lower-cased bundle identifiers.
     static let notificationExcludedApps = Key<Set<String>>("notificationExcludedApps", default: [])
@@ -566,7 +581,7 @@ extension Defaults.Keys {
         "notificationAllowedApps",
         default: []
     )
-    static let enableGradient = Key<Bool>("enableGradient", default: false)
+    static let enableGradient = Key<Bool>("enableGradient", default: true)
     static let systemEventIndicatorShadow = Key<Bool>("systemEventIndicatorShadow", default: false)
     static let systemEventIndicatorUseAccent = Key<Bool>("systemEventIndicatorUseAccent", default: false)
     static let showOpenNotchOSD = Key<Bool>(PreferenceCompatibility.migratedKeyName("showOpenNotchOSD", from: "showOpenNotchHUD"), default: true)
@@ -579,7 +594,7 @@ extension Defaults.Keys {
     static let osdVolumeSource = Key<OSDControlSource>("osdVolumeSource", default: .builtin)
 
     // MARK: Dashboard
-    static let showDashboardTab = Key<Bool>("showDashboardTab", default: false)
+    static let showDashboardTab = Key<Bool>("showDashboardTab", default: true)
     /// Grid placement of each dashboard widget. See DashboardLayout.
     static let dashboardLayout = Key<[DashboardPlacement]>("dashboardLayout", default: DashboardLayout.defaults)
     /// The grid `dashboardLayout` was saved in; see DashboardLayout.migrateIfNeeded.
@@ -593,9 +608,9 @@ extension Defaults.Keys {
     static let copyOnDrag = Key<Bool>("copyOnDrag", default: false)
     static let autoRemoveShelfItems = Key<Bool>("autoRemoveShelfItems", default: false)
     static let expandedDragDetection = Key<Bool>("expandedDragDetection", default: true)
-    static let reverseShelfOrdering = Key<Bool>("reverseShelfOrdering", default: false)
+    static let reverseShelfOrdering = Key<Bool>("reverseShelfOrdering", default: true)
     /// Memory-only history of copied text, shown next to the file shelf.
-    static let clipboardShelf = Key<Bool>("clipboardShelf", default: false)
+    static let clipboardShelf = Key<Bool>("clipboardShelf", default: true)
 
     // MARK: Calendar
     static let calendarSelectionState = Key<CalendarSelectionState>("calendarSelectionState", default: .all)
@@ -625,7 +640,7 @@ extension Defaults.Keys {
     static let hideTitleBar = Key<Bool>("hideTitleBar", default: true)
     static let hideNonNotchedFromMissionControl = Key<Bool>("hideNonNotchedFromMissionControl", default: true)
     // Normalize scroll/gesture direction so when macOS "Natural scrolling" is disabled, it doesn't invert gestures
-    static let normalizeGestureDirection = Key<Bool>("normalizeGestureDirection", default: true)
+    static let normalizeGestureDirection = Key<Bool>("normalizeGestureDirection", default: false)
 
     // Keep the default stable. Runtime availability is handled by MusicManager.
     static var defaultMediaController: MediaControllerType {

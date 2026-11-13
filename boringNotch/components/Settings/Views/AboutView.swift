@@ -24,18 +24,21 @@ struct AboutView: View {
         return "\(version) (build \(build)\(channelSuffix))"
     }
 
-    /// Opens the bug report form with the version fields prefilled via the
-    /// issue form query parameter API. Keys must match the form field ids;
-    /// renaming the template or its version fields breaks shipped apps.
+    static let repositoryURL = URL(string: "https://github.com/1zumiii/NekoNotch")!
+    static let upstreamURL = URL(string: "https://github.com/TheBoredTeam/boring.notch")!
+
+    /// Opens a new issue on this project's repository with the version and
+    /// the macOS release filled in.
     private var bugReportURL: URL? {
-        var components = URLComponents(string: "https://github.com/TheBoredTeam/boring.notch/issues/new")
+        var components = URLComponents(string: "https://github.com/1zumiii/NekoNotch/issues/new")
         components?.queryItems = [
-            URLQueryItem(name: "template", value: "1-bug-report-form.yml"),
-            URLQueryItem(name: "version", value: reportVersion),
-            URLQueryItem(
-                name: "operating-system",
-                value: ProcessInfo.processInfo.operatingSystemVersionString
-            ),
+            URLQueryItem(name: "body", value: """
+                **Version:** \(CustomBuild.version) (\(reportVersion))
+                **macOS:** \(ProcessInfo.processInfo.operatingSystemVersionString)
+
+                **What happened:**
+
+                """),
         ]
         return components?.url
     }
@@ -75,6 +78,19 @@ struct AboutView: View {
                     Text("Version info")
                 }
 
+                Section {
+                    HStack {
+                        Text("Repository")
+                        Spacer()
+                        Link("1zumiii/NekoNotch", destination: Self.repositoryURL)
+                    }
+                    HStack {
+                        Text("Based on")
+                        Spacer()
+                        Link("TheBoredTeam/boring.notch", destination: Self.upstreamURL)
+                    }
+                }
+
                 UpdaterSettingsView(updater: updaterController.updater)
 
                 HStack(spacing: 30) {
@@ -94,9 +110,7 @@ struct AboutView: View {
                     }
                     .help("Open a bug report with your version filled in automatically")
                     Button {
-                        if let url = URL(string: "https://github.com/TheBoredTeam/boring.notch") {
-                            NSWorkspace.shared.open(url)
-                        }
+                        NSWorkspace.shared.open(Self.repositoryURL)
                     } label: {
                         VStack(spacing: 5) {
                             Image("Github")

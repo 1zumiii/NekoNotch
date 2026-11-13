@@ -51,7 +51,7 @@ struct MixerScene: Codable, Defaults.Serializable, Equatable, Identifiable {
 }
 
 extension Defaults.Keys {
-    static let showMixerTab = Key<Bool>("showMixerTab", default: false)
+    static let showMixerTab = Key<Bool>("showMixerTab", default: true)
     static let mixerAppSettings = Key<[String: MixerAppSetting]>("mixerAppSettings", default: [:])
     static let mixerScenes = Key<[MixerScene]>("mixerScenes", default: [])
     /// Level meters need a listen-only tap on each playing app.
