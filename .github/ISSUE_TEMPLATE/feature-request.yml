@@ -1,0 +1,23 @@
+name: Feature request
+description: Suggest something new for NekoNotch, or a change to something it already does.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you would like
+      description: Describe the feature or the change.
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: The problem it solves, or how you would use it.
+
+  - type: textarea
+    id: media
+    attributes:
+      label: Sketches or examples
+      description: Optional. Mock-ups, screenshots, or other apps that do something similar.

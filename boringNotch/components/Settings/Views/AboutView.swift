@@ -21,18 +21,15 @@ struct AboutView: View {
     private var version: String { UpdateChecker.currentVersion }
     private var build: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "" }
 
-    /// Opens a new issue on this project's repository with the version and
-    /// the macOS release filled in.
+    /// Opens the bug report form on this project's repository with the
+    /// version and the macOS release filled in. The query names match the
+    /// field ids in .github/ISSUE_TEMPLATE/bug-report.yml.
     private var bugReportURL: URL? {
         var components = URLComponents(string: "\(Self.repositoryURL.absoluteString)/issues/new")
         components?.queryItems = [
-            URLQueryItem(name: "body", value: """
-                **Version:** \(version) (\(build))
-                **macOS:** \(ProcessInfo.processInfo.operatingSystemVersionString)
-
-                **What happened:**
-
-                """),
+            URLQueryItem(name: "template", value: "bug-report.yml"),
+            URLQueryItem(name: "version", value: "\(version) (\(build))"),
+            URLQueryItem(name: "macos", value: ProcessInfo.processInfo.operatingSystemVersionString),
         ]
         return components?.url
     }
