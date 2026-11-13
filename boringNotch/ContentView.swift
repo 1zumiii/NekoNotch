@@ -49,6 +49,11 @@ struct ContentView: View {
     /// its text comes in at the row's edge however wide the wings are (the
     /// cat's wings are much wider than an icon and a dot).
     @State private var closedRowWidth: CGFloat = 0
+    /// The empty wing left of the cutout has folded away to uncover the
+    /// frontmost app's last menus (see `foldLeftWing`).
+    @State private var leftWingFolded = false
+    /// Unfolds the wing once the pointer has left the menus and none is open.
+    @State private var leftWingWatch: Task<Void, Never>?
 
     @State private var gestureProgress: CGFloat = .zero
     @State private var horizontalMediaGestureTriggered = false
@@ -213,6 +218,111 @@ struct ContentView: View {
         return pointer.x > cutoutEdge
             && pointer.x < cutoutEdge + 2 * liveActivityEdgeMargin + catWingWidth + 12
             && pointer.y > screen.frame.maxY - displayClosedNotchHeight - 8
+    }
+
+    // MARK: - Making way for app menus
+
+    /// An app with many menus can have its last ones under the starry wing
+    /// left of the cutout, where they cannot be clicked. When the pointer
+    /// comes over the wing and it does cover menus, the wing folds away;
+    /// it comes back once the pointer has left them and no menu is open.
+    /// Only the idle cat's wing, and only while the notch is closed.
+    private var foldsLeftWing: Bool {
+        leftWingFolded && vm.notchState == .closed && closedNotchContent == .cat
+    }
+
+    private var notchScreen: NSScreen? {
+        vm.screenUUID.flatMap { NSScreen.screen(withUUID: $0) } ?? NSScreen.main
+    }
+
+    /// From the wing's outer edge to the cutout, in screen points.
+    private func leftWingSpan(on screen: NSScreen) -> (outer: CGFloat, cutout: CGFloat) {
+        let cutout = screen.frame.midX - vm.closedNotchSize.width / 2
+        let outer = cutout - liveActivityEdgeMargin - catWingWidth - cornerRadiusInsets.closed.bottom
+        return (outer, cutout)
+    }
+
+    /// In the menu bar, from `slack` points left of the wing to the cutout.
+    private func pointerIsBesideCutout(slack: CGFloat) -> Bool {
+        guard let screen = notchScreen else { return false }
+        let pointer = NSEvent.mouseLocation
+        let span = leftWingSpan(on: screen)
+        return pointer.x >= span.outer - slack && pointer.x <= span.cutout
+            && pointer.y > screen.frame.maxY - displayClosedNotchHeight - 8
+    }
+
+    /// Whether the frontmost app has a menu ending under the wing. Menus
+    /// the system has put past the cutout are not under it.
+    private func leftWingCoversMenus() async -> Bool {
+        guard let screen = notchScreen,
+              let app = NSWorkspace.shared.frontmostApplication,
+              app.processIdentifier != ProcessInfo.processInfo.processIdentifier,
+              let edges = await XPCHelperClient.shared.menuBarItemEdges(pid: app.processIdentifier)
+        else { return false }
+        let span = leftWingSpan(on: screen)
+        return edges.contains { $0 > span.outer + 2 && $0 <= span.cutout + 1 }
+    }
+
+    /// A menu of the frontmost app is open: its window sits at the pop-up
+    /// menu level.
+    private func frontmostMenuIsOpen() -> Bool {
+        guard let pid = NSWorkspace.shared.frontmostApplication?.processIdentifier,
+              let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID)
+                as? [[String: Any]]
+        else { return false }
+        let menuLayer = Int(CGWindowLevelForKey(.popUpMenuWindow))
+        return list.contains {
+            ($0[kCGWindowOwnerPID as String] as? Int) == Int(pid)
+                && ($0[kCGWindowLayer as String] as? Int) == menuLayer
+        }
+    }
+
+    /// Checks, as the pointer comes over the left wing, whether the wing
+    /// covers menus, and folds it if so. True once it has folded. Nil when
+    /// there is nothing to check.
+    private func startLeftWingMenuCheck() -> Task<Bool, Never>? {
+        guard Defaults[.rainbowCatMenuAvoidance], vm.notchState == .closed,
+              closedNotchContent == .cat, !leftWingFolded,
+              pointerIsBesideCutout(slack: 2) else { return nil }
+        return Task {
+            guard await leftWingCoversMenus(), !Task.isCancelled,
+                  vm.notchState == .closed, closedNotchContent == .cat,
+                  pointerIsBesideCutout(slack: 2)
+            else { return false }
+            foldLeftWing()
+            return true
+        }
+    }
+
+    private func foldLeftWing() {
+        hoverTask?.cancel()
+        withAnimation(.smooth(duration: 0.3)) {
+            leftWingFolded = true
+            isHovering = false
+        }
+        leftWingWatch?.cancel()
+        leftWingWatch = Task {
+            var awaySince: ContinuousClock.Instant?
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(250))
+                // Opened, or showing something else: nothing to keep folded.
+                guard vm.notchState == .closed, closedNotchContent == .cat else { break }
+                if pointerIsBesideCutout(slack: 60) || frontmostMenuIsOpen() {
+                    awaySince = nil
+                    continue
+                }
+                let now = ContinuousClock.now
+                guard let since = awaySince else {
+                    awaySince = now
+                    continue
+                }
+                if since.duration(to: now) >= .milliseconds(500) { break }
+            }
+            guard !Task.isCancelled else { return }
+            withAnimation(.smooth(duration: 0.3)) {
+                leftWingFolded = false
+            }
+        }
     }
 
     /// The activity currently on top of the stack — what the chin has to be
@@ -504,6 +614,11 @@ struct ContentView: View {
                         //                    }
                         //                    .keyboardShortcut("E", modifiers: .command)
                     }
+                    // With the left wing folded the row is narrower and
+                    // would centre itself; shifted by half the wing it keeps
+                    // its right side and the cutout where they were. Last in
+                    // the chain, so the hover area moves with what is drawn.
+                    .offset(x: foldsLeftWing ? catWingWidth / 2 : 0)
                 if vm.chinHeight > 0 {
                     Rectangle()
                         .fill(Color.black.opacity(0.01))
@@ -873,8 +988,13 @@ struct ContentView: View {
     @ViewBuilder
     func RainbowCatIdle() -> some View {
         HStack(spacing: 0) {
-            // Above the black middle, which its sky reaches in over.
-            RainbowStars().frame(width: catWingWidth, height: displayClosedNotchHeight).zIndex(1)
+            // Above the black middle, which its sky reaches in over. Folding
+            // away only narrows the frame around it, so the sky keeps going
+            // and is full again when the wing comes back.
+            RainbowStars().frame(width: catWingWidth, height: displayClosedNotchHeight)
+                .frame(width: foldsLeftWing ? 0 : catWingWidth, alignment: .trailing)
+                .clipped()
+                .zIndex(1)
             Rectangle()
                 .fill(.black)
                 .frame(width: vm.closedNotchSize.width + 2 * liveActivityEdgeMargin)
@@ -1179,6 +1299,10 @@ extension ContentView {
                 haptics.toggle()
             }
 
+            // Over the left wing, it may be covering menus the pointer is
+            // after: then the wing folds away instead of the notch opening.
+            let menuCheck = startLeftWingMenuCheck()
+
             guard vm.notchState == .closed,
                   !shouldDisplayNowPlayingFallbackNotice,
                   !coordinator.shouldShowSneakPeek(on: vm.screenUUID),
@@ -1187,6 +1311,7 @@ extension ContentView {
             hoverTask = Task {
                 try? await Task.sleep(for: .seconds(Defaults[.minimumHoverDuration]))
                 guard !Task.isCancelled else { return }
+                if let menuCheck, await menuCheck.value { return }
 
                 await MainActor.run {
                     guard self.vm.notchState == .closed,

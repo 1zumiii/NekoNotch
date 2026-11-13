@@ -208,6 +208,43 @@ class BoringNotchXPCHelper: NSObject, BoringNotchXPCHelperProtocol {
         }
     }
 
+    /// Read through Accessibility, which the sandboxed app cannot use for
+    /// another process. A short timeout, so an app that hangs cannot hold
+    /// up the reply.
+    @objc func menuBarItemEdges(forProcess pid: Int32, with reply: @escaping ([NSNumber]) -> Void) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            let app = AXUIElementCreateApplication(pid)
+            AXUIElementSetMessagingTimeout(app, 0.5)
+            func copy(_ element: AXUIElement, _ attribute: String) -> CFTypeRef? {
+                var value: CFTypeRef?
+                guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success else { return nil }
+                return value
+            }
+            func axValue<T>(_ element: AXUIElement, _ attribute: String, _ type: AXValueType, _ empty: T) -> T? {
+                guard let value = copy(element, attribute), CFGetTypeID(value) == AXValueGetTypeID() else { return nil }
+                var result = empty
+                // swiftlint:disable:next force_cast
+                guard AXValueGetValue(value as! AXValue, type, &result) else { return nil }
+                return result
+            }
+            guard let barRef = copy(app, kAXMenuBarAttribute), CFGetTypeID(barRef) == AXUIElementGetTypeID() else {
+                reply([])
+                return
+            }
+            // swiftlint:disable:next force_cast
+            let bar = barRef as! AXUIElement
+            let items = copy(bar, kAXChildrenAttribute) as? [AXUIElement] ?? []
+            let edges: [NSNumber] = items.compactMap { item in
+                guard let origin = axValue(item, kAXPositionAttribute, .cgPoint, CGPoint.zero),
+                      let size = axValue(item, kAXSizeAttribute, .cgSize, CGSize.zero),
+                      size.width > 0
+                else { return nil }
+                return NSNumber(value: Double(origin.x + size.width))
+            }
+            reply(edges)
+        }
+    }
+
     @objc func pressNotification(_ token: String, with reply: @escaping (Bool) -> Void) {
         DispatchQueue.main.async { reply(Self.watcher.press(token: token)) }
     }

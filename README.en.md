@@ -41,6 +41,9 @@ While no media plays, a pixel cat with a piano keyboard for a body runs on the r
 - Notifications: the cat runs beside a notification's icon.
 - Preview: the settings page has a full-width preview and test buttons that show the idle, speed-up, warp, full load and singing states in the preview and on the notch at the same time. Each test lasts 15 seconds.
 - Power: Core Animation and particle emitters play the animation, and CPU load is read every 2 seconds. While idle, the app uses about 0.5% CPU.
+- Making way for menus: when an app has so many menus that the starry wing covers the last of them, the wing folds away as the pointer comes over it, uncovering the menus, and opens again once the pointer has left the menu bar and no menu is open.
+
+<p align="center"><img src="docs/images/menu-avoidance.gif" alt="The starry wing folds away as the pointer comes over it, uncovering the Help menu" width="420"><br>Making way for app menus</p>
 
 ### System monitor
 

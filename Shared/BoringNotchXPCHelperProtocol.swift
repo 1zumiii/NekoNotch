@@ -66,6 +66,9 @@ final class BNLunarBrightnessEvent: NSObject, NSSecureCoding {
     func serviceStatus(with reply: @escaping ([String: NSNumber]) -> Void)
     func pressNotification(_ token: String, with reply: @escaping (Bool) -> Void)
     func processEnergy(with reply: @escaping ([String: NSNumber]) -> Void)
+    /// The right edges, in global screen points, of the items in a process's
+    /// menu bar (its app menus). Empty when they cannot be read.
+    func menuBarItemEdges(forProcess pid: Int32, with reply: @escaping ([NSNumber]) -> Void)
 }
 
 @objc protocol BoringNotchXPCHelperDelegate {

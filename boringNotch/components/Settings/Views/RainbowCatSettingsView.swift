@@ -86,6 +86,17 @@ struct RainbowCatSettingsView: View {
             .disabled(!enabled)
 
             Section {
+                Defaults.Toggle(key: .rainbowCatMenuAvoidance) {
+                    Text("Make way for app menus")
+                }
+            } footer: {
+                Text("When an app has so many menus that the starry wing left of the notch covers the last of them, the wing folds away as the pointer comes over it, and opens again once the pointer has left the menu bar and no menu is open.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .disabled(!enabled)
+
+            Section {
                 speedSlider("Cat at full load", value: $catMaxSpeed, range: 1...6, step: 0.5)
                 speedSlider("Stars at full load", value: $skyMaxSpeed, range: 1...10, step: 0.5)
                 Toggle(isOn: $warp) {
