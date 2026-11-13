@@ -9,26 +9,7 @@
   A rainbow cat changes speed with CPU load and adds floating notes while music plays.
 </p>
 
-<p align="center"><img src="docs/images/screenshot-notch-closed.png" alt="The closed notch: a starry sky on the left, the rainbow cat on the right" width="612"></p>
-
-<table>
-  <tr>
-    <td align="center"><img src="docs/images/rainbow-cat-idle.gif" alt="Rainbow cat: idle" width="380"><br>Idle</td>
-    <td align="center"><img src="docs/images/rainbow-cat-half.gif" alt="Rainbow cat speeding up under medium CPU load" width="380"><br>Medium CPU load (speed-up)</td>
-  </tr>
-  <tr>
-    <td align="center"><img src="docs/images/rainbow-cat-warp.gif" alt="Rainbow cat in warp under high CPU load" width="380"><br>High CPU load (warp)</td>
-    <td align="center"><img src="docs/images/rainbow-cat-singing.gif" alt="Rainbow cat singing while media plays" width="380"><br>Playing media</td>
-  </tr>
-  <tr>
-    <td align="center"><img src="docs/images/screenshot-system-monitor.png" alt="System monitor panel" width="380"><br>System monitor</td>
-    <td align="center"><img src="docs/images/screenshot-mixer.png" alt="Mixer" width="380"><br>Mixer</td>
-  </tr>
-  <tr>
-    <td align="center"><img src="docs/images/screenshot-dashboard.png" alt="Dashboard: Claude quota and the AI usage heat map" width="380"><br>Dashboard and AI usage</td>
-    <td align="center"><img src="docs/images/screenshot-notifications.png" alt="Notifications tab" width="380"><br>Notifications</td>
-  </tr>
-</table>
+<p align="center"><img src="docs/images/notch-hero.gif" alt="The closed notch, with the rainbow cat idle, speeding up, in warp and singing in turn" width="612"></p>
 
 ---
 
@@ -39,6 +20,19 @@ NekoNotch started from [Boring Notch](https://github.com/TheBoredTeam/boring.not
 ### Rainbow cat
 
 While no media plays, a pixel cat with a piano keyboard for a body runs on the right of the closed notch, with a starry sky of the same width on the left.
+
+<div align="center">
+<table>
+  <tr>
+    <td align="center"><img src="docs/images/cat-idle.gif" alt="Rainbow cat: idle" width="306"><br>Idle</td>
+    <td align="center"><img src="docs/images/cat-speedup.gif" alt="Rainbow cat speeding up under medium CPU load" width="306"><br>Medium CPU load (speed-up)</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/images/cat-warp.gif" alt="Rainbow cat in warp under high CPU load" width="306"><br>High CPU load (warp)</td>
+    <td align="center"><img src="docs/images/cat-singing.gif" alt="Rainbow cat singing while media plays" width="306"><br>Playing media</td>
+  </tr>
+</table>
+</div>
 
 - Speed: the cat and the stars move faster as CPU load rises. Their top speeds at full load are set separately; the defaults are 3× for the cat and 4× for the stars.
 - Warp: when CPU load reaches the threshold (70% by default), the stars rush out of sight and turn into streaks of light. They return once the load falls 10 percentage points below the threshold. Warp can be turned off.
@@ -52,6 +46,8 @@ While no media plays, a pixel cat with a piano keyboard for a body runs on the r
 
 Hovering over the cat or clicking it opens the system monitor. This can be turned off in settings.
 
+<p align="center"><img src="docs/images/screenshot-system-monitor.png" alt="System monitor panel" width="602"></p>
+
 - Live load: the top half shows CPU, memory and network as large figures, each with the last 60 seconds drawn as a line. Clicking one shows its breakdown in place.
 - Device status: the bottom half shows storage, the battery (health, cycle count and temperature) and the apps using the most energy.
 - History: a reading is taken every 2 seconds while the panel is closed and every second while it is open, so the panel opens with the last minute already drawn.
@@ -60,6 +56,8 @@ Hovering over the cat or clicking it opens the system monitor. This can be turne
 ### Notifications
 
 Notifications can appear right in the notch. An app's system banners can be turned off while its notifications still show in the notch.
+
+<p align="center"><img src="docs/images/notification.gif" alt="A notification opens the notch, stays a moment, and the notch closes again" width="425"></p>
 
 - Banner takeover: system notification banners are read through Accessibility, moved off-screen and shown in the notch instead. The notch opens on its own and closes after 2 to 30 seconds.
 - Database reading: when turned on, the Notification Center database is read directly (this needs Full Disk Access). Notifications from apps whose banners are off still appear, and system banners no longer flash briefly. The source app's icon appears first, and the text follows once the system writes it to the database.
@@ -71,9 +69,22 @@ Notifications can appear right in the notch. An app's system banners can be turn
 - Focus: by default, the notch shows only what the current Focus allows; the rest go to the history with a moon mark. The alternatives are to show all or none. A Focus that starts on a schedule is not detected.
 - Service status: the notification settings show whether the helper, the banner reader and the database reader are running, with a "Restart services" button and test notifications.
 
+<div align="center">
+<table>
+  <tr>
+    <td align="center"><img src="docs/images/notification-time-sensitive.gif" alt="The rotating rainbow outline of a time-sensitive notification" width="424"><br>Time-sensitive notification</td>
+    <td align="center"><img src="docs/images/notification-full-screen.gif" alt="In full screen, a notification's text scrolls under the notch" width="315"><br>Scrolling line in full screen</td>
+  </tr>
+</table>
+</div>
+
+<p align="center"><img src="docs/images/screenshot-notifications.png" alt="Notifications tab" width="602"><br>Notifications tab</p>
+
 ### Dashboard and AI usage
 
 The dashboard uses a 12 × 4 grid. Each card's position and size can be changed in settings, such as 4 × 4 or 6 × 2.
+
+<p align="center"><img src="docs/images/screenshot-dashboard.png" alt="Dashboard: Claude quota and the AI usage heat map" width="602"></p>
 
 - Claude and Codex quotas: show how much of each account's quota is used. The Claude card switches between the App and CLI accounts and marks the sample time and stale data. The data comes from the collector scripts in `scripts/`; see [the collector guide](scripts/AI_USAGE.md) to install them.
 - AI usage: adds up Claude and Codex tokens and draws daily usage as a heat map. Claude is orange and Codex violet; days with both blend the colors by share, and the shade shows the total. Days are counted in UTC.
@@ -82,6 +93,8 @@ The dashboard uses a 12 × 4 grid. Each card's position and size can be changed 
 ### Mixer
 
 Per-app volume control built on Core Audio process taps (macOS 14.2 or later).
+
+<p align="center"><img src="docs/images/screenshot-mixer.png" alt="Mixer" width="602"></p>
 
 - Set the volume of each app playing audio, with mute, solo, left/right balance and mono.
 - Send each app to its own output device; if the device disconnects, the app falls back to the system default and switches back when the device returns.
@@ -95,6 +108,17 @@ Per-app volume control built on Core Audio process taps (macOS 14.2 or later).
 - Battery: low-battery alerts at several thresholds (20%, 10% and 5% by default). An optional charge line under the closed notch shows a sweep of light while charging and glows red when the battery is low.
 - Multicolor waveform: the music waveform can be a looping color animation played by Core Animation, with adjustable speed.
 - Simplified Chinese: the interface is translated into Simplified Chinese, including all new features.
+
+<div align="center">
+<table>
+  <tr>
+    <td align="center"><img src="docs/images/battery-charging.gif" alt="A sweep of light along the charge line while charging" width="306"><br>The charge line while charging</td>
+    <td align="center"><img src="docs/images/battery-low.png" alt="A red glow under the charge line when the battery is low" width="306"><br>The red glow on a low battery</td>
+  </tr>
+</table>
+</div>
+
+<p align="center"><img src="docs/images/waveform.gif" alt="The multicolor waveform beside the album art while music plays" width="272"><br>Multicolor waveform</p>
 
 ## Download and install
 
