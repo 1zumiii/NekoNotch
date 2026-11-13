@@ -49,9 +49,10 @@ struct ContentView: View {
     /// its text comes in at the row's edge however wide the wings are (the
     /// cat's wings are much wider than an icon and a dot).
     @State private var closedRowWidth: CGFloat = 0
-    /// The empty wing left of the cutout has folded away to uncover the
-    /// frontmost app's last menus (see `foldLeftWing`).
-    @State private var leftWingFolded = false
+    /// Whether the empty wing left of the cutout has folded away to uncover
+    /// the frontmost app's last menus (see `foldLeftWing`). Written only when
+    /// it folds or comes back; the watch polls its own copy.
+    @State private var wingAvoidance = LeftWingMenuAvoidance()
     /// Unfolds the wing once the pointer has left the menus and none is open.
     @State private var leftWingWatch: Task<Void, Never>?
 
@@ -214,10 +215,19 @@ struct ContentView: View {
     private var pointerIsOverCatWing: Bool {
         let pointer = NSEvent.mouseLocation
         guard let screen = NSScreen.screens.first(where: { NSMouseInRect(pointer, $0.frame, false) }) else { return false }
-        let cutoutEdge = screen.frame.midX + vm.closedNotchSize.width / 2
-        return pointer.x > cutoutEdge
-            && pointer.x < cutoutEdge + 2 * liveActivityEdgeMargin + catWingWidth + 12
-            && pointer.y > screen.frame.maxY - displayClosedNotchHeight - 8
+        return closedLayout.pointerIsOverCatWing(pointer, on: screen.frame)
+    }
+
+    /// The closed notch's geometry, for the hover region and the wings.
+    private var closedLayout: ClosedNotchLayout {
+        ClosedNotchLayout(
+            cutoutWidth: vm.closedNotchSize.width,
+            rowHeight: displayClosedNotchHeight,
+            effectiveRowHeight: vm.effectiveClosedNotchHeight,
+            catWingWidth: catWingWidth,
+            edgeMargin: liveActivityEdgeMargin,
+            bottomCornerRadius: cornerRadiusInsets.closed.bottom
+        )
     }
 
     // MARK: - Making way for app menus
@@ -228,39 +238,21 @@ struct ContentView: View {
     /// it comes back once the pointer has left them and no menu is open.
     /// Only the idle cat's wing, and only while the notch is closed.
     private var foldsLeftWing: Bool {
-        leftWingFolded && vm.notchState == .closed && closedNotchContent == .cat
+        wingAvoidance.isFolded && vm.notchState == .closed && closedNotchContent == .cat
     }
 
     private var notchScreen: NSScreen? {
         vm.screenUUID.flatMap { NSScreen.screen(withUUID: $0) } ?? NSScreen.main
     }
 
-    /// From the wing's outer edge to the cutout, in screen points.
-    private func leftWingSpan(on screen: NSScreen) -> (outer: CGFloat, cutout: CGFloat) {
-        let cutout = screen.frame.midX - vm.closedNotchSize.width / 2
-        let outer = cutout - liveActivityEdgeMargin - catWingWidth - cornerRadiusInsets.closed.bottom
-        return (outer, cutout)
-    }
-
-    /// In the menu bar, from `slack` points left of the wing to the cutout.
-    private func pointerIsBesideCutout(slack: CGFloat) -> Bool {
-        guard let screen = notchScreen else { return false }
-        let pointer = NSEvent.mouseLocation
-        let span = leftWingSpan(on: screen)
-        return pointer.x >= span.outer - slack && pointer.x <= span.cutout
-            && pointer.y > screen.frame.maxY - displayClosedNotchHeight - 8
-    }
-
-    /// Whether the frontmost app has a menu ending under the wing. Menus
-    /// the system has put past the cutout are not under it.
+    /// Whether the frontmost app has a menu ending under the wing.
     private func leftWingCoversMenus() async -> Bool {
         guard let screen = notchScreen,
               let app = NSWorkspace.shared.frontmostApplication,
               app.processIdentifier != ProcessInfo.processInfo.processIdentifier,
               let edges = await XPCHelperClient.shared.menuBarItemEdges(pid: app.processIdentifier)
         else { return false }
-        let span = leftWingSpan(on: screen)
-        return edges.contains { $0 > span.outer + 2 && $0 <= span.cutout + 1 }
+        return closedLayout.leftWingCoversMenus(endingAt: edges, on: screen.frame)
     }
 
     /// A menu of the frontmost app is open: its window sits at the pop-up
@@ -282,12 +274,14 @@ struct ContentView: View {
     /// there is nothing to check.
     private func startLeftWingMenuCheck() -> Task<Bool, Never>? {
         guard Defaults[.rainbowCatMenuAvoidance], vm.notchState == .closed,
-              closedNotchContent == .cat, !leftWingFolded,
-              pointerIsBesideCutout(slack: 2) else { return nil }
+              closedNotchContent == .cat, let screen = notchScreen,
+              wingAvoidance.shouldCheckMenus(pointer: NSEvent.mouseLocation, layout: closedLayout, screen: screen.frame)
+        else { return nil }
         return Task {
             guard await leftWingCoversMenus(), !Task.isCancelled,
                   vm.notchState == .closed, closedNotchContent == .cat,
-                  pointerIsBesideCutout(slack: 2)
+                  let screen = notchScreen,
+                  wingAvoidance.confirmsFold(pointer: NSEvent.mouseLocation, layout: closedLayout, screen: screen.frame)
             else { return false }
             foldLeftWing()
             return true
@@ -296,31 +290,35 @@ struct ContentView: View {
 
     private func foldLeftWing() {
         hoverTask?.cancel()
+        var folded = wingAvoidance
+        folded.fold()
         withAnimation(.smooth(duration: 0.3)) {
-            leftWingFolded = true
+            wingAvoidance = folded
             isHovering = false
         }
         leftWingWatch?.cancel()
-        leftWingWatch = Task {
-            var awaySince: ContinuousClock.Instant?
+        leftWingWatch = Task { [folded] in
+            var avoidance = folded
             while !Task.isCancelled {
-                try? await Task.sleep(for: .milliseconds(250))
+                try? await Task.sleep(for: LeftWingMenuAvoidance.pollInterval)
                 // Opened, or showing something else: nothing to keep folded.
-                guard vm.notchState == .closed, closedNotchContent == .cat else { break }
-                if pointerIsBesideCutout(slack: 60) || frontmostMenuIsOpen() {
-                    awaySince = nil
-                    continue
+                guard vm.notchState == .closed, closedNotchContent == .cat,
+                      let screen = notchScreen else {
+                    avoidance.unfold()
+                    break
                 }
-                let now = ContinuousClock.now
-                guard let since = awaySince else {
-                    awaySince = now
-                    continue
-                }
-                if since.duration(to: now) >= .milliseconds(500) { break }
+                if avoidance.poll(
+                    at: .now,
+                    pointer: NSEvent.mouseLocation,
+                    layout: closedLayout,
+                    screen: screen.frame,
+                    menuIsOpen: frontmostMenuIsOpen()
+                ) { break }
             }
             guard !Task.isCancelled else { return }
+            avoidance.unfold()
             withAnimation(.smooth(duration: 0.3)) {
-                leftWingFolded = false
+                wingAvoidance = avoidance
             }
         }
     }
@@ -362,41 +360,40 @@ struct ContentView: View {
     }
 
     private var computedChinWidth: CGFloat {
-        var chinWidth: CGFloat = vm.closedNotchSize.width
+        closedLayout.chinWidth(for: chinContent)
+    }
 
+    /// What the chin under the closed notch has to be sized for.
+    private var chinContent: ClosedNotchLayout.ChinContent {
         if shouldDisplayNowPlayingFallbackNotice {
-            chinWidth = nowPlayingFallbackNoticeWidth
-        } else if coordinator.expandingView.type == .battery && coordinator.expandingView.show
+            return .fallbackNotice(width: nowPlayingFallbackNoticeWidth)
+        }
+        if coordinator.expandingView.type == .battery && coordinator.expandingView.show
             && vm.notchState == .closed && Defaults[.showPowerStatusNotifications] {
-            chinWidth = 640
-        } else if vm.notchState == .closed, let activity = selectedActivity {
+            return .batteryStatus
+        }
+        if vm.notchState == .closed, let activity = selectedActivity {
             // Sized for whichever activity is actually on top, not for
             // whichever happens to exist — otherwise swiping to music while a
             // notification is still in the stack leaves the chin at the
             // notification's width.
             switch activity {
             case .notification, .notificationIcon:
-                chinWidth += (2 * max(0, vm.effectiveClosedNotchHeight - 12) + 20)
-                if catInNotification != nil {
-                    chinWidth += 2 * (catWingWidth - max(0, vm.effectiveClosedNotchHeight - 12))
-                }
+                return .notification(withCat: catInNotification != nil)
             case .music:
-                chinWidth += (2 * max(0, displayClosedNotchHeight - 12) + 20 + 2 * liveActivityEdgeMargin + 2)
-                if showsCatInPlayer {
-                    chinWidth += 2 * (catWingWidth - max(0, displayClosedNotchHeight - 12))
-                }
                 // The inline song-change peek widens the pill itself, so the
                 // chin has to grow with it — otherwise the hover region is
                 // narrower than what's on screen.
-                if showingInlineMusicPeek {
-                    chinWidth += 2 * inlineMusicPeekLabelWidth
-                }
+                return .music(
+                    withCat: showsCatInPlayer,
+                    inlinePeekWidth: showingInlineMusicPeek ? inlineMusicPeekLabelWidth : nil
+                )
             }
-        } else if vm.notchState == .closed && showsIdleCat {
-            chinWidth += 2 * catWingWidth + 2 * liveActivityEdgeMargin
         }
-
-        return chinWidth
+        if vm.notchState == .closed && showsIdleCat {
+            return .idleCat
+        }
+        return .cutout
     }
 
     private var shouldDisplayNowPlayingFallbackNotice: Bool {
