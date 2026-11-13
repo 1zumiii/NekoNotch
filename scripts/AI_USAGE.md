@@ -73,8 +73,16 @@ swiftc boringNotch/components/Usage/UsageStore.swift scripts/test-claude-quota.s
 - Claude Code deletes transcripts after its retention period (30 days by
   default), and Codex moves or compresses old ones. The cache keeps the records
   of a vanished transcript, so the totals never go backwards; a moved copy is
-  deduplicated. Usage from transcripts deleted before this was in place is not
-  recovered. The cache stores hashed request identities, dates and token counts only.
+  deduplicated. The cache stores hashed request identities, dates and token
+  counts only, plus each Claude transcript's undeduplicated tokens per UTC day
+  and model.
+- Usage from Claude transcripts deleted before the cache was in place is
+  estimated from Claude Code's `~/.claude/stats-cache.json`, which keeps daily
+  tokens per model by UTC day but counts every streamed line of a request.
+  Where it holds more than the known transcripts counted the same way, the
+  difference is scaled by the overall deduplicated-to-undeduplicated ratio and
+  added to that day. The card's tooltip shows how much of the total is
+  estimated. Deleted Codex sessions are not recovered.
 
 Orange denotes Claude and violet denotes Codex. Mixed days blend their colors
 in proportion to the two token counts. Hover over the card for provider totals,
