@@ -455,6 +455,13 @@ extension Defaults.Keys {
     static let rainbowCatInPlayer = Key<Bool>("rainbowCatInPlayer", default: true)
     /// Hovering over the cat opens the system monitor instead of the usual tabs.
     static let rainbowCatSystemMonitor = Key<Bool>("rainbowCatSystemMonitor", default: true)
+    /// How many times as fast the cat runs at full CPU load as at rest.
+    static let rainbowCatMaxSpeed = Key<Double>("rainbowCatMaxSpeed", default: 3)
+    /// How many times as fast the stars drift at full CPU load as at rest.
+    static let rainbowCatSkyMaxSpeed = Key<Double>("rainbowCatSkyMaxSpeed", default: 4)
+    /// Past `rainbowCatWarpThreshold` CPU load, the stars turn into streaks of light.
+    static let rainbowCatWarp = Key<Bool>("rainbowCatWarp", default: true)
+    static let rainbowCatWarpThreshold = Key<Double>("rainbowCatWarpThreshold", default: 0.7)
     static let tileShowLabels = Key<Bool>("tileShowLabels", default: false)
     static let showCalendar = Key<Bool>("showCalendar", default: false)
     static let hideCompletedReminders = Key<Bool>("hideCompletedReminders", default: true)

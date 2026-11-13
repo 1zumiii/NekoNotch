@@ -64,10 +64,13 @@ final class RainbowCatNSView: NSView, AudioCaptureLevelsConsumer {
     private let cat = CALayer()
     private var segments: [CALayer] = []
     private let notes = CAEmitterLayer()
-    private let stars = CAEmitterLayer()
+    private let sky = StarSky()
     private var stripeImage: CGImage?
 
     private var isPlaying = false
+    /// Off where one sky lies behind the whole scene instead (the settings'
+    /// preview), so there is no seam where this one would fade.
+    private var showsSky = true
     private var useRealtime = false
     private var isActive = true
     private var lastLoudness: Float = -1
@@ -78,7 +81,6 @@ final class RainbowCatNSView: NSView, AudioCaptureLevelsConsumer {
     /// Four frames at rest take this long; the CPU load speeds it up to
     /// three times as fast.
     private static let baseCycle: CFTimeInterval = 1.2
-    private static let maxSpeedUp: Double = 2
     private static let runKey = "run"
     private static let waveKey = "wave"
 
@@ -106,10 +108,7 @@ final class RainbowCatNSView: NSView, AudioCaptureLevelsConsumer {
         layer?.addSublayer(stage)
         stage.masksToBounds = true
 
-        stars.emitterShape = .rectangle
-        stars.emitterMode = .surface
-        stars.renderMode = .unordered
-        stage.addSublayer(stars)
+        stage.addSublayer(sky.layer)
 
         notes.emitterShape = .point
         notes.renderMode = .unordered
@@ -157,9 +156,9 @@ final class RainbowCatNSView: NSView, AudioCaptureLevelsConsumer {
             y: catOrigin.y + CGFloat(PixelCatSprites.height - 3) * Self.pixel
         )
         // Stars come in over the outer edge and drift left, out of sight
-        // behind the notch.
-        stars.emitterPosition = CGPoint(x: stage.bounds.maxX + 2 * Self.pixel, y: stage.bounds.midY)
-        stars.emitterSize = CGSize(width: 1, height: stage.bounds.height)
+        // behind the notch. They are born anywhere in a band out of sight,
+        // so they don't line up in columns.
+        sky.layout(bounds: stage.bounds, birthX: stage.bounds.maxX + 2 * Self.pixel + StarSky.birthBand / 2)
         CATransaction.commit()
         restartAnimations()
     }
@@ -183,7 +182,7 @@ final class RainbowCatNSView: NSView, AudioCaptureLevelsConsumer {
             cat.removeAllAnimations()
             segments.forEach { $0.removeAllAnimations() }
             notes.birthRate = 0
-            stars.birthRate = 0
+            sky.stop()
         }
     }
 
@@ -217,38 +216,8 @@ final class RainbowCatNSView: NSView, AudioCaptureLevelsConsumer {
             cell.beginTime = Double(index) / Double(kinds) / Double(cell.birthRate)
             return cell
         }
-        stars.emitterCells = Self.starCells(scale: scale)
         CATransaction.commit()
-    }
-
-    /// Two layers of sky for depth: far stars are small, dim and slow, near
-    /// ones bigger, brighter and twice as fast. Every star in a layer moves
-    /// at the same speed, so they pass each other only across layers, as
-    /// distance would have it.
-    static func starCells(scale: CGFloat) -> [CAEmitterCell] {
-        let far = PixelCatSprites.starImages(scale: scale, near: false).map { image in
-            starCell(image, scale: scale, velocity: 6, alpha: 0.55, birthRate: 0.3)
-        }
-        let near = PixelCatSprites.starImages(scale: scale, near: true).map { image in
-            starCell(image, scale: scale, velocity: 9, alpha: 1, birthRate: 0.12)
-        }
-        return far + near
-    }
-
-    private static func starCell(
-        _ image: CGImage, scale: CGFloat, velocity: CGFloat, alpha: Float, birthRate: Float
-    ) -> CAEmitterCell {
-        let cell = CAEmitterCell()
-        cell.contents = image
-        cell.contentsScale = scale
-        cell.magnificationFilter = CALayerContentsFilter.nearest.rawValue
-        cell.birthRate = birthRate
-        cell.velocity = velocity
-        cell.emissionLongitude = .pi
-        cell.color = NSColor(white: 1, alpha: CGFloat(alpha)).cgColor
-        // Long enough to cross a wing and the stretch behind the notch.
-        cell.lifetime = Float(110 / velocity)
-        return cell
+        sky.setScale(scale)
     }
 
     /// Notes rise from the head and float up out of the window, half of
@@ -293,6 +262,13 @@ final class RainbowCatNSView: NSView, AudioCaptureLevelsConsumer {
         if isActive { manager.setLevelsConsumer(self) }
     }
 
+    func setShowsSky(_ shows: Bool) {
+        guard shows != showsSky else { return }
+        showsSky = shows
+        sky.layer.isHidden = !shows
+        restartAnimations()
+    }
+
     /// An inactive view asks for no levels, so none are computed for it.
     func setActive(_ active: Bool) {
         guard isActive != active else { return }
@@ -305,15 +281,12 @@ final class RainbowCatNSView: NSView, AudioCaptureLevelsConsumer {
 
     /// Changing a layer's speed mid-loop would jump; carrying its local time
     /// over keeps every animation where it was.
+    /// The cat and the sky each speed up as far as the settings say.
     private func setCPULoad(_ load: Double) {
         guard !reducesMotion else { return }
-        let speed = Float(1 + min(max(load, 0), 1) * Self.maxSpeedUp)
-        guard abs(stage.speed - speed) > 0.05 else { return }
-        let now = CACurrentMediaTime()
-        let localTime = stage.convertTime(now, from: nil)
-        stage.speed = speed
-        stage.timeOffset = localTime
-        stage.beginTime = now
+        let speed = Float(1 + min(max(load, 0), 1) * (Defaults[.rainbowCatMaxSpeed] - 1))
+        StarSky.retime(stage, to: speed)
+        sky.update(load: load, parentSpeed: stage.speed)
     }
 
     private var reducesMotion: Bool { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
@@ -330,7 +303,7 @@ final class RainbowCatNSView: NSView, AudioCaptureLevelsConsumer {
             segment.position.y = trailCenterY
         }
         CATransaction.commit()
-        stars.birthRate = reducesMotion ? 0 : 1
+        if reducesMotion || !showsSky { sky.stop() } else { sky.start() }
 
         if isPlaying && !reducesMotion {
             // Started in the stage's own time, without a burst of notes
@@ -418,6 +391,8 @@ struct RainbowCat: NSViewRepresentable {
     var isPlaying = false
     /// False when this cat isn't on screen.
     var isActive = true
+    /// False where a sky of its own lies behind the cat.
+    var showsSky = true
     @Default(.realtimeAudioWaveform) private var realtimeEnabled
     @ObservedObject private var audioCapture = AudioCaptureManager.shared
 
@@ -439,6 +414,7 @@ struct RainbowCat: NSViewRepresentable {
         view.setActive(isActive && isPlaying)
         view.setUseRealtime(realtimeEnabled && audioCapture.isCapturing)
         view.setPlaying(isPlaying)
+        view.setShowsSky(showsSky)
     }
 }
 
@@ -446,19 +422,15 @@ struct RainbowCat: NSViewRepresentable {
 /// notch looks alike on both sides.
 final class StarfieldNSView: NSView {
     private let stage = CALayer()
-    private let stars = CAEmitterLayer()
+    private let sky = StarSky()
     private var renderedScale: CGFloat = 0
-    private static let maxSpeedUp: Double = 2
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
         layer?.addSublayer(stage)
         stage.masksToBounds = true
-        stars.emitterShape = .rectangle
-        stars.emitterMode = .surface
-        stars.renderMode = .unordered
-        stage.addSublayer(stars)
+        stage.addSublayer(sky.layer)
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -474,8 +446,7 @@ final class StarfieldNSView: NSView {
         CATransaction.setDisableActions(true)
         let reach = RainbowCatNSView.innerReach + Self.hiddenBuffer
         stage.frame = CGRect(x: 0, y: 0, width: bounds.width + reach, height: bounds.height)
-        stars.emitterPosition = CGPoint(x: stage.bounds.maxX, y: stage.bounds.midY)
-        stars.emitterSize = CGSize(width: 1, height: stage.bounds.height)
+        sky.layout(bounds: stage.bounds, birthX: stage.bounds.maxX - StarSky.birthBand / 2)
         CATransaction.commit()
     }
 
@@ -483,30 +454,21 @@ final class StarfieldNSView: NSView {
         super.viewDidMoveToWindow()
         guard window != nil else {
             CPULoadMonitor.shared.stopObserving(self)
-            stars.birthRate = 0
+            sky.stop()
             return
         }
         let scale = window?.backingScaleFactor ?? 2
         if scale != renderedScale {
             renderedScale = scale
-            stars.emitterCells = RainbowCatNSView.starCells(scale: scale)
+            sky.setScale(scale)
         }
-        let reducesMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
-        stars.beginTime = stage.convertTime(CACurrentMediaTime(), from: nil)
-        stars.birthRate = reducesMotion ? 0 : 1
-        guard !reducesMotion else { return }
-        CPULoadMonitor.shared.observe(self) { [weak self] load in self?.setCPULoad(load) }
-    }
-
-    /// The sky goes by as fast as the cat runs.
-    private func setCPULoad(_ load: Double) {
-        let speed = Float(1 + min(max(load, 0), 1) * Self.maxSpeedUp)
-        guard abs(stage.speed - speed) > 0.05 else { return }
-        let now = CACurrentMediaTime()
-        let localTime = stage.convertTime(now, from: nil)
-        stage.speed = speed
-        stage.timeOffset = localTime
-        stage.beginTime = now
+        guard !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else {
+            sky.stop()
+            return
+        }
+        sky.start()
+        // The same sky as on the cat's side, at the pace the settings give it.
+        CPULoadMonitor.shared.observe(self) { [weak self] load in self?.sky.update(load: load, parentSpeed: 1) }
     }
 }
 
