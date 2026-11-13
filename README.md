@@ -1,4 +1,4 @@
-<h1 align="center">Boring Notch · Izumi Edition</h1>
+<h1 align="center">NekoNotch</h1>
 
 <p align="center">简体中文 · <a href="README.en.md">English</a></p>
 
@@ -31,8 +31,8 @@
 
 项目最初基于 [TheBoredTeam/boring.notch](https://github.com/TheBoredTeam/boring.notch) 的 `v2.8-rc.2`。本页介绍后续新增和改进的功能；继承功能的原版说明保留在 [README.upstream.md](README.upstream.md)。
 
-- 默认分支为 `custom-main`，只从上游合并更新，不向上游推送或提交 PR。
-- 已关闭应用内更新（Sparkle），防止官方版本覆盖自定义改动。“关于”页显示 `Izumi Edition ✨ 1.1.0`。跟进上游更新时，需要将上游改动合并到 `custom-main`，再重新编译。
+- 默认分支为 `custom-main`。本项目已独立于上游仓库，不向上游推送或提交 PR；需要上游的修复时，按提交挑选合并。
+- 已关闭应用内更新（Sparkle），防止官方版本覆盖自定义改动。“关于”页显示 `Izumi Edition ✨ 1.1.0`。采用上游改动后，需要重新编译。
 - 日常使用和测试主要在 macOS 27 上完成。系统要求沿用上游的 macOS 14+，其中混音器依赖的 Core Audio 进程 tap 需要 macOS 14.2 及以上。
 
 ## 新增功能
@@ -151,8 +151,8 @@
 需要 macOS 15.6+ 和 Xcode 26+。
 
 ```bash
-git clone https://github.com/1zumiii/BoringNotch-Custom.git
-cd BoringNotch-Custom
+git clone https://github.com/1zumiii/NekoNotch.git
+cd NekoNotch
 git checkout custom-main
 open boringNotch.xcodeproj
 ```
@@ -199,4 +199,4 @@ codesign --force --sign - --preserve-metadata=entitlements,flags,runtime \
 
 感谢上游项目 [Boring Notch](https://github.com/TheBoredTeam/boring.notch) 及其贡献者，以及 [MediaRemoteAdapter](https://github.com/ungive/mediaremote-adapter)、[NotchDrop](https://github.com/Lakr233/NotchDrop) 等依赖的作者。图标由 [@maxtron95](https://github.com/maxtron95) 制作。
 
-本 fork 沿用上游许可证，见 [LICENSE](LICENSE) 和 [THIRD_PARTY_LICENSES](THIRD_PARTY_LICENSES)。
+本项目沿用上游许可证（GPL-3.0），见 [LICENSE](LICENSE) 和 [THIRD_PARTY_LICENSES](THIRD_PARTY_LICENSES)。
