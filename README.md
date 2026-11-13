@@ -41,6 +41,9 @@ NekoNotch 基于 [Boring Notch](https://github.com/TheBoredTeam/boring.notch) `v
 - 通知：有通知时，猫在通知图标旁奔跑。
 - 预览：设置页提供全宽预览和测试按钮，可在预览和刘海中同时查看空闲、加速、跃迁、满载和唱歌状态。每次测试持续 15 秒。
 - 功耗：动画由 Core Animation 和粒子发射器播放，CPU 占用率每 2 秒读取一次。空闲时，App 的 CPU 占用率约为 0.5%。
+- 菜单避让：应用的菜单项较多、最后几个菜单被左侧星空翼盖住时，指针移到星空翼上，星空翼即收起，露出下面的菜单；指针离开菜单栏且没有菜单展开后，星空翼重新展开。
+
+<p align="center"><img src="docs/images/menu-avoidance.gif" alt="指针移到星空翼上时，星空翼收起，露出被盖住的 Help 菜单" width="420"><br>菜单避让</p>
 
 ### 系统监测
 

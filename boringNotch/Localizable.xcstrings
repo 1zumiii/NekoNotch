@@ -8453,6 +8453,26 @@
         }
       }
     },
+    "Make way for app menus" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "避让应用菜单"
+          }
+        }
+      }
+    },
+    "When an app has so many menus that the starry wing left of the notch covers the last of them, the wing folds away as the pointer comes over it, and opens again once the pointer has left the menu bar and no menu is open." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "应用的菜单项较多、刘海左侧的星空翼盖住最后几个菜单时，指针移到星空翼上，星空翼即收起；指针离开菜单栏且没有菜单展开后，星空翼重新展开。"
+          }
+        }
+      }
+    },
     "While nothing plays, a pixel cat with a piano keyboard for a body runs on the right of the closed notch, with an empty wing of the same width on the left. It runs faster the busier the CPU is." : {
       "localizations" : {
         "zh-Hans" : {

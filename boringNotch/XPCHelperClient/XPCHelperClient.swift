@@ -536,6 +536,33 @@ extension XPCHelperClient {
         }
     }
 
+    /// The right edges of a process's app menus in the menu bar, in global
+    /// screen points (x as in Cocoa). Nil when the helper does not answer
+    /// within a second.
+    nonisolated func menuBarItemEdges(pid: pid_t) async -> [CGFloat]? {
+        await withTaskGroup(of: [NSNumber]?.self) { group in
+            group.addTask {
+                do {
+                    let service = await MainActor.run { self.ensureRemoteService() }
+                    return try await service.withContinuation { service, continuation in
+                        service.menuBarItemEdges(forProcess: pid) { edges in
+                            continuation.resume(returning: edges)
+                        }
+                    }
+                } catch {
+                    return nil
+                }
+            }
+            group.addTask {
+                try? await Task.sleep(for: .seconds(1))
+                return nil
+            }
+            let first = await group.next() ?? nil
+            group.cancelAll()
+            return first.map { $0.map { CGFloat($0.doubleValue) } }
+        }
+    }
+
     /// Clicks the system banner behind a mirrored notification. False when
     /// the banner is gone (it times out a few seconds after it appears).
     nonisolated func pressNotification(token: String) async -> Bool {

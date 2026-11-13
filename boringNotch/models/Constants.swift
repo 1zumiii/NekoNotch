@@ -423,6 +423,10 @@ extension Defaults.Keys {
     static let rainbowCatInPlayer = Key<Bool>("rainbowCatInPlayer", default: true)
     /// Hovering over the cat opens the system monitor instead of the usual tabs.
     static let rainbowCatSystemMonitor = Key<Bool>("rainbowCatSystemMonitor", default: true)
+    /// The empty wing left of the cutout folds away when the pointer comes
+    /// over it and it covers the frontmost app's menus, so the last of them
+    /// can be clicked.
+    static let rainbowCatMenuAvoidance = Key<Bool>("rainbowCatMenuAvoidance", default: true)
     /// How many times as fast the cat runs at full CPU load as at rest.
     static let rainbowCatMaxSpeed = Key<Double>("rainbowCatMaxSpeed", default: 3)
     /// How many times as fast the stars drift at full CPU load as at rest.
