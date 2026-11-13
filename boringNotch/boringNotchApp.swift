@@ -8,7 +8,6 @@
 import AVFoundation
 import Defaults
 import KeyboardShortcuts
-import Sparkle
 import SwiftUI
 
 @MainActor
@@ -48,23 +47,10 @@ struct DynamicNotchApp: App {
     @Default(.menubarIcon) var showMenuBarIcon
     @Environment(\.openWindow) var openWindow
 
-    private let sparkleUpdaterDelegate: BoringSparkleUpdaterDelegate
-    let updaterController: SPUStandardUpdaterController
-
     init() {
         #if DEBUG
         OTPDetector.runSelfCheck()
         #endif
-        let sparkleUpdaterDelegate = BoringSparkleUpdaterDelegate()
-        self.sparkleUpdaterDelegate = sparkleUpdaterDelegate
-        updaterController = SPUStandardUpdaterController(
-            startingUpdater: false, updaterDelegate: sparkleUpdaterDelegate, userDriverDelegate: nil)
-        SoftwareUpdateStore.updater = updaterController.updater
-
-        // Initialize the settings window controller with the updater controller
-        SettingsWindowController.shared.setUpdaterController(updaterController)
-
-        let updaterController = self.updaterController
         Task { @MainActor in
             let sourceURL = Bundle.main.bundleURL
             if let destinationURL = LegacyAppBundleMigration.destinationURL(for: sourceURL) {
@@ -80,23 +66,19 @@ struct DynamicNotchApp: App {
                 }
                 NSLog("Failed to migrate legacy NekoNotch app bundle at %@", sourceURL.path)
             }
-            // Custom build: never start Sparkle, so nothing checks for,
-            // downloads or installs an official release over this app.
-            if !CustomBuild.updatesDisabled {
-                updaterController.startUpdater()
-            }
+            UpdateChecker.shared.start()
         }
     }
 
     var body: some Scene {
-        MenuBarExtra("boring.notch", systemImage: "sparkle", isInserted: $showMenuBarIcon) {
+        MenuBarExtra("NekoNotch", systemImage: "sparkle", isInserted: $showMenuBarIcon) {
             Button("Settings") {
                 DispatchQueue.main.async {
                     SettingsWindowController.shared.showWindow()
                 }
             }
             .keyboardShortcut(KeyEquivalent(","), modifiers: .command)
-            CheckForUpdatesView(updater: updaterController.updater)
+            UpdateMenuItem()
             Button("Restart NekoNotch") {
                 ApplicationRelauncher.restart()
             }
@@ -108,23 +90,20 @@ struct DynamicNotchApp: App {
     }
 }
 
-@MainActor
-enum SoftwareUpdateStore {
-    static var updater: SPUUpdater?
-}
+/// The menu bar menu's update entry: a link to the new release once one is
+/// found, otherwise a manual check.
+private struct UpdateMenuItem: View {
+    @ObservedObject private var updates = UpdateChecker.shared
 
-@MainActor
-final class BoringSparkleUpdaterDelegate: NSObject, SPUUpdaterDelegate {
-    func updaterShouldPromptForPermissionToCheck(forUpdates updater: SPUUpdater) -> Bool {
-        false
-    }
-
-    @objc func feedURLString(for updater: SPUUpdater) -> String? {
-        Defaults[.updateChannel].feedURLString
-    }
-
-    @objc func allowedChannels(for updater: SPUUpdater) -> Set<String> {
-        Defaults[.updateChannel].allowedSparkleChannels
+    var body: some View {
+        if case .available(let version, let page) = updates.state {
+            Button("Download NekoNotch \(version)…") { NSWorkspace.shared.open(page) }
+        } else {
+            Button("Check for Updates…") {
+                Task { await updates.check(userInitiated: true) }
+            }
+            .disabled(updates.state == .checking)
+        }
     }
 }
 
@@ -467,7 +446,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             window.contentView = NSHostingView(
                 rootView: OnboardingView(
                     step: step,
-                    updater: SoftwareUpdateStore.updater,
                     onFinish: {
                         window.orderOut(nil)
 //                        NSApp.setActivationPolicy(.accessory)

@@ -12,7 +12,6 @@ import AVFoundation
 import ApplicationServices
 import Defaults
 import EventKit
-import Sparkle
 import SwiftUI
 
 enum OnboardingStep: Int, CaseIterable {
@@ -151,9 +150,6 @@ private enum SettingsPage: Hashable {
 
 struct OnboardingView: View {
     @State var step: OnboardingStep = .welcome
-    /// Kept for the window that creates this view; software updates are off
-    /// in this build, so there is no update step.
-    let updater: SPUUpdater?
     let onFinish: () -> Void
     let onOpenSettings: () -> Void
 

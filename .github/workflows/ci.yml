@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - custom-main
+    # Documentation and images cannot break the build, so they do not spend a
+    # run. A push that also touches anything else still triggers one.
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - "LICENSE"
+      - ".gitignore"
+  pull_request:
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - "LICENSE"
+      - ".gitignore"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Test and build
+    runs-on: macos-26
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Select the newest Xcode
+        run: |
+          xcode="$(ls -d /Applications/Xcode_*.app | grep -iv beta | sort -V | tail -1)"
+          sudo xcode-select -s "$xcode"
+          xcodebuild -version
+
+      - name: Test the AI usage collectors
+        run: python3 -m unittest discover -s scripts -p "test_*.py" -v
+
+      # Signed ad hoc: the runner has no certificate, and this build only
+      # proves the project compiles.
+      - name: Build
+        run: |
+          xcodebuild build \
+            -project boringNotch.xcodeproj \
+            -scheme boringNotch \
+            -configuration Release \
+            -destination "generic/platform=macOS" \
+            -derivedDataPath build \
+            -skipMacroValidation \
+            -skipPackagePluginValidation \
+            ONLY_ACTIVE_ARCH=NO
+
+      # The tests are hosted by the app, so they start a real instance of it
+      # on the runner; nothing there reacts to it.
+      - name: Test
+        run: |
+          xcodebuild test \
+            -project boringNotch.xcodeproj \
+            -scheme boringNotch \
+            -configuration Debug \
+            -destination "platform=macOS" \
+            -derivedDataPath build \
+            -skipMacroValidation \
+            -skipPackagePluginValidation
+
+      - name: Package the app
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent \
+            build/Build/Products/Release/NekoNotch.app \
+            "NekoNotch-${{ github.run_number }}.zip"
+
+      - name: Upload the app
+        uses: actions/upload-artifact@v7
+        with:
+          name: NekoNotch-${{ github.run_number }}
+          path: NekoNotch-${{ github.run_number }}.zip
+          if-no-files-found: error
+          retention-days: 7
