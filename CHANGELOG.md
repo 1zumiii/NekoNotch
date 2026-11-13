@@ -7,7 +7,7 @@ The first version as NekoNotch, based on Boring Notch `v2.8-rc.2`.
 ### Added
 
 - Rainbow cat and starry sky on the closed notch, with speed-up and warp following CPU load, and a singing cat with floating notes while media plays.
-- System monitor panel opened from the cat: CPU, memory and network with a 60-second history, storage, battery health and the apps using the most energy.
+- System monitor panel opened from the cat: CPU, memory and network with a 60-second history, storage, battery health and the apps using the most energy, with the same settings button as the home view.
 - Notifications in the notch: banner takeover, Notification Center database reading, time-sensitive notifications with a rainbow outline, per-app rules, full-screen scrolling, click-through to the source app and a service status page.
 - Notifications tab with the last 50 notifications, and Focus awareness.
 - Dashboard on a 12 × 4 grid with Claude and Codex quota cards and an AI token usage heat map.
