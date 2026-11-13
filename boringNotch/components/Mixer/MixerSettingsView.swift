@@ -66,7 +66,7 @@ struct MixerSettingsView: View {
             }
 
             Section {
-                Text("Apps you change are re-routed through Boring Notch, which adds a few milliseconds of delay. Audio protected by copy protection can't be captured and may stay silent or unchanged.")
+                Text("Apps you change are re-routed through NekoNotch, which adds a few milliseconds of delay. Audio protected by copy protection can't be captured and may stay silent or unchanged.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Button("Reset all app volumes and outputs") {

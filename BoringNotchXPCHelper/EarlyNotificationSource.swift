@@ -52,6 +52,21 @@ final class EarlyNotificationSource {
         }
     }
 
+    /// Runs the command after the helper's pid and ends it once the helper is
+    /// gone. The system kills an XPC service outright when its app quits, so
+    /// the helper gets no chance to stop `log stream` itself; without this it
+    /// would linger, orphaned, until a notification made it write to its
+    /// closed pipe. Checked every 5 seconds; a stop from the helper (SIGTERM)
+    /// ends it too.
+    private static let watchdog = #"""
+    helper=$1; shift
+    "$@" & child=$!
+    trap 'kill "$child" 2>/dev/null; exit 0' TERM INT HUP
+    while kill -0 "$helper" 2>/dev/null && kill -0 "$child" 2>/dev/null; do sleep 5; done
+    kill "$child" 2>/dev/null
+    wait "$child"
+    """#
+
     /// A `log stream` left behind by an earlier helper that was killed would
     /// otherwise linger until the next notification makes it write to its
     /// closed pipe. Done once per helper process.
@@ -69,8 +84,9 @@ final class EarlyNotificationSource {
         guard process == nil else { return true }
         _ = Self.reapedLeftovers
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/log")
-        process.arguments = ["stream", "--style", "ndjson", "--level", "info", "--predicate", Self.predicate]
+        process.executableURL = URL(fileURLWithPath: "/bin/sh")
+        process.arguments = ["-c", Self.watchdog, "sh", String(getpid()),
+                             "/usr/bin/log", "stream", "--style", "ndjson", "--level", "info", "--predicate", Self.predicate]
         let pipe = Pipe()
         process.standardOutput = pipe
         process.standardError = FileHandle.nullDevice

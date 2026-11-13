@@ -26,7 +26,7 @@ final class XPCHelperClient: NSObject, ObservableObject {
         super.init()
     }
 
-    private let serviceName = "theboringteam.boringnotch.BoringNotchXPCHelper"
+    private let serviceName = "io.github.1zumiii.nekonotch.XPCHelper"
 
     /// Coarse, UI-friendly view of helper connectivity. Flips to false from
     /// the connection's interruption/invalidation handlers so a crashed

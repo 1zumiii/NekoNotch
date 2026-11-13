@@ -805,7 +805,7 @@ extension SystemNotificationManager {
             let ticker = kind == .fullScreenTicker
             add([
                 "token": (ticker ? Self.tickerTestPrefix : "test-") + UUID().uuidString,
-                "appName": "Boring Notch",
+                "appName": "NekoNotch",
                 "bundleID": Bundle.main.bundleIdentifier ?? "",
                 "title": String(localized: "Test notification"),
                 "body": ticker
