@@ -3,9 +3,27 @@
 <p align="center">简体中文 · <a href="README.en.md">English</a></p>
 
 <p align="center">
-  基于 <a href="https://github.com/TheBoredTeam/boring.notch">Boring Notch</a> 的个人定制版本，在刘海中加入通知、仪表盘和应用混音器。<br>
+  基于 <a href="https://github.com/TheBoredTeam/boring.notch">Boring Notch</a> 的个人定制版本，在刘海中加入彩虹猫、系统监测、通知、仪表盘和应用混音器。<br>
   上游原版的说明保留在 <a href="README.upstream.md">README.upstream.md</a>。
 </p>
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/images/rainbow-cat-idle.gif" alt="彩虹猫：空闲" width="424"><br>空闲</td>
+    <td align="center"><img src="docs/images/rainbow-cat-half.gif" alt="彩虹猫：半载" width="424"><br>半载</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/images/rainbow-cat-warp.gif" alt="彩虹猫：跃迁" width="424"><br>跃迁</td>
+    <td align="center"><img src="docs/images/rainbow-cat-full.gif" alt="彩虹猫：满载" width="424"><br>满载</td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2"><img src="docs/images/rainbow-cat-singing.gif" alt="彩虹猫：播放音乐时唱歌" width="424"><br>播放音乐时唱歌</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/images/system-monitor.png" alt="系统监测面板" width="424"><br>系统监测</td>
+    <td align="center"><img src="docs/images/mixer.png" alt="混音器" width="424"><br>混音器</td>
+  </tr>
+</table>
 
 ---
 
@@ -18,6 +36,27 @@
 - 日常使用和测试主要在 macOS 27 上完成。系统要求沿用上游的 macOS 14+，其中混音器依赖的 Core Audio 进程 tap 需要 macOS 14.2 及以上。
 
 ## 新增功能
+
+### 彩虹猫
+
+没有播放媒体时，收起的刘海右侧有一只以钢琴键盘为身体的像素猫在奔跑，左侧对称地留出同样宽度的星空。
+
+- 速度：猫和星空随 CPU 占用率加速。满载时的倍数可以在设置中分别调整，默认猫为 3 倍、星空为 4 倍。
+- 跃迁：CPU 占用率超过阈值（默认 70%）时，星星被甩出视野，换成一道道光线；占用率降到阈值以下 10% 后恢复成星星。此效果可以关闭。
+- 星空：星星分远近两层，近处的更大、更亮、更快，其中几颗会闪烁。星星从外侧飘入，经过刘海后方，再从另一侧飘出。刘海重新收起时，星空直接以铺满的状态出现。
+- 播放媒体：猫代替专辑封面旁的音频波形，边跑边唱，彩色音符从头部飘出，音乐越响，音符越多。
+- 通知：有通知时，猫在通知图标旁边奔跑。
+- 测试：设置页提供横向铺满的预览和测试按钮，可以在预览和刘海上同时查看空闲、半载、跃迁、满载和唱歌五种状态。
+- 功耗：所有动画由 Core Animation 和粒子发射器播放，CPU 占用率每 2 秒读取一次。空闲时，App 的 CPU 占用率约为 0.5%。
+
+### 系统监测
+
+将指针悬停在猫上或点按猫，展开的刘海会显示系统监测面板，而不是平常的标签页。此功能可以在设置中关闭。
+
+- 实时负载：上半部分显示 CPU、内存和网络，每项包括大号数字和最近 60 秒的走势线。点击某一项，原位显示明细，面板高度不变。
+- 设备状态：下半部分显示存储空间、电池（包括健康度、循环次数和温度）和耗电最多的应用。
+- 历史数据：面板收起时，每 2 秒记录一次数据；面板打开后，改为每秒采样。因此，面板一打开就能看到最近一分钟的走势。
+- 读取方式：沙盒不允许读取其他进程的信息，因此耗电应用由 XPC 助手读取。网速只统计 Wi-Fi 和以太网接口，避免 VPN 流量被重复计算。
 
 ### 通知接管
 
@@ -49,10 +88,9 @@
 仪表盘采用 12 × 4 的网格布局，可以在设置中调整每张卡片的位置和尺寸，例如 4 × 4 或 6 × 2。旧版本保存的布局会自动转换为新的网格尺寸。
 
 - Claude 和 Codex 用量：读取 `scripts/` 下的采集脚本生成的快照，安装方法见 `scripts/AI_USAGE.md`。Claude 卡片可在 App 与 CLI 两个账户之间切换：App 端额度来自桌面端自己的记录，CLI 端额度由 Claude Code 的状态栏脚本在每轮对话后写入，没有会话时不轮询。标题下方显示数据的采样时间，过旧的数据会标出。
-- Claude Code：读取同一目录下的 `ai-token-stats.json`，显示累计 Token 数和最近几周的每日用量热力图。
-- 存储空间：用环形图和文字显示磁盘用量，图表与文字均匀排列。
-- 电池用量：按耗电量列出排名靠前的应用，统计范围为各进程启动以来的能耗。沙盒不允许读取其他进程的信息，因此由 XPC 助手读取，且仅在卡片显示时读取。
-- 系统：显示 CPU 占用、已使用内存（与活动监视器的口径相同）和网络上下行速度，只在卡片显示时每 2 秒采样一次。网速只统计 Wi-Fi 和以太网接口，避免 VPN 流量被重复计算。
+- Claude Code：读取同一目录下的 `ai-token-stats.json`，显示累计 Token 数和最近几周的每日用量热力图。转录文件被删除后，已统计的用量仍保留；缓存建立之前就被删除的 Claude 会话，按 Claude Code 自带的统计估算补回。
+
+原有的存储空间、电池用量和系统三张卡片已移入系统监测面板。
 
 各张卡片共用同一套卡片和仪表组件。卡片内容超出所在格子时会被裁剪，不会覆盖相邻的卡片。
 
@@ -143,6 +181,7 @@ codesign --force --sign - --preserve-metadata=entitlements,flags,runtime \
 | `boringNotch/components/Mixer/`、`managers/AudioCaptureManager.swift` | 混音器与音频采集 |
 | `boringNotch/models/BatteryAlertTracker.swift` | 电量提醒 |
 | `boringNotch/components/Notch/NotchShape.swift` | 电池线与充电扫光 |
+| `boringNotch/components/LiveActivities/RainbowCat/` | 彩虹猫、星空与系统监测 |
 | `boringNotch/CustomBuild.swift` | 关闭更新、自定义版本号 |
 
 ## 致谢与许可

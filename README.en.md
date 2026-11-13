@@ -3,9 +3,27 @@
 <p align="center"><a href="README.md">简体中文</a> · English</p>
 
 <p align="center">
-  A personal fork of <a href="https://github.com/TheBoredTeam/boring.notch">Boring Notch</a>, with notifications, a dashboard, and an app mixer in the notch.<br>
+  A personal fork of <a href="https://github.com/TheBoredTeam/boring.notch">Boring Notch</a>, with a rainbow cat, a system monitor, notifications, a dashboard, and an app mixer in the notch.<br>
   The original upstream documentation is kept in <a href="README.upstream.md">README.upstream.md</a>.
 </p>
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/images/rainbow-cat-idle.gif" alt="Rainbow cat: idle" width="424"><br>Idle</td>
+    <td align="center"><img src="docs/images/rainbow-cat-half.gif" alt="Rainbow cat: half load" width="424"><br>Half load</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/images/rainbow-cat-warp.gif" alt="Rainbow cat: warp" width="424"><br>Warp</td>
+    <td align="center"><img src="docs/images/rainbow-cat-full.gif" alt="Rainbow cat: full load" width="424"><br>Full load</td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2"><img src="docs/images/rainbow-cat-singing.gif" alt="Rainbow cat singing while music plays" width="424"><br>Singing while music plays</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/images/system-monitor.png" alt="System monitor panel" width="424"><br>System monitor</td>
+    <td align="center"><img src="docs/images/mixer.png" alt="Mixer" width="424"><br>Mixer</td>
+  </tr>
+</table>
 
 ---
 
@@ -18,6 +36,27 @@ This fork is based on [TheBoredTeam/boring.notch](https://github.com/TheBoredTea
 - Daily use and testing are mainly on macOS 27. The app keeps upstream's macOS 14+ requirement. The mixer's Core Audio process taps require macOS 14.2 or later.
 
 ## Added features
+
+### Rainbow cat
+
+While no media plays, a pixel cat with a piano keyboard for a body runs on the right of the closed notch. The left side shows a starry sky of the same width.
+
+- Speed: the cat and the stars speed up with CPU load. Their top speeds at full load are set separately in settings; the defaults are 3× for the cat and 4× for the stars.
+- Warp: past a CPU load threshold (70% by default), the stars rush out of sight and streaks of light take their place. The stars return once the load drops 10% below the threshold. Warp can be turned off.
+- Sky: stars come in two layers of depth, with near ones bigger, brighter and faster; a few of them twinkle. Stars drift in from the outer edge, pass behind the notch and come out on the other side. When the notch closes again, the sky appears already full.
+- Media: the cat replaces the waveform beside the album art and sings as it runs. Colored notes rise from its head, more of them the louder the music.
+- Notifications: the cat runs beside a notification's icon.
+- Testing: the settings page has a full-width preview and test buttons that show the idle, half load, warp, full load and singing states in the preview and on the notch at the same time.
+- Power: Core Animation and particle emitters play all the animation, and CPU load is read every 2 seconds. While idle, the app uses about 0.5% CPU.
+
+### System monitor
+
+Hovering over the cat or clicking it opens the system monitor instead of the usual tabs. You can turn this off in settings.
+
+- Live load: the top half shows CPU, memory and network, each as a large figure with a line of the last 60 seconds. Clicking one shows its breakdown in place, without changing the panel's height.
+- Device status: the bottom half shows storage, the battery (with health, cycle count and temperature) and the apps using the most energy.
+- History: while the panel is closed, a reading is kept every 2 seconds; while it is open, every second. The panel opens with the last minute already drawn.
+- Sources: the sandbox does not allow reading other processes, so the XPC helper reads the energy use. Network speed counts only Wi-Fi and Ethernet interfaces, so VPN traffic is not counted twice.
 
 ### Notification handling
 
@@ -49,10 +88,9 @@ App icon lookup also covers `/System/Applications/Utilities`. The app-name-to-Bu
 The dashboard uses a 12 × 4 grid. You can adjust each card's position and size in settings, such as 4×4 or 6×2. Layouts saved by older versions are converted once.
 
 - Claude and Codex usage: reads snapshots written by the collector scripts under `scripts/`; see `scripts/AI_USAGE.md` for installation. The Claude card switches between the App and CLI accounts: the App quota comes from the desktop app's own records, and the CLI quota is written by the Claude Code status line script after every turn, with no polling while no session runs. The sample time is shown under the title, and older data is labeled.
-- Claude Code: reads `ai-token-stats.json` from the same folder and shows total tokens and a heat map of daily use over the last weeks.
-- Storage: displays disk usage with a ring chart and text, spaced evenly within the card.
-- Battery usage: ranks apps by the energy their processes have used since they started. The sandbox does not allow reading other processes, so the XPC helper does it, and only while the card is shown.
-- System: shows CPU load, memory used (counted as Activity Monitor does), and network download and upload speed, sampled every 2 seconds only while the card is shown. Network speed counts only Wi-Fi and Ethernet interfaces, so VPN traffic is not counted twice.
+- Claude Code: reads `ai-token-stats.json` from the same folder and shows total tokens and a heat map of daily use over the last weeks. Usage stays counted after its transcript is deleted; Claude sessions deleted before the cache existed are estimated from Claude Code's own statistics.
+
+The former storage, battery usage and system cards have moved to the system monitor.
 
 All cards share the same card and gauge components. Content that does not fit a card's cells is clipped instead of covering the cards next to it.
 
@@ -143,6 +181,7 @@ codesign --force --sign - --preserve-metadata=entitlements,flags,runtime \
 | `boringNotch/components/Mixer/`, `managers/AudioCaptureManager.swift` | Mixer and audio capture |
 | `boringNotch/models/BatteryAlertTracker.swift` | Battery alerts |
 | `boringNotch/components/Notch/NotchShape.swift` | Battery line and charging pulse |
+| `boringNotch/components/LiveActivities/RainbowCat/` | Rainbow cat, starry sky and system monitor |
 | `boringNotch/CustomBuild.swift` | Disabling updates and setting the custom version |
 
 ## Credits and license
