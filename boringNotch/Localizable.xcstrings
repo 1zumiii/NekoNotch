@@ -7947,6 +7947,26 @@
         }
       }
     },
+    "Notifications in an unknown format" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通知格式无法识别"
+          }
+        }
+      }
+    },
+    "Apps with banners turned off cannot show in the notch" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭了横幅的 App，其通知无法显示在刘海中"
+          }
+        }
+      }
+    },
     "Notification Center restarted; restart the services" : {
       "localizations" : {
         "zh-Hans" : {

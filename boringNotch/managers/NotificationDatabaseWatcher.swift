@@ -34,14 +34,25 @@ final class NotificationDatabaseWatcher: @unchecked Sendable {
         var isRunning: Bool
         /// The last poll could not query the database.
         var isFailing: Bool
+        /// New records arrive but cannot be decoded: macOS has probably
+        /// changed how it stores them. Notifications of apps whose banners
+        /// are off then reach neither the screen nor the notch.
+        var isUnreadable: Bool
         var lastRecordAt: Date?
     }
 
     private var pollFailing = false
     private var lastRecordAt: Date?
+    /// Records in a row that could not be decoded. A few in a row mean the
+    /// format has changed, not that one record was odd.
+    private var undecodableStreak = 0
+    private static let undecodableLimit = 3
 
     var status: Status {
-        queue.sync { Status(isRunning: timer != nil, isFailing: pollFailing, lastRecordAt: lastRecordAt) }
+        queue.sync {
+            Status(isRunning: timer != nil, isFailing: pollFailing,
+                   isUnreadable: undecodableStreak >= Self.undecodableLimit, lastRecordAt: lastRecordAt)
+        }
     }
 
     private static var databasePath: String {
@@ -176,13 +187,23 @@ final class NotificationDatabaseWatcher: @unchecked Sendable {
             if let uuidBytes = sqlite3_column_blob(statement, 3), sqlite3_column_bytes(statement, 3) >= 4 {
                 uuidPrefix = (0..<4).map { String(format: "%02X", uuidBytes.load(fromByteOffset: $0, as: UInt8.self)) }.joined()
             }
-            publish(recordID: recordID, appID: appID, data: data, uuidPrefix: uuidPrefix)
+            if publish(recordID: recordID, appID: appID, data: data, uuidPrefix: uuidPrefix) {
+                undecodableStreak = 0
+            } else {
+                undecodableStreak += 1
+                if undecodableStreak == Self.undecodableLimit {
+                    NSLog("[NekoNotch] notification records can no longer be decoded; the database format may have changed")
+                }
+            }
         }
     }
 
-    private func publish(recordID: Int64, appID: Int64, data: Data, uuidPrefix: String?) {
+    /// False when the record cannot be decoded at all. A record that decodes
+    /// but has nothing to show (a badge, a silent update) still counts as read.
+    @discardableResult
+    private func publish(recordID: Int64, appID: Int64, data: Data, uuidPrefix: String?) -> Bool {
         guard let plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any],
-              let request = plist["req"] as? [String: Any] else { return }
+              let request = plist["req"] as? [String: Any] else { return false }
 
         func text(_ key: String) -> String? {
             guard let value = (request[key] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -190,7 +211,7 @@ final class NotificationDatabaseWatcher: @unchecked Sendable {
             return value
         }
         let title = text("titl"), subtitle = text("subt"), body = text("body")
-        guard title != nil || body != nil else { return }
+        guard title != nil || body != nil else { return true }
 
         let identifier = appIdentifier(for: appID)
         let app = identifier.map(resolveApp(identifier:))
@@ -211,6 +232,7 @@ final class NotificationDatabaseWatcher: @unchecked Sendable {
         DispatchQueue.main.async {
             NotificationCenter.default.post(name: .systemNotificationDidAppear, object: nil, userInfo: payload)
         }
+        return true
     }
 
     private func appIdentifier(for appID: Int64) -> String? {
