@@ -165,7 +165,7 @@ brew install --cask TheBoredTeam/boring-notch/boring-notch
 
 ## 🤝 Contributing
 
-We’re all about good vibes and awesome contributions! Read [CONTRIBUTING.md](CONTRIBUTING.md) to learn how you can join the fun!
+We’re all about good vibes and awesome contributions! Read [CONTRIBUTING.md](https://github.com/TheBoredTeam/boring.notch/blob/main/CONTRIBUTING.md) to learn how you can join the fun!
 
 ## Join our Discord Server
 

@@ -158,7 +158,7 @@ The app and its XPC helper are both signed with that certificate, macOS identifi
 
 ## Contributing
 
-Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for development notes and [CHANGELOG.md](CHANGELOG.md) for the changes in each version.
+Issues and pull requests are welcome. See [CHANGELOG.md](CHANGELOG.md) for the changes in each version.
 
 ## Credits and license
 
