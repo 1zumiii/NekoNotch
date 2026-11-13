@@ -159,15 +159,31 @@ final class AudioCaptureManager: ObservableObject {
 
     // MARK: - State observation
 
+    /// The same flag BoringViewCoordinator keeps; true until setup ends.
+    private static var isFirstLaunch: Bool {
+        UserDefaults.standard.object(forKey: "firstLaunch") as? Bool ?? true
+    }
+
     @MainActor
     private func observeState() {
         // MusicManager is @MainActor — wire the publishers on the main
         // actor; delivery then continues via receive(on:) as before.
         Task { @MainActor in
             let music = MusicManager.shared
+            // Not during first launch: capturing would bring up the system's
+            // audio recording prompt on its own, before setup has asked for
+            // it. Setup ending clears the flag and capture is weighed again.
+            let settingUpPublisher = NotificationCenter.default
+                .publisher(for: UserDefaults.didChangeNotification)
+                .map { _ in Self.isFirstLaunch }
+                .prepend(Self.isFirstLaunch)
+                .removeDuplicates()
             let enabledPublisher = Defaults.publisher(.realtimeAudioWaveform)
                 .map(\.newValue)
                 .prepend(Defaults[.realtimeAudioWaveform])
+                .removeDuplicates()
+                .combineLatest(settingUpPublisher)
+                .map { enabled, settingUp in enabled && !settingUp }
                 .removeDuplicates()
 
             Publishers.CombineLatest4(
@@ -460,7 +476,7 @@ final class AudioCaptureManager: ObservableObject {
 
         let excludedProcessIDs = translatePIDToAudioObject(pid: getpid()).map { [$0] } ?? []
         let tapDescription = CATapDescription(monoGlobalTapButExcludeProcesses: excludedProcessIDs)
-        tapDescription.name = "Boring Notch Audio Permission Probe"
+        tapDescription.name = "NekoNotch Audio Permission Probe"
         tapDescription.muteBehavior = .unmuted
         tapDescription.isPrivate = true
 
@@ -484,7 +500,7 @@ final class AudioCaptureManager: ObservableObject {
 
         let aggregateUID = "com.boringnotch.permissionprobe.\(UUID().uuidString)"
         let aggregateDescription: [String: Any] = [
-            kAudioAggregateDeviceNameKey: "Boring Notch Audio Permission Probe",
+            kAudioAggregateDeviceNameKey: "NekoNotch Audio Permission Probe",
             kAudioAggregateDeviceUIDKey: aggregateUID,
             kAudioAggregateDeviceMainSubDeviceKey: "",
             kAudioAggregateDeviceIsPrivateKey: 1,

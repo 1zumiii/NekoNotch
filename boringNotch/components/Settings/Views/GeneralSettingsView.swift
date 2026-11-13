@@ -68,6 +68,16 @@ struct GeneralSettings: View {
             } header: {
                 Text("Displays")
             }
+
+            Section {
+                Button("Run setup again") {
+                    NotificationCenter.default.post(name: .showOnboarding, object: nil)
+                }
+            } footer: {
+                Text("Walks through the welcome page and each permission again.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
         .toolbar {
             Button("Quit app") {
@@ -83,7 +93,7 @@ struct GeneralSettings: View {
                 ApplicationRelauncher.restart()
             }
         } message: {
-            Text("Changing the app language requires restarting Boring Notch.")
+            Text("Changing the app language requires restarting NekoNotch.")
         }
     }
 }

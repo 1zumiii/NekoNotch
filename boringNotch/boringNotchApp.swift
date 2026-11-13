@@ -78,7 +78,7 @@ struct DynamicNotchApp: App {
                     }
                     return
                 }
-                NSLog("Failed to migrate legacy Boring Notch app bundle at %@", sourceURL.path)
+                NSLog("Failed to migrate legacy NekoNotch app bundle at %@", sourceURL.path)
             }
             // Custom build: never start Sparkle, so nothing checks for,
             // downloads or installs an official release over this app.
@@ -97,7 +97,7 @@ struct DynamicNotchApp: App {
             }
             .keyboardShortcut(KeyEquivalent(","), modifiers: .command)
             CheckForUpdatesView(updater: updaterController.updater)
-            Button("Restart Boring Notch") {
+            Button("Restart NekoNotch") {
                 ApplicationRelauncher.restart()
             }
             Button("Quit", role: .destructive) {
@@ -216,6 +216,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             name: NSApplication.didChangeScreenParametersNotification,
             object: nil
         )
+
+        observers.append(NotificationCenter.default.addObserver(
+            forName: Notification.Name.showOnboarding, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.showOnboardingWindow(fresh: true) }
+        })
 
         observers.append(NotificationCenter.default.addObserver(
             forName: Notification.Name.selectedScreenChanged, object: nil, queue: nil
@@ -436,19 +442,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApplication.shared.terminate(self)
     }
 
-    private func showOnboardingWindow(step: OnboardingStep = .welcome) {
+    /// `fresh` starts over from the welcome page, for a walkthrough asked for
+    /// again from the settings.
+    private func showOnboardingWindow(step: OnboardingStep = .welcome, fresh: Bool = false) {
+        if fresh {
+            onboardingWindowController?.window?.close()
+            onboardingWindowController = nil
+        }
         if onboardingWindowController == nil {
             let window = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 400, height: 600),
-                styleMask: [.titled, .fullSizeContentView],
+                contentRect: NSRect(origin: .zero, size: OnboardingView.size),
+                styleMask: [.titled, .closable, .fullSizeContentView],
                 backing: .buffered,
                 defer: false
             )
             window.center()
             window.title = String(localized: "Onboarding")
             window.titlebarAppearsTransparent = true
+            // Dark always, in the rainbow cat's deep-space colours.
+            window.appearance = NSAppearance(named: .darkAqua)
             window.titleVisibility = .hidden
-            window.level = .floating
+            // Normal level: the system's permission prompts must show above it.
+            window.level = .normal
             window.contentView = NSHostingView(
                 rootView: OnboardingView(
                     step: step,
@@ -466,13 +481,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 ))
             window.isRestorable = false
             window.identifier = NSUserInterfaceItemIdentifier("OnboardingWindow")
+            // Closing the window counts as "set up later": the choices made
+            // so far stay, and setup isn't offered again on the next launch.
+            observers.append(NotificationCenter.default.addObserver(
+                forName: NSWindow.willCloseNotification, object: window, queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor in
+                    OnboardingView.endFirstLaunch()
+                    self?.onboardingWindowController = nil
+                }
+            })
 
             onboardingWindowController = NSWindowController(window: window)
         }
 
 //        NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
-        onboardingWindowController?.window?.level = .floating
+        onboardingWindowController?.window?.level = .normal
         onboardingWindowController?.window?.makeKeyAndOrderFront(nil)
         onboardingWindowController?.window?.orderFrontRegardless()
     }

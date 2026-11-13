@@ -64,7 +64,7 @@ final class BoringViewCoordinator: ObservableObject {
         }
     }
 
-    @AppStorage("openLastTabByDefault") var openLastTabByDefault: Bool = false {
+    @AppStorage("openLastTabByDefault") var openLastTabByDefault: Bool = true {
         didSet {
             if openLastTabByDefault {
                 alwaysShowTabs = true
@@ -208,6 +208,7 @@ final class BoringViewCoordinator: ObservableObject {
 
         // Before anything can show the dashboard.
         DashboardLayout.migrateIfNeeded()
+        AppLanguage.migrateUnsupportedChoice()
 
         Task { @MainActor in
             helloAnimationRunning = firstLaunch
