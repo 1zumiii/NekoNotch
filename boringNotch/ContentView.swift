@@ -44,6 +44,11 @@ struct ContentView: View {
     /// while the notch closes so the expiry doesn't flash the home page.
     @State private var autoOpenNotification: SystemNotification?
     @State private var anyDropDebounceTask: Task<Void, Never>?
+    /// How wide the closed notch's row of activities is drawn. The scrolling
+    /// line of a full-screen notification under it takes the same width, so
+    /// its text comes in at the row's edge however wide the wings are (the
+    /// cat's wings are much wider than an icon and a dot).
+    @State private var closedRowWidth: CGFloat = 0
 
     @State private var gestureProgress: CGFloat = .zero
     @State private var horizontalMediaGestureTriggered = false
@@ -700,12 +705,22 @@ struct ContentView: View {
                               .fixedSize()
                       }
                       .zIndex(1)
+                      .background {
+                          GeometryReader { geometry in
+                              Color.clear.preference(key: ClosedRowWidthKey.self, value: geometry.size.width)
+                          }
+                      }
+                      .onPreferenceChange(ClosedRowWidthKey.self) { closedRowWidth = $0 }
             if vm.notchState == .closed, let ticker = notificationManager.ticker {
-                // As wide as the icon-only row above it, so the notch grows
-                // down by this one line and not sideways.
+                // As wide as the row above it, so the notch grows down by
+                // this one line and not sideways, and the text comes in at
+                // the row's edge. Before that row is measured, as wide as an
+                // icon-only row.
                 NotificationTickerRow(
                     notification: ticker,
-                    width: vm.closedNotchSize.width + 2 * max(0, vm.effectiveClosedNotchHeight - 12)
+                    width: closedRowWidth > 0
+                        ? closedRowWidth
+                        : vm.closedNotchSize.width + 2 * max(0, vm.effectiveClosedNotchHeight - 12)
                 ) {
                     notificationManager.finishTicker(ticker.id)
                 }
@@ -1341,6 +1356,14 @@ extension ContentView {
             }
             return coordinator.currentView == .home && !musicManager.isPlayerIdle && isHoveringMusicArea
         }
+    }
+}
+
+/// The width the closed notch's row of activities is drawn at.
+private struct ClosedRowWidthKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }
 

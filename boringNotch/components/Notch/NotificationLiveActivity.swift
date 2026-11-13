@@ -257,6 +257,13 @@ struct NotificationTickerRow: View {
     private static let fontSize: CGFloat = 11
     private static let pointsPerSecond: CGFloat = 45
     private static let hold: Double = 1.2
+    /// Room left after the last character once the text has run to its
+    /// end, so it doesn't stop flush against the edge of the notch.
+    private static let endGap: CGFloat = 12
+    /// Where long text starts, in from the row's left edge: the row is as
+    /// wide as the notch, whose rounded corner would cut the first character.
+    /// It still runs out of sight at the left and comes in at the right edge.
+    private static let leadInset: CGFloat = 10
 
     static func text(for notification: SystemNotification) -> String {
         [notification.title, notification.subtitle, notification.body]
@@ -274,24 +281,28 @@ struct NotificationTickerRow: View {
     }
 
     var body: some View {
-        let overflow = max(0, textWidth - width)
+        let scrolls = textWidth > width - Self.leadInset - Self.endGap
+        // From leadInset to where the last character stops endGap short of
+        // the right edge.
+        let start = Self.leadInset
+        let end = width - textWidth - Self.endGap
         Text(text)
             .font(.system(size: Self.fontSize, weight: .medium))
             .foregroundStyle(.white.opacity(0.9))
             .lineLimit(1)
             .fixedSize(horizontal: true, vertical: false)
             .offset(x: offset)
-            .frame(width: width, alignment: overflow > 0 ? .leading : .center)
+            .frame(width: width, alignment: scrolls ? .leading : .center)
             .clipped()
             .padding(.bottom, 5)
             .allowsHitTesting(false)
             .task(id: notification.id) {
-                offset = 0
-                if overflow > 0 {
-                    let run = Double(overflow / Self.pointsPerSecond)
+                offset = scrolls ? start : 0
+                if scrolls {
+                    let run = Double((start - end) / Self.pointsPerSecond)
                     try? await Task.sleep(for: .seconds(Self.hold))
                     guard !Task.isCancelled else { return }
-                    withAnimation(.linear(duration: run)) { offset = -overflow }
+                    withAnimation(.linear(duration: run)) { offset = end }
                     try? await Task.sleep(for: .seconds(run + Self.hold))
                 } else {
                     try? await Task.sleep(for: .seconds(max(2, Defaults[.notificationIconOnlyDuration])))
