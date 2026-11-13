@@ -1,4 +1,4 @@
-<h1 align="center">Boring Notch · Izumi Edition</h1>
+<h1 align="center">NekoNotch</h1>
 
 <p align="center"><a href="README.md">简体中文</a> · English</p>
 
@@ -27,12 +27,12 @@
 
 ---
 
-## About this fork
+## About this project
 
 The project began with [TheBoredTeam/boring.notch](https://github.com/TheBoredTeam/boring.notch) `v2.8-rc.2`. This page covers subsequent additions and improvements. Documentation for inherited features is preserved in [README.upstream.md](README.upstream.md).
 
-- The default branch is `custom-main`. Updates are merged from upstream; this fork does not push changes or submit PRs upstream.
-- In-app updates (Sparkle) are disabled to prevent official builds from overwriting the custom changes. The About page shows `Izumi Edition ✨ 1.1.0`. To pick up upstream updates, merge them into `custom-main` and rebuild.
+- The default branch is `custom-main`. The project is independent of the upstream repository and does not push changes or submit PRs upstream; upstream fixes are cherry-picked when needed.
+- In-app updates (Sparkle) are disabled to prevent official builds from overwriting the custom changes. The About page shows `Izumi Edition ✨ 1.1.0`. Rebuild after adopting upstream changes.
 - Daily use and testing are mainly on macOS 27. The app keeps upstream's macOS 14+ requirement. The mixer's Core Audio process taps require macOS 14.2 or later.
 
 ## Added features
@@ -151,8 +151,8 @@ Audio levels are quantized to pixel steps before being published. FFT computatio
 Requires macOS 15.6+ and Xcode 26+.
 
 ```bash
-git clone https://github.com/1zumiii/BoringNotch-Custom.git
-cd BoringNotch-Custom
+git clone https://github.com/1zumiii/NekoNotch.git
+cd NekoNotch
 git checkout custom-main
 open boringNotch.xcodeproj
 ```
@@ -199,4 +199,4 @@ codesign --force --sign - --preserve-metadata=entitlements,flags,runtime \
 
 Thanks to [Boring Notch](https://github.com/TheBoredTeam/boring.notch) and its contributors, and to the authors of dependencies including [MediaRemoteAdapter](https://github.com/ungive/mediaremote-adapter) and [NotchDrop](https://github.com/Lakr233/NotchDrop). The icon is by [@maxtron95](https://github.com/maxtron95).
 
-This fork keeps the upstream license. See [LICENSE](LICENSE) and [THIRD_PARTY_LICENSES](THIRD_PARTY_LICENSES).
+This project keeps the upstream license (GPL-3.0). See [LICENSE](LICENSE) and [THIRD_PARTY_LICENSES](THIRD_PARTY_LICENSES).
