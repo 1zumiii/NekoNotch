@@ -50,8 +50,44 @@ jobs:
       - name: Test the AI usage collectors
         run: python3 -m unittest discover -s scripts -p "test_*.py" -v
 
-      # Signed ad hoc: the project has no Developer ID, so the app is not
-      # notarized and the release notes say how to open it.
+      # Releases are signed with a self-signed certificate kept in the
+      # repository's secrets. macOS ties the permissions it grants
+      # (Accessibility, Full Disk Access) to the bundle ID and this
+      # certificate, so they survive an update; an ad hoc signature would tie
+      # them to the code hash, which changes with every build. There is no
+      # Developer ID, so the app is still not notarized and the release notes
+      # say how to open it.
+      - name: Import the signing certificate
+        env:
+          P12_BASE64: ${{ secrets.NEKONOTCH_SIGNING_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.NEKONOTCH_SIGNING_P12_PASSWORD }}
+        run: |
+          test -n "$P12_BASE64"
+          test -n "$P12_PASSWORD"
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          keychain_password="$(openssl rand -hex 24)"
+          printf '%s' "$P12_BASE64" | base64 --decode > "$RUNNER_TEMP/signing.p12"
+          security create-keychain -p "$keychain_password" "$keychain"
+          security set-keychain-settings -lut 3600 "$keychain"
+          security unlock-keychain -p "$keychain_password" "$keychain"
+          security import "$RUNNER_TEMP/signing.p12" -k "$keychain" -P "$P12_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$keychain_password" "$keychain" > /dev/null
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
+          rm "$RUNNER_TEMP/signing.p12"
+          # The certificate is self-signed, so it is untrusted and absent
+          # from the valid identities; sign by its SHA-1 instead.
+          identity="$(security find-certificate -c "NekoNotch Release Signing" -Z "$keychain" | awk '/SHA-1/ { print $3 }')"
+          test -n "$identity"
+          {
+            echo "CODE_SIGN_IDENTITY = $identity"
+            echo "CODE_SIGN_IDENTITY[sdk=macosx*] = $identity"
+            echo "CODE_SIGN_STYLE = Manual"
+            echo "DEVELOPMENT_TEAM ="
+            echo "OTHER_CODE_SIGN_FLAGS = --keychain $keychain"
+          } > "$RUNNER_TEMP/ReleaseSigning.xcconfig"
+          echo "SIGNING_KEYCHAIN=$keychain" >> "$GITHUB_ENV"
+          echo "SIGNING_IDENTITY=$identity" >> "$GITHUB_ENV"
+
       - name: Build
         run: |
           xcodebuild build \
@@ -60,9 +96,29 @@ jobs:
             -configuration Release \
             -destination "generic/platform=macOS" \
             -derivedDataPath build \
+            -xcconfig "$RUNNER_TEMP/ReleaseSigning.xcconfig" \
             -skipMacroValidation \
             -skipPackagePluginValidation \
             ONLY_ACTIVE_ARCH=NO
+
+      # Stops a release signed by anything but the release certificate.
+      - name: Verify the signature
+        run: |
+          app=build/Build/Products/Release/NekoNotch.app
+          codesign --verify --deep --strict "$app"
+          fingerprint="$(printf '%s' "$SIGNING_IDENTITY" | tr '[:upper:]' '[:lower:]')"
+          for bundle in "$app" "$app/Contents/XPCServices/BoringNotchXPCHelper.xpc"; do
+            requirement="$(codesign -d -r - "$bundle" 2>&1 | grep designated)"
+            echo "$requirement"
+            echo "$requirement" | grep -q "H\"$fingerprint\""
+          done
+
+      - name: Remove the signing keychain
+        if: always()
+        run: |
+          if [ -n "${SIGNING_KEYCHAIN:-}" ]; then
+            security delete-keychain "$SIGNING_KEYCHAIN" || true
+          fi
 
       - name: Prepare artifacts
         id: artifacts
