@@ -36110,6 +36110,16 @@
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "更新时间" } }
       }
     },
+    "Includes %@ estimated from Claude Code's statistics for sessions whose transcripts were deleted." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其中 %@ 是已删除会话的用量，按 Claude Code 自带的统计估算。"
+          }
+        }
+      }
+    },
     "Local transcripts only; includes cache tokens. Claude chats without token records are excluded. Days use UTC." : {
       "localizations" : {
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "仅统计本地会话记录，包含缓存 Token。不含未提供 Token 明细的 Claude 聊天。日期按 UTC 划分。" } }

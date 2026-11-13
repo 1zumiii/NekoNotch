@@ -3,11 +3,14 @@
 
 Run by ai-usage-sync.py once a minute. The cache contains only usage
 metadata, never prompts or responses, and keeps the records of transcripts that
-have since been deleted. Calendar days are UTC.
+have since been deleted. Calendar days are UTC. Usage of Claude Code sessions
+deleted before the cache existed is estimated from Claude Code's own
+~/.claude/stats-cache.json, see backfill().
 """
 import hashlib
 import json
 import math
+from collections import Counter
 import os
 from pathlib import Path
 import shutil
@@ -30,7 +33,10 @@ def day_key(stamp):
         return None
 
 
-def parse_lines(lines, kind):
+def parse_lines(lines, kind, raw=None):
+    """Deduplicated usage records. For Claude, `raw` (a Counter) also receives
+    every line's tokens without deduplication, by "day|model": the way Claude
+    Code's stats-cache.json counts them, so the two can be compared."""
     records = {}
     previous = None
     for line in lines:
@@ -71,6 +77,8 @@ def parse_lines(lines, kind):
                 continue
             source = "claude"
             tokens = sum(number(usage.get(k)) for k in TOKEN_KEYS)
+            if raw is not None and tokens:
+                raw[f"{day}|{message.get('model')}"] += tokens
             identity = str(event.get("requestId", "")) + ":" + message["id"]
         key = hashlib.sha256(identity.encode()).hexdigest()
         old = records.get(key)
@@ -81,15 +89,51 @@ def parse_lines(lines, kind):
 
 
 def read_records(path, kind):
+    """Returns (records, raw); raw is empty for Codex."""
+    raw = Counter()
     if path.suffix == ".zst":
         binary = shutil.which("zstd") or "/opt/homebrew/bin/zstd"
         with subprocess.Popen([binary, "-dc", str(path)], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL) as process:
-            records = parse_lines(process.stdout, kind)
+            records = parse_lines(process.stdout, kind, raw)
             if process.wait() != 0:
                 raise OSError("Unable to decompress transcript")
-            return records
+            return records, dict(raw)
     with path.open("rb") as stream:
-        return parse_lines(stream, kind)
+        return parse_lines(stream, kind, raw), dict(raw)
+
+
+def backfill(history, files, unique, today):
+    """Estimated Claude tokens per UTC day for sessions whose transcripts are
+    gone and were never cached.
+
+    stats-cache.json keeps Claude Code's daily tokens per model, by UTC day,
+    summing every transcript line without deduplicating streamed blocks.
+    Wherever it holds more than the transcripts we know of (counted the same
+    way), the difference is usage of deleted sessions; it is scaled by our
+    overall deduplicated/raw ratio to match the rest of the numbers."""
+    rows = history.get("dailyModelTokens") if isinstance(history, dict) else None
+    if not isinstance(rows, list):
+        return {}
+    known = Counter()
+    for entry in files.values():
+        known.update(entry.get("raw") or {})
+    deduplicated = sum(v[2] for v in unique.values() if v[0] == "claude")
+    counted = sum(known.values())
+    if not counted:
+        return {}
+    ratio = min(1, deduplicated / counted)
+    estimates = {}
+    for row in rows:
+        if not isinstance(row, dict) or not isinstance(row.get("date"), str) or row["date"] > today:
+            continue
+        models = row.get("tokensByModel")
+        if not isinstance(models, dict):
+            continue
+        day = row["date"]
+        missing = sum(max(0, number(t) - known.get(f"{day}|{model}", 0)) for model, t in models.items())
+        if missing:
+            estimates[day] = round(missing * ratio)
+    return estimates
 
 
 def atomic_json(path, value):
@@ -149,7 +193,14 @@ def collect(home, output, now=None):
                     signatures[str(path)] = (None, kind)
     # Unchanged transcripts on the same UTC day: the previous result stands,
     # and the cache is not even parsed.
-    digest = hashlib.sha256(json.dumps(sorted((p, s) for p, (s, _) in signatures.items())).encode()).hexdigest()
+    history_path = home / ".claude/stats-cache.json"
+    try:
+        stat = history_path.stat()
+        history_signature = [stat.st_size, stat.st_mtime_ns]
+    except OSError:
+        history_signature = None
+    digest = hashlib.sha256(json.dumps([sorted((p, s) for p, (s, _) in signatures.items()),
+                                        history_signature]).encode()).hexdigest()
     try:
         previous = json.loads(output.read_text())
         if previous.get("sourceDigest") == digest and previous.get("updated", "")[:10] == now.date().isoformat():
@@ -167,8 +218,11 @@ def collect(home, output, now=None):
             if signature is None:
                 raise OSError("unreadable")
             old = cache.get(name, {})
-            records = old["records"] if old.get("signature") == signature else read_records(Path(name), kind)
-            files[name] = {"signature": signature, "records": records}
+            if old.get("signature") == signature and "raw" in old:
+                files[name] = old
+            else:
+                records, raw = read_records(Path(name), kind)
+                files[name] = {"signature": signature, "records": records, "raw": raw}
         except (OSError, ValueError):
             errors += 1
             if name in cache:
@@ -192,10 +246,18 @@ def collect(home, output, now=None):
         totals[source] += tokens
         daily = days.setdefault(day, dict.fromkeys(SOURCES, 0))
         daily[source] += tokens
+    try:
+        history = json.loads(history_path.read_text())
+    except (OSError, ValueError):
+        history = None
+    estimates = backfill(history, files, unique, now.date().isoformat())
+    for day, tokens in estimates.items():
+        totals["claude"] += tokens
+        days.setdefault(day, dict.fromkeys(SOURCES, 0))["claude"] += tokens
     cutoff = (now.date() - timedelta(days=6)).isoformat()
     snapshot = {"total": sum(totals.values()), "last7": sum(sum(v.values()) for d, v in days.items() if d >= cutoff),
-                "days": days, "totals": totals, "updated": now.isoformat(), "readErrors": errors,
-                "sourceDigest": digest}
+                "days": days, "totals": totals, "estimated": sum(estimates.values()),
+                "updated": now.isoformat(), "readErrors": errors, "sourceDigest": digest}
     if files != cache:
         atomic_json(cache_path, files)
     atomic_json(output, snapshot)

@@ -113,6 +113,36 @@ class StatsTests(unittest.TestCase):
             self.assertEqual(result["readErrors"], 0)
             self.assertEqual(stats.collect(home, output, now)["total"], 135)
 
+    def test_raw_usage_counts_every_streamed_line_by_day_and_model(self):
+        events = [claude(5), claude(10)]
+        for event in events:
+            event["message"]["model"] = "m"
+        raw = stats.Counter()
+        stats.parse_lines(lines(events), "claude", raw)
+        self.assertEqual(raw, {"2026-11-12|m": 65 + 70})
+
+    def test_deleted_sessions_are_estimated_from_claude_code_stats(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            home = Path(temporary)
+            transcript = home / ".claude/projects/kept.jsonl"
+            transcript.parent.mkdir(parents=True)
+            events = [claude(5), claude(10)]
+            for event in events:
+                event["message"]["model"] = "m"
+            transcript.write_bytes(b"".join(lines(events)))  # raw 135, deduplicated 70
+            (home / ".claude/stats-cache.json").write_text(json.dumps({"dailyModelTokens": [
+                {"date": "2026-11-11", "tokensByModel": {"m": 270}},            # all of it deleted
+                {"date": "2026-11-12", "tokensByModel": {"m": 135, "n": 27}},   # kept, plus a deleted one
+                {"date": "2026-11-13", "tokensByModel": {"m": 999}}]}))         # in the future
+            output = home / "output/stats.json"
+            result = stats.collect(home, output, datetime(2026, 11, 12, tzinfo=timezone.utc))
+            # Missing raw tokens scaled by 70 / 135.
+            self.assertEqual(result["days"]["2026-11-11"]["claude"], 140)
+            self.assertEqual(result["days"]["2026-11-12"]["claude"], 70 + 14)
+            self.assertNotIn("2026-11-13", result["days"])
+            self.assertEqual(result["estimated"], 154)
+            self.assertEqual(result["total"], 224)
+
 
 if __name__ == "__main__":
     unittest.main()
