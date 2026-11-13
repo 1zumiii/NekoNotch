@@ -32,6 +32,27 @@ private struct ServiceRow: Identifiable {
     let state: ServiceState
     let status: LocalizedStringKey
     var detail: String?
+    /// The permission a failed row is missing, offered as a link to grant it.
+    var fix: ServicePermission?
+}
+
+/// A permission a service row can send the user off to grant.
+private enum ServicePermission {
+    case accessibility, fullDiskAccess
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .accessibility: "Open Accessibility Settings"
+        case .fullDiskAccess: "Open Full Disk Access Settings"
+        }
+    }
+
+    var settingsURL: URL? {
+        switch self {
+        case .accessibility: URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
+        case .fullDiskAccess: URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles")
+        }
+    }
 }
 
 struct NotificationSettingsView: View {
@@ -95,7 +116,7 @@ struct NotificationSettingsView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Full Disk Access Required")
                                 .font(.headline)
-                            Text("Grant Full Disk Access to Boring Notch, then reopen the app.")
+                            Text("Grant Full Disk Access to NekoNotch, then reopen the app.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -209,7 +230,8 @@ struct NotificationSettingsView: View {
             let attached = status["bannerPID"]?.intValue ?? 0
             let current = status["notificationCenterPID"]?.intValue ?? 0
             if !trusted {
-                rows.append(ServiceRow(id: "banner", title: "Banner reader", state: .failed, status: "No Accessibility access"))
+                rows.append(ServiceRow(id: "banner", title: "Banner reader", state: .failed, status: "No Accessibility access",
+                                       fix: .accessibility))
             } else if !running {
                 rows.append(ServiceRow(id: "banner", title: "Banner reader", state: .failed, status: "Stopped"))
             } else if current != 0, attached != current {
@@ -226,7 +248,8 @@ struct NotificationSettingsView: View {
         if !notificationLiveActivity || !fromDatabase {
             rows.append(ServiceRow(id: "database", title: "Database reader", state: .off, status: "Off"))
         } else if !hasDatabaseAccess {
-            rows.append(ServiceRow(id: "database", title: "Database reader", state: .failed, status: "No Full Disk Access"))
+            rows.append(ServiceRow(id: "database", title: "Database reader", state: .failed, status: "No Full Disk Access",
+                                   fix: .fullDiskAccess))
         } else if !database.isRunning {
             rows.append(ServiceRow(id: "database", title: "Database reader", state: .failed, status: "Stopped"))
         } else if database.isFailing {
@@ -270,6 +293,11 @@ struct NotificationSettingsView: View {
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
                         }
+                        if let fix = row.fix {
+                            Button(fix.title) { grant(fix) }
+                                .buttonStyle(.link)
+                                .font(.caption)
+                        }
                     }
                     .multilineTextAlignment(.trailing)
                 }
@@ -286,6 +314,18 @@ struct NotificationSettingsView: View {
             Text("If notifications stop showing up in the notch, check which line is red or orange here.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+        }
+    }
+
+    /// Accessibility can be asked for, which also puts the app in the list;
+    /// Full Disk Access can only be added by hand. Either way the matching
+    /// page of System Settings opens.
+    private func grant(_ permission: ServicePermission) {
+        Task {
+            if permission == .accessibility {
+                isAccessibilityAuthorized = await MediaKeyInterceptor.shared.ensureAccessibilityAuthorization(promptIfNeeded: true)
+            }
+            if let url = permission.settingsURL { NSWorkspace.shared.open(url) }
         }
     }
 
@@ -367,7 +407,7 @@ struct NotificationSettingsView: View {
                 }
                 .disabled(!notificationLiveActivity)
                 if testDenied {
-                    Text("Notifications from Boring Notch are turned off in System Settings.")
+                    Text("Notifications from NekoNotch are turned off in System Settings.")
                         .font(.caption)
                         .foregroundStyle(.orange)
                 }

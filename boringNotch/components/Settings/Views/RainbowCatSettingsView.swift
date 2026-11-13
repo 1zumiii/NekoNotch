@@ -124,7 +124,9 @@ struct RainbowCatSettingsView: View {
                 RainbowStars()
                     .frame(width: width, height: cat.height)
                     .clipped()
-                RainbowCat(isPlaying: test == .singing, showsSky: false)
+                // Not active: "Singing" is a preview, so the notes come at a
+                // steady pace rather than following what is really playing.
+                RainbowCat(isPlaying: test == .singing, isActive: false, showsSky: false)
                     .frame(width: cat.width, height: cat.height)
             }
             .scaleEffect(scale)
