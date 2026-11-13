@@ -7,6 +7,7 @@
 //  the dashboard used to have. Everything is read only while it is open.
 //
 import Darwin
+import Defaults
 import IOKit
 import SwiftUI
 
@@ -226,6 +227,7 @@ struct TimedValue {
 
 struct SystemMonitorHeader: View {
     @EnvironmentObject var vm: BoringViewModel
+    @Default(.settingsIconInNotch) private var settingsIconInNotch
 
     var body: some View {
         GeometryReader { geometry in
@@ -242,13 +244,34 @@ struct SystemMonitorHeader: View {
                 .padding(.leading, 10)
                 .frame(width: side, height: geometry.size.height, alignment: .leading)
                 Rectangle().fill(vm.hasNotch ? .black : .clear).frame(width: centre)
-                HStack(spacing: 5) {
-                    Image(systemName: "clock")
-                    Text(Self.uptime())
+                HStack(spacing: 4) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "clock")
+                        Text(Self.uptime())
+                    }
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    // The same entry to the settings as on the home view's header.
+                    if settingsIconInNotch {
+                        Button {
+                            DispatchQueue.main.async {
+                                SettingsWindowController.shared.showWindow()
+                            }
+                        } label: {
+                            Capsule()
+                                .fill(.black)
+                                .frame(width: 30, height: 30)
+                                .overlay {
+                                    Image(systemName: "gear")
+                                        .foregroundColor(.white)
+                                        .padding()
+                                        .imageScale(.medium)
+                                }
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
                 }
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.secondary)
-                .padding(.trailing, 10)
+                .padding(.trailing, settingsIconInNotch ? 4 : 10)
                 .frame(width: side, height: geometry.size.height, alignment: .trailing)
             }
         }
