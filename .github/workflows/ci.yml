@@ -28,7 +28,7 @@ concurrency:
 
 jobs:
   verify:
-    name: Test and build
+    name: Build and test
     runs-on: macos-26
     timeout-minutes: 45
 
@@ -47,23 +47,22 @@ jobs:
       - name: Test the AI usage collectors
         run: python3 -m unittest discover -s scripts -p "test_*.py" -v
 
-      # Signed ad hoc: the runner has no certificate, and this build only
-      # proves the project compiles.
-      - name: Build
-        run: |
-          xcodebuild build \
-            -project boringNotch.xcodeproj \
-            -scheme boringNotch \
-            -configuration Release \
-            -destination "generic/platform=macOS" \
-            -derivedDataPath build \
-            -skipMacroValidation \
-            -skipPackagePluginValidation \
-            ONLY_ACTIVE_ARCH=NO
+      # The Swift packages would otherwise be fetched and resolved on every
+      # run. Keyed on the pinned versions, so an update starts a new cache.
+      - name: Cache Swift packages
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: build/SourcePackages
+          key: spm-${{ runner.os }}-${{ hashFiles('boringNotch.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: |
+            spm-${{ runner.os }}-
 
+      # One build only: the tests need a Debug build of the app, which also
+      # proves the project compiles. The universal Release build is left to
+      # the release workflow. Signed ad hoc, as the runner has no certificate.
       # The tests are hosted by the app, so they start a real instance of it
       # on the runner; nothing there reacts to it.
-      - name: Test
+      - name: Build and test
         run: |
           xcodebuild test \
             -project boringNotch.xcodeproj \
@@ -73,17 +72,3 @@ jobs:
             -derivedDataPath build \
             -skipMacroValidation \
             -skipPackagePluginValidation
-
-      - name: Package the app
-        run: |
-          ditto -c -k --sequesterRsrc --keepParent \
-            build/Build/Products/Release/NekoNotch.app \
-            "NekoNotch-${{ github.run_number }}.zip"
-
-      - name: Upload the app
-        uses: actions/upload-artifact@v7
-        with:
-          name: NekoNotch-${{ github.run_number }}
-          path: NekoNotch-${{ github.run_number }}.zip
-          if-no-files-found: error
-          retention-days: 7
