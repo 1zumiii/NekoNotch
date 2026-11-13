@@ -5,7 +5,9 @@ into `~/Library/Application Support/RunCatIntegrations` (the folder the sandboxe
 app is allowed to read), installs one LaunchAgent, `dev.izumi.boringnotch-ai-usage`,
 that runs `ai-usage-sync.py` every 60 seconds, and registers `claude-statusline.py`
 as the Claude Code status line in `~/.claude/settings.json` (a backup of the file
-is kept beside it). The two earlier agents are removed and the files of the
+is kept beside it). Without Claude Code, the status line is skipped. Each source
+is optional: a missing Claude App, Claude Code or Codex leaves its card empty
+and does not stop the others. The two earlier agents are removed and the files of the
 earlier RunCat integration are moved into a `legacy` subfolder. Re-run the
 installer after changing a script. Compressed Codex transcripts require `zstd`
 on PATH or at `/opt/homebrew/bin/zstd`.
@@ -20,7 +22,7 @@ sandbox entitlement names it.
 | `claude-app-quota.json` | `ai-usage-sync.py`, from the desktop app's own `~/Library/Application Support/Claude/plan-usage-history.json` | Claude, App |
 | `claude-cli-limits.json` | `claude-statusline.py` after every turn of a Claude Code session; `ai-usage-sync.py` as a fallback | Claude, CLI |
 | `~/.codex/runcat-usage.json` | `ai-usage-sync.py`, from the newest main Codex session | Codex |
-| `ai-token-stats.json` | `ai-usage-sync.py`, through `ai-token-stats.collect` | Claude Code tokens |
+| `ai-token-stats.json` | `ai-usage-sync.py`, through `ai-token-stats.collect` | AI Tokens (Claude and Codex) |
 
 ## Active and idle periods
 
@@ -28,7 +30,8 @@ Claude Code runs the status line script after each assistant message, with the
 session JSON on stdin. The script writes the `rate_limits` block (5-hour and
 7-day usage, reset times) to `claude-cli-limits.json` and prints the model,
 context use and both limits for the terminal. While a session is active the
-CLI card therefore follows the conversation; while none is, nothing runs.
+CLI card therefore follows the conversation. Between sessions, the collector
+can still perform the fallback refresh described below.
 `rate_limits` appears only for claude.ai subscribers and only after the first
 API response of a session, so the file is left alone until then.
 

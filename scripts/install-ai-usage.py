@@ -55,8 +55,13 @@ subprocess.run(["launchctl", "bootstrap", domain, str(agent)], check=True)
 print(f"Installed LaunchAgent {label} (60-second refresh).")
 
 # Status line: set when absent, or when it already points at this script.
+# Without Claude Code (no ~/.claude), there is nothing to register with; the
+# other sources work without it.
 settings_path = home / ".claude/settings.json"
 command = f"/usr/bin/python3 '{root / 'claude-statusline.py'}'"
+if not settings_path.parent.is_dir():
+    print("Claude Code not found (~/.claude is missing); status line not configured.")
+    raise SystemExit(0)
 try:
     settings = json.loads(settings_path.read_text(encoding="utf-8")) if settings_path.exists() else {}
 except ValueError as error:
@@ -67,7 +72,6 @@ if not current or "claude-statusline.py" in str(current.get("command", "")):
         if settings_path.exists():
             shutil.copy2(settings_path, settings_path.with_name(f"settings.json.bak-{int(time.time())}"))
         settings["statusLine"] = {"type": "command", "command": command}
-        settings_path.parent.mkdir(parents=True, exist_ok=True)
         settings_path.write_text(json.dumps(settings, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         print("Registered claude-statusline.py as the Claude Code status line.")
     else:
