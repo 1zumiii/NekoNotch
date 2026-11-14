@@ -6,10 +6,10 @@
 
 <p align="center">
   Read notifications, monitor system load, control app audio, and track Claude and Codex usage from your Mac's notch.<br>
-  A rainbow cat changes speed with CPU load and adds floating notes while music plays.
+  A piano cat changes speed with CPU load and adds floating notes while music plays.
 </p>
 
-<p align="center"><img src="docs/images/notch-hero.gif" alt="The closed notch, with the rainbow cat idle, speeding up, in warp and singing in turn" width="612"></p>
+<p align="center"><img src="docs/images/notch-hero.gif" alt="The closed notch: the piano cat speeds up from idle, goes into warp past the exclamation mark and the ring, stops hard, then sings while media plays" width="612"></p>
 
 ---
 
@@ -17,24 +17,24 @@ NekoNotch started from [Boring Notch](https://github.com/TheBoredTeam/boring.not
 
 ## Features
 
-### Rainbow cat
+### Piano cat
 
 While no media plays, a pixel cat with a piano keyboard for a body runs on the right of the closed notch, with a starry sky of the same width on the left.
 
 <div align="center">
 <table>
   <tr>
-    <td align="center"><img src="docs/images/cat-idle.gif" alt="Rainbow cat: idle" width="306"><br>Idle</td>
-    <td align="center"><img src="docs/images/cat-speedup.gif" alt="Rainbow cat speeding up under medium CPU load" width="306"><br>Medium CPU load (speed-up)</td>
+    <td align="center"><img src="docs/images/cat-speedup.gif" alt="Piano cat: speeding up from idle to its top speed short of warp" width="306"><br>Speeding up</td>
+    <td align="center"><img src="docs/images/cat-warp-in.gif" alt="Piano cat: from medium load into warp, the exclamation mark flashing and the cat flying through the blue ring" width="306"><br>Into warp</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/images/cat-warp.gif" alt="Rainbow cat in warp under high CPU load" width="306"><br>High CPU load (warp)</td>
-    <td align="center"><img src="docs/images/cat-singing.gif" alt="Rainbow cat singing while media plays" width="306"><br>Playing media</td>
+    <td align="center"><img src="docs/images/cat-brake.gif" alt="Piano cat: the load drops to medium and the cat sits back and brakes out of warp, the stars sliding to a stop in three steps" width="306"><br>Out of warp (hard stop)</td>
+    <td align="center"><img src="docs/images/cat-singing.gif" alt="Piano cat singing while media plays" width="306"><br>Playing media</td>
   </tr>
 </table>
 </div>
 
-- Speed: the cat and the stars move faster as CPU load rises. Their top speeds at full load are set separately; the defaults are 3× for the cat and 4× for the stars.
+- Speed: the cat and the stars move faster as CPU load rises, reaching their top speeds at the warp threshold with warp on, or at full load with it off. The top speeds are set separately; the defaults are 3× for the cat and 5.5× for the stars. The cat has short legs and looks frantic when it runs too fast, so the sky carries most of the sense of speed.
 - Warp: when CPU load reaches the threshold (70% by default), a red exclamation mark flashes three times above the cat's head, the cat flies through a blue ring, and the stars rush out of sight and turn into streaks of light while the ring falls behind, faster and faster, and leaves past the far wing. Once the load falls 10 percentage points below the threshold, the cat stops hard: it sits back with its forelegs braced and its rainbow flicks up, while the streaks break into stars with tails that slide back three times, each slide shorter and each tail shorter, until the cat runs on after about a second. Warp can be turned off.
 - Sky: stars come in three layers, the nearer the bigger, brighter and faster, each a little brighter or dimmer than the next, in white, pale yellow and pale blue; some of them twinkle, and now and then a shooting star crosses. Stars drift in from the outer edge, pass behind the notch and come out on the other side.
 - Media: the cat can replace the waveform beside the album art. Colored notes rise from its head as it runs, leaning back and forward in turn, at random intervals, angles and sway, and notes leaning the same way never overlap. With "Notes follow the volume" on, more of them rise the louder the music (this needs the realtime audio waveform).

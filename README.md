@@ -6,10 +6,10 @@
 
 <p align="center">
   在 Mac 刘海中查看通知、监测系统负载、调节应用音量，并汇总 Claude 与 Codex 的用量。<br>
-  彩虹猫随 CPU 负载改变速度，播放音乐时伴随音符动画。
+  钢琴猫随 CPU 负载改变速度，播放音乐时伴随音符动画。
 </p>
 
-<p align="center"><img src="docs/images/notch-hero.gif" alt="收起的刘海：彩虹猫依次处于空闲、加速、跃迁和播放媒体状态" width="612"></p>
+<p align="center"><img src="docs/images/notch-hero.gif" alt="收起的刘海：钢琴猫从空闲加速，经感叹号和加速圈进入跃迁，急停后播放媒体" width="612"></p>
 
 ---
 
@@ -17,24 +17,24 @@ NekoNotch 基于 [Boring Notch](https://github.com/TheBoredTeam/boring.notch) `v
 
 ## 功能
 
-### 彩虹猫
+### 钢琴猫
 
 未播放媒体时，键盘造型的像素猫在收起的刘海右侧奔跑，左侧显示等宽的星空。
 
 <div align="center">
 <table>
   <tr>
-    <td align="center"><img src="docs/images/cat-idle.gif" alt="彩虹猫：空闲" width="306"><br>空闲</td>
-    <td align="center"><img src="docs/images/cat-speedup.gif" alt="彩虹猫：CPU 中等负载时加速" width="306"><br>CPU 中等负载（加速）</td>
+    <td align="center"><img src="docs/images/cat-speedup.gif" alt="钢琴猫：从空闲加速到跃迁之前的最高速度" width="306"><br>加速</td>
+    <td align="center"><img src="docs/images/cat-warp-in.gif" alt="钢琴猫：从中等负载进入跃迁，感叹号闪烁后穿过蓝色加速圈" width="306"><br>进入跃迁</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/images/cat-warp.gif" alt="彩虹猫：CPU 高负载时跃迁" width="306"><br>CPU 高负载（跃迁）</td>
-    <td align="center"><img src="docs/images/cat-singing.gif" alt="彩虹猫：播放媒体时唱歌" width="306"><br>播放媒体</td>
+    <td align="center"><img src="docs/images/cat-brake.gif" alt="钢琴猫：负载回落到中等，从跃迁后仰急停，星星分三次滑停" width="306"><br>退出跃迁（急停）</td>
+    <td align="center"><img src="docs/images/cat-singing.gif" alt="钢琴猫：播放媒体时唱歌" width="306"><br>播放媒体</td>
   </tr>
 </table>
 </div>
 
-- 速度：CPU 占用率越高，猫和星空移动得越快。满载时相对于空闲的速度倍数可分别设置，默认猫为 3 倍、星空为 4 倍。
+- 速度：CPU 占用率越高，猫和星空移动得越快。开启跃迁效果时，在跃迁阈值处达到最高速度；关闭时，在满载时达到。最高速度相对于空闲的倍数可分别设置，默认猫为 3 倍、星空为 5.5 倍。猫的腿短，跑得太快会显得抽搐，所以速度感主要由星空表现。
 - 跃迁：CPU 占用率达到阈值（默认 70%）时，猫头上方的红色感叹号闪烁三次，随后猫穿过一个蓝色加速圈，进入跃迁。星星快速移出画面，变为光线；加速圈越退越快，从左翼边缘移出。占用率回落到阈值以下 10 个百分点后，猫急停：身体后仰坐下，前腿撑地，彩虹向上甩起；光线截断成带尾巴的星星，分三次向后滑行，每次更短，尾巴随之缩短，约 1 秒后恢复奔跑。此效果可以关闭。
 - 星空：星星分为三层，越近越大、越亮、移动越快。同一层的星星亮度略有差异，颜色分为白、淡黄和淡蓝三种。部分星星会闪烁，偶尔有流星划过。星星从外侧移入，经过刘海后方，再从另一侧移出。
 - 播放媒体：猫可替代专辑封面旁的音频波形，奔跑时头部交替向前后两侧飘出彩色音符。音符的间隔、角度和摆动随机变化，同一方向的音符互不重叠。开启“音符跟随音量”后，音量越大，音符越多（需要开启实时音频波形）。
@@ -47,7 +47,7 @@ NekoNotch 基于 [Boring Notch](https://github.com/TheBoredTeam/boring.notch) `v
 
 ### 系统监测
 
-指针悬停在彩虹猫上或点击彩虹猫时，展开系统监测面板。此入口可在设置中关闭。
+指针悬停在钢琴猫上或点击钢琴猫时，展开系统监测面板。此入口可在设置中关闭。
 
 <p align="center"><img src="docs/images/screenshot-system-monitor.png" alt="系统监测面板" width="602"></p>
 
