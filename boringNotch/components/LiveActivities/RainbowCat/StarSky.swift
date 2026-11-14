@@ -386,7 +386,7 @@ final class StarSky: @unchecked Sendable {
     func update(load: Double, parentSpeed: Float) {
         guard running else { return }
         let load = min(max(load, 0), 1)
-        let skySpeed = 1 + load * (Defaults[.rainbowCatSkyMaxSpeed] - 1)
+        let skySpeed = 1 + CPULoadMonitor.pace(for: load) * (Defaults[.rainbowCatSkyMaxSpeed] - 1)
         Self.retime(layer, to: Float(skySpeed) / max(parentSpeed, 0.01))
         twinkles.matchPace()
         if braking != nil { Self.retime(brakingStars, to: brakingStarsSpeed, tolerance: 0) }
