@@ -16,6 +16,11 @@ extension Defaults.Keys {
     /// While media plays, the cat takes the waveform's place and its trail moves with the audio.
     static let rainbowCatInPlayer = Key<Bool>("rainbowCatInPlayer", default: true)
 
+    /// While the cat sings, more notes rise the louder the music (needs the
+    /// realtime waveform's audio capture). Off, they rise at one steady pace
+    /// for as long as media plays.
+    static let rainbowCatNotesFollowVolume = Key<Bool>("rainbowCatNotesFollowVolume", default: false)
+
     /// Hovering over the cat opens the system monitor instead of the usual tabs.
     static let rainbowCatSystemMonitor = Key<Bool>("rainbowCatSystemMonitor", default: true)
 

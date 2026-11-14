@@ -4,7 +4,8 @@
 //
 //  The pixel cat in the closed notch. Everything that moves is Core
 //  Animation on one stage layer: the render server flips the frames and
-//  moves the notes by itself, and the app does no per-frame work. The
+//  moves the notes by itself, and the app does no per-frame work (it only
+//  plans each note as it is born, a couple of times a second). The
 //  stage's speed follows the CPU load, so the cat runs faster when the Mac
 //  is busy.
 //
@@ -63,9 +64,16 @@ final class RainbowCatNSView: NSView, AudioCaptureLevelsConsumer {
     private let stage = CALayer()
     private let cat = CALayer()
     private var segments: [CALayer] = []
-    private let notes = CAEmitterLayer()
+    private let notes = CALayer()
+    private var noteScheduler = NoteScheduler()
+    private var noteLayers: [(layer: CALayer, note: NoteScheduler.Note)] = []
+    private var noteTimer: Timer?
+    private var notesPerSecond: Double = 2
+    /// Just above the head, a little behind the nose, in the stage's coordinates.
+    private var noteHead: CGPoint = .zero
     private let sky = StarSky()
     private var stripeImage: CGImage?
+    private var noteImages: [CGImage] = []
 
     private var isPlaying = false
     /// Off where one sky lies behind the whole scene instead (the settings'
@@ -110,10 +118,6 @@ final class RainbowCatNSView: NSView, AudioCaptureLevelsConsumer {
 
         stage.addSublayer(sky.layer)
 
-        notes.emitterShape = .point
-        notes.renderMode = .unordered
-        notes.birthRate = 0
-
         cat.magnificationFilter = .nearest
         stage.addSublayer(cat)
         // Above the cat: the notes come from its head.
@@ -151,7 +155,8 @@ final class RainbowCatNSView: NSView, AudioCaptureLevelsConsumer {
             segment.position = CGPoint(x: catOrigin.x + Self.bodyInset - (CGFloat(index) + 0.5) * Self.pixel, y: trailCenterY)
         }
         // Just above the head, a little behind the nose.
-        notes.emitterPosition = CGPoint(
+        notes.frame = stage.bounds
+        noteHead = CGPoint(
             x: catOrigin.x + 14 * Self.pixel,
             y: catOrigin.y + CGFloat(PixelCatSprites.height - 3) * Self.pixel
         )
@@ -181,7 +186,7 @@ final class RainbowCatNSView: NSView, AudioCaptureLevelsConsumer {
             CPULoadMonitor.shared.stopObserving(self)
             cat.removeAllAnimations()
             segments.forEach { $0.removeAllAnimations() }
-            notes.birthRate = 0
+            stopNotes(clearing: true)
             sky.stop()
         }
     }
@@ -206,37 +211,9 @@ final class RainbowCatNSView: NSView, AudioCaptureLevelsConsumer {
             segment.contentsScale = scale
             segment.contents = stripeImage
         }
-        // Twelve kinds of note (six colours, two directions) at one rate,
-        // started at evenly spaced times: one note at a time, the colours in
-        // turn and the directions taking turns.
-        let images = PixelCatSprites.noteImages(scale: scale)
-        let kinds = images.count * 2
-        notes.emitterCells = (0..<kinds).map { index in
-            let cell = Self.noteCell(images[index % images.count], scale: scale, leaning: index % 2 == 0 ? 1 : -1)
-            cell.beginTime = Double(index) / Double(kinds) / Double(cell.birthRate)
-            return cell
-        }
+        noteImages = PixelCatSprites.noteImages(scale: scale)
         CATransaction.commit()
         sky.setScale(scale)
-    }
-
-    /// Notes rise from the head and float up out of the window, half of
-    /// them up and back (`leaning` 1), half up and forward (-1).
-    private static func noteCell(_ image: CGImage, scale: CGFloat, leaning: CGFloat) -> CAEmitterCell {
-        let cell = CAEmitterCell()
-        cell.contents = image
-        cell.contentsScale = scale
-        cell.magnificationFilter = CALayerContentsFilter.nearest.rawValue
-        // Shared out between six colours and two directions; the layer's
-        // rate scales it.
-        cell.birthRate = 0.09
-        cell.lifetime = 2.4
-        cell.velocity = 9
-        cell.velocityRange = 2
-        cell.emissionLongitude = .pi / 2 + leaning * 0.45
-        cell.emissionRange = 0.25
-        cell.alphaSpeed = -0.25
-        return cell
     }
 
     // MARK: State from SwiftUI
@@ -306,13 +283,10 @@ final class RainbowCatNSView: NSView, AudioCaptureLevelsConsumer {
         if reducesMotion || !showsSky { sky.stop() } else { sky.start() }
 
         if isPlaying && !reducesMotion {
-            // Started in the stage's own time, without a burst of notes
-            // left over from the last time.
-            notes.beginTime = stage.convertTime(CACurrentMediaTime(), from: nil)
-            notes.birthRate = 1
             setLoudness(useRealtime ? 0.3 : 0.5)
+            startNotes()
         } else {
-            notes.birthRate = 0
+            stopNotes(clearing: false)
         }
 
         guard !reducesMotion else {
@@ -374,15 +348,99 @@ final class RainbowCatNSView: NSView, AudioCaptureLevelsConsumer {
     }
 
     /// Louder music, more notes: about one a second when it is quiet, three
-    /// a second at full volume. Only a clear change is
-    /// passed on, so the emitter isn't touched every frame.
+    /// a second at full volume. The next note to be planned takes it up.
     private func setLoudness(_ loudness: Float) {
         guard isPlaying, !reducesMotion, abs(loudness - lastLoudness) >= 0.08 else { return }
         lastLoudness = loudness
+        notesPerSecond = Double(0.95 + 1.8 * loudness) * 1.08
+    }
+
+    // MARK: Notes
+
+    private var stageTime: Double { stage.convertTime(CACurrentMediaTime(), from: nil) }
+
+    /// The first note comes at once; the rest at the pace `NoteScheduler` sets.
+    private func startNotes() {
+        guard noteTimer == nil else { return }
+        pruneNotes()
+        if noteLayers.isEmpty { noteScheduler.reset() }
+        spawnNote()
+    }
+
+    /// Notes already in the air rise on out of sight unless `clearing`.
+    private func stopNotes(clearing: Bool) {
+        noteTimer?.invalidate()
+        noteTimer = nil
+        guard clearing else { return }
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        notes.birthRate = 0.95 + 1.8 * loudness
+        noteLayers.forEach { $0.layer.removeFromSuperlayer() }
         CATransaction.commit()
+        noteLayers.removeAll()
+        noteScheduler.reset()
+    }
+
+    private func pruneNotes() {
+        let now = stageTime
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        noteLayers.removeAll { entry in
+            guard !entry.note.isAlive(at: now) else { return false }
+            entry.layer.removeFromSuperlayer()
+            return true
+        }
+        CATransaction.commit()
+    }
+
+    private func spawnNote() {
+        noteTimer = nil
+        guard isPlaying, !reducesMotion, window != nil, !noteImages.isEmpty else { return }
+        pruneNotes()
+        var rng = SystemRandomNumberGenerator()
+        let wait: Double
+        if let (note, colour) = noteScheduler.next(at: stageTime, from: noteHead, using: &rng) {
+            addLayer(for: note, image: noteImages[colour % noteImages.count])
+            wait = NoteScheduler.interval(rate: notesPerSecond, using: &rng)
+        } else {
+            // No room yet: the notes in the air will have moved on soon.
+            wait = NoteScheduler.retryDelay
+        }
+        // The plan is in the stage's time, which runs faster under load.
+        let timer = Timer(timeInterval: wait / Double(max(stage.speed, 0.1)), repeats: false) { [weak self] _ in self?.spawnNote() }
+        RunLoop.main.add(timer, forMode: .common)
+        noteTimer = timer
+    }
+
+    /// Fades in as it leaves the head, rises along the planned path, fading
+    /// again as it goes, then stays hidden until it is pruned.
+    private func addLayer(for note: NoteScheduler.Note, image: CGImage) {
+        let layer = CALayer()
+        layer.contents = image
+        layer.contentsScale = renderedScale
+        layer.magnificationFilter = .nearest
+        layer.bounds = CGRect(x: 0, y: 0, width: CGFloat(image.width) / renderedScale, height: CGFloat(image.height) / renderedScale)
+        layer.position = note.origin
+        layer.opacity = 0
+
+        let steps = 24
+        let path = CAKeyframeAnimation(keyPath: "position")
+        path.values = (0...steps).map { step in
+            NSValue(point: note.position(at: note.birth + NoteScheduler.lifetime * Double(step) / Double(steps)))
+        }
+        let fade = CAKeyframeAnimation(keyPath: "opacity")
+        fade.values = [0, 1, 0.4]
+        fade.keyTimes = [0, NSNumber(value: NoteScheduler.fadeIn / NoteScheduler.lifetime), 1]
+        let flight = CAAnimationGroup()
+        flight.animations = [path, fade]
+        flight.duration = NoteScheduler.lifetime
+        flight.preferredFrameRateRange = CAFrameRateRange(minimum: 10, maximum: 30, preferred: 20)
+
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        notes.addSublayer(layer)
+        layer.add(flight, forKey: "flight")
+        CATransaction.commit()
+        noteLayers.append((layer, note))
     }
 }
 
@@ -394,6 +452,7 @@ struct RainbowCat: NSViewRepresentable {
     /// False where a sky of its own lies behind the cat.
     var showsSky = true
     @Default(.realtimeAudioWaveform) private var realtimeEnabled
+    @Default(.rainbowCatNotesFollowVolume) private var notesFollowVolume
     @ObservedObject private var audioCapture = AudioCaptureManager.shared
 
     func makeNSView(context: Context) -> RainbowCatNSView {
@@ -410,9 +469,11 @@ struct RainbowCat: NSViewRepresentable {
     }
 
     private func update(_ view: RainbowCatNSView) {
-        // Levels are only computed for someone who asks: an idle cat doesn't.
-        view.setActive(isActive && isPlaying)
-        view.setUseRealtime(realtimeEnabled && audioCapture.isCapturing)
+        // Levels are only computed for someone who asks: an idle cat, or one
+        // whose notes keep a steady pace, doesn't.
+        let followsVolume = notesFollowVolume && realtimeEnabled
+        view.setActive(isActive && isPlaying && followsVolume)
+        view.setUseRealtime(followsVolume && audioCapture.isCapturing)
         view.setPlaying(isPlaying)
         view.setShowsSky(showsSky)
     }
