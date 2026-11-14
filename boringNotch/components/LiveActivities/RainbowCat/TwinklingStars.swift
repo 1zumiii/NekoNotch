@@ -22,6 +22,10 @@ final class TwinklingStars {
     /// round again.
     private var suspended = false
     private var waiting: [CALayer] = []
+    /// When the last star came in over the edge, in this layer's time.
+    private var lastEntry: CFTimeInterval = -.infinity
+    /// Stars come in at least this far apart, so two never drift by side by side.
+    private static let minEntryGap: CFTimeInterval = 3
     private static let driftKey = "drift"
     private static let twinkleKey = "twinkle"
 
@@ -50,10 +54,10 @@ final class TwinklingStars {
     func start() {
         guard !running else { return }
         running = true
-        // Two already on their way somewhere in the sky, as if it had been
-        // going for a while; the rest come in later.
+        // One already on its way somewhere in the sky, as if it had been
+        // going for a while; the rest come in later, kept apart.
         for (index, star) in stars.enumerated() {
-            launch(star, delay: index < 2 ? 0 : .random(in: 0...10), midway: index < 2)
+            launch(star, delay: index < 1 ? 0 : .random(in: 0...10), midway: index < 1)
         }
     }
 
@@ -92,10 +96,11 @@ final class TwinklingStars {
             waiting.append(star)
             return
         }
-        // Like the emitted stars: near ones bigger, brighter and faster.
+        // Near ones bigger and brighter, but all at the far stars' pace, so
+        // one that comes in beside an emitted near star soon falls behind it.
         let near = Double.random(in: 0..<1) < 0.4
         guard let image = (near ? nearImages : farImages).randomElement() else { return }
-        let velocity: CGFloat = near ? 9 : 6
+        let velocity: CGFloat = 6
         let brightness: Float = near ? 1 : 0.7
         let size = CGSize(width: CGFloat(image.width) / scale, height: CGFloat(image.height) / scale)
         let y = (CGFloat.random(in: size.height / 2...max(size.height / 2, layer.bounds.height - size.height / 2)) * scale)
@@ -115,7 +120,11 @@ final class TwinklingStars {
         star.opacity = 0
         CATransaction.commit()
 
-        let begin = star.convertTime(CACurrentMediaTime(), from: nil) + delay
+        var begin = star.convertTime(CACurrentMediaTime(), from: nil) + delay
+        if !midway {
+            begin = max(begin, lastEntry + Self.minEntryGap)
+            lastEntry = begin
+        }
         let drift = CABasicAnimation(keyPath: "position.x")
         drift.fromValue = startX
         drift.toValue = endX

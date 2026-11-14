@@ -180,10 +180,27 @@ enum PixelCatSprites {
 
     /// Stars drifting past in the background, far ones (a dot) and near
     /// ones (a plus), each in white and pale yellow.
+    /// White, pale yellow and pale blue, the colours stars come in.
+    static let starTints: [(CGFloat, CGFloat, CGFloat)] = [(1, 1, 1), (1.0, 0.92, 0.55), (0.72, 0.84, 1.0)]
+
     static func starImages(scale: CGFloat, near: Bool) -> [CGImage] {
         let shape = near ? [".X.", "XXX", ".X."] : ["X"]
-        let tints: [(CGFloat, CGFloat, CGFloat)] = [(1, 1, 1), (1.0, 0.92, 0.55)]
-        return tints.compactMap { tint in image(rows: shape, scale: scale) { $0 == "X" ? tint : nil } }
+        return starTints.compactMap { tint in image(rows: shape, scale: scale) { $0 == "X" ? tint : nil } }
+    }
+
+    /// The furthest stars: a single point, half a sprite pixel, in each tint.
+    static func dustImages(scale: CGFloat) -> [CGImage] {
+        let side = max(1, Int(scale.rounded()))
+        return starTints.compactMap { tint in
+            guard let context = CGContext(
+                data: nil, width: side, height: side, bitsPerComponent: 8, bytesPerRow: 0,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ) else { return nil }
+            context.setFillColor(red: tint.0, green: tint.1, blue: tint.2, alpha: 1)
+            context.fill(CGRect(x: 0, y: 0, width: side, height: side))
+            return context.makeImage()
+        }
     }
 
     /// Streaks of light for warp speed, in the stars' white and pale yellow:
