@@ -116,6 +116,13 @@ final class BoringViewCoordinator: ObservableObject {
         }
 
         selectedScreenUUID = preferredScreenUUID ?? NSScreen.main?.displayUUID ?? ""
+
+        // A unit test host starts none of the app's services: it shares the
+        // app's container and the user's session, and several may run at
+        // once. No input taps, audio taps, notification or clipboard
+        // watching, XPC monitoring or settings migrations from the tests.
+        guard !isRunningTests else { return }
+
         // Observe changes to accessibility authorization and react accordingly
         accessibilityObserver = NotificationCenter.default.addObserver(
             forName: Notification.Name.accessibilityAuthorizationChanged,
