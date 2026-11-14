@@ -15,6 +15,8 @@
 - The notes come at random intervals, angles and sway, leaning back and forward in turn, and notes leaning the same way never overlap.
 - The cat and the stars reach their top speeds at the warp threshold instead of at full load, so the whole range shows before warp. The defaults are 3x for the cat, whose short legs look frantic any faster, and 5.5x for the stars.
 - Near stars no longer drift by side by side, and twinkling stars come in at least three seconds apart.
+- The left side of the notch makes way for app menus while music plays or a notification shows too, not only beside the idle cat. The album art or the app's icon folds away with it.
+- The cat stays in one place whatever the closed notch shows: idle, with music or with a notification.
 - The AI usage collector has new names: its folder is `~/Library/Application Support/NekoNotch` instead of `RunCatIntegrations`, the Codex file is `codex-usage.json` in that folder instead of `~/.codex/runcat-usage.json`, and the LaunchAgent is `io.github.1zumiii.nekonotch.ai-usage`. The app reads only the new locations and no longer needs access to `~/.codex`. If you installed the collector before, run `python3 scripts/install-ai-usage.py` again after updating: it moves the existing data, token cache included, retires the old agent and updates the Claude Code status line.
 
 ### Fixed
@@ -24,6 +26,7 @@
 - If macOS changes how it stores notification records, the service status says the database cannot be read and names who is affected, instead of dropping every record without a word.
 - Twinkling stars no longer twinkle faster under load and at warp.
 - Notes no longer come out in step after a pause in the media.
+- The cat no longer starts over when the notch opens and closes, music starts or stops, or a notification comes or goes: its notes no longer vanish, and at warp it no longer plays the "!" and the ring again.
 
 ### Removed
 

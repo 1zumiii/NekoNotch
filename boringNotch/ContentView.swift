@@ -220,7 +220,7 @@ struct ContentView: View {
 
     /// The closed notch's geometry, for the hover region and the wings.
     private var closedLayout: ClosedNotchLayout {
-        ClosedNotchLayout(
+        var layout = ClosedNotchLayout(
             cutoutWidth: vm.closedNotchSize.width,
             rowHeight: displayClosedNotchHeight,
             effectiveRowHeight: vm.effectiveClosedNotchHeight,
@@ -228,6 +228,13 @@ struct ContentView: View {
             edgeMargin: liveActivityEdgeMargin,
             bottomCornerRadius: cornerRadiusInsets.closed.bottom
         )
+        // Anything else beside the cutout (album art, a notification's
+        // icon, the battery status) reaches as far left as its half of
+        // the row is wide.
+        if !catRowShows {
+            layout.leftReach = max(0, (layout.chinWidth(for: chinContent) - layout.cutoutWidth) / 2)
+        }
+        return layout
     }
 
     // MARK: - Making way for app menus
@@ -236,10 +243,83 @@ struct ContentView: View {
     /// left of the cutout, where they cannot be clicked. When the pointer
     /// comes over the wing and it does cover menus, the wing folds away;
     /// it comes back once the pointer has left them and no menu is open.
-    /// Only the idle cat's wing, and only while the notch is closed.
-    private var foldsLeftWing: Bool {
-        wingAvoidance.isFolded && vm.notchState == .closed && closedNotchContent == .cat
+    /// Menus come first: this holds for whatever the closed notch shows,
+    /// music and notifications included, but only while it is closed.
+    private var leftWingCanFold: Bool {
+        guard vm.notchState == .closed else { return false }
+        return catRowShows || (rainbowCatEnabled && (closedLayout.leftReach ?? 0) > 0)
     }
+
+    /// Whether the activity on top has a starry wing on the left, as wide
+    /// as the cat's, that can fold in place: music with the cat in the
+    /// player, or a notification beside the cat.
+    private var selectedActivityFoldsInPlace: Bool {
+        switch selectedActivity {
+        case .music: return showsCatInPlayer
+        case .notification, .notificationIcon: return catInNotification != nil
+        case nil: return false
+        }
+    }
+
+    /// Music without the cat in the player has no such wing: while the wing
+    /// is folded it steps aside for the idle cat, and comes back with it.
+    private var activitiesMakeWay: Bool {
+        wingAvoidance.isFolded && vm.notchState == .closed && rainbowCatEnabled
+            && !liveActivities.isEmpty && !selectedActivityFoldsInPlace
+    }
+
+    /// The cat row's starry wing folds by narrowing, the cat staying where
+    /// it is and as it is (see `ClosedCatRow`).
+    private var foldsLeftWing: Bool {
+        wingAvoidance.isFolded && catRowShows
+    }
+
+    // MARK: - The cat's row
+
+    /// The power status replacing the closed row.
+    private var batteryStatusShows: Bool {
+        coordinator.expandingView.type == .battery && coordinator.expandingView.show
+            && vm.notchState == .closed && Defaults[.showPowerStatusNotifications]
+    }
+
+    /// A volume or brightness change shown in the closed row itself.
+    private var inlineOSDShows: Bool {
+        let type = coordinator.sneakPeekState(for: vm.screenUUID).type
+        return coordinator.shouldShowSneakPeek(on: vm.screenUUID) && Defaults[.inlineOSD]
+            && type != .music && type != .battery && vm.notchState == .closed
+    }
+
+    /// Whether the closed notch shows the cat's row: the idle cat, or music
+    /// or a notification beside the cat. The row itself is always there
+    /// while the cat is on (see `ClosedCatRow`); this only shows it.
+    private var catRowShows: Bool {
+        guard vm.notchState == .closed, rainbowCatEnabled,
+              !coordinator.helloAnimationRunning,
+              !shouldDisplayNowPlayingFallbackNotice,
+              !batteryStatusShows, !inlineOSDShows
+        else { return false }
+        if !liveActivities.isEmpty && !activitiesMakeWay { return selectedActivityFoldsInPlace }
+        return showsIdleCat
+    }
+
+    /// The activity filling the cat row's slots, if any.
+    private var catRowActivity: LiveActivityItem? {
+        guard catRowShows, !activitiesMakeWay else { return nil }
+        return selectedActivity
+    }
+
+    /// Between the two wings: the cutout and a margin each side, wider by
+    /// the song-change peek's labels while they show.
+    private var catRowMiddleWidth: CGFloat {
+        let width = vm.closedNotchSize.width + 2 * liveActivityEdgeMargin
+        guard case .music = catRowActivity, showingInlineMusicPeek else { return width }
+        return width + 2 * inlineMusicPeekLabelWidth
+    }
+
+    private var catRowWidth: CGFloat {
+        (foldsLeftWing ? 0 : catWingWidth) + catRowMiddleWidth + catWingWidth
+    }
+
 
     private var notchScreen: NSScreen? {
         vm.screenUUID.flatMap { NSScreen.screen(withUUID: $0) } ?? NSScreen.main
@@ -273,13 +353,13 @@ struct ContentView: View {
     /// covers menus, and folds it if so. True once it has folded. Nil when
     /// there is nothing to check.
     private func startLeftWingMenuCheck() -> Task<Bool, Never>? {
-        guard Defaults[.rainbowCatMenuAvoidance], vm.notchState == .closed,
-              closedNotchContent == .cat, let screen = notchScreen,
+        guard Defaults[.rainbowCatMenuAvoidance], leftWingCanFold,
+              let screen = notchScreen,
               wingAvoidance.shouldCheckMenus(pointer: NSEvent.mouseLocation, layout: closedLayout, screen: screen.frame)
         else { return nil }
         return Task {
             guard await leftWingCoversMenus(), !Task.isCancelled,
-                  vm.notchState == .closed, closedNotchContent == .cat,
+                  leftWingCanFold,
                   let screen = notchScreen,
                   wingAvoidance.confirmsFold(pointer: NSEvent.mouseLocation, layout: closedLayout, screen: screen.frame)
             else { return false }
@@ -301,9 +381,8 @@ struct ContentView: View {
             var avoidance = folded
             while !Task.isCancelled {
                 try? await Task.sleep(for: LeftWingMenuAvoidance.pollInterval)
-                // Opened, or showing something else: nothing to keep folded.
-                guard vm.notchState == .closed, closedNotchContent == .cat,
-                      let screen = notchScreen else {
+                // Opened: nothing to keep folded.
+                guard leftWingCanFold, let screen = notchScreen else {
                     avoidance.unfold()
                     break
                 }
@@ -352,7 +431,7 @@ struct ContentView: View {
         if coordinator.shouldShowSneakPeek(on: vm.screenUUID) {
             return .osd(coordinator.sneakPeekState(for: vm.screenUUID).type)
         }
-        if !liveActivities.isEmpty {
+        if !liveActivities.isEmpty && !activitiesMakeWay {
             return .activities(liveActivities)
         }
         if showsIdleCat { return .cat }
@@ -372,7 +451,7 @@ struct ContentView: View {
             && vm.notchState == .closed && Defaults[.showPowerStatusNotifications] {
             return .batteryStatus
         }
-        if vm.notchState == .closed, let activity = selectedActivity {
+        if vm.notchState == .closed, !activitiesMakeWay, let activity = selectedActivity {
             // Sized for whichever activity is actually on top, not for
             // whichever happens to exist — otherwise swiping to music while a
             // notification is still in the stack leaves the chin at the
@@ -692,6 +771,7 @@ struct ContentView: View {
                     .padding(.top, displayClosedNotchHeight + 2)
                     .padding(.bottom, 6)
                 } else {
+                    VStack(spacing: 0) {
                     if shouldDisplayNowPlayingFallbackNotice,
                        let notice = musicManager.nowPlayingNotice {
                         nowPlayingFallbackNotice(notice)
@@ -740,20 +820,22 @@ struct ContentView: View {
                               gestureProgress: $gestureProgress
                           )
                               .transition(.opacity)
-                      } else if !liveActivities.isEmpty && vm.notchState == .closed {
+                      } else if catRowShows {
+                          // Room for the cat's row, drawn over this.
+                          Color.clear.frame(width: catRowWidth, height: displayClosedNotchHeight)
+                      } else if !liveActivities.isEmpty && vm.notchState == .closed && !activitiesMakeWay {
+                          // Without the cat.
                           LiveActivityStack(items: liveActivities, index: $activityIndex) { item in
                               switch item {
                               case .notification(let notification):
-                                  NotificationLiveActivity(notification: notification, catPlaying: catInNotification)
+                                  NotificationLiveActivity(notification: notification)
                               case .notificationIcon(let notification):
-                                  NotificationLiveActivity(notification: notification, iconOnly: true, catPlaying: catInNotification)
+                                  NotificationLiveActivity(notification: notification, iconOnly: true)
                               case .music:
                                   MusicLiveActivity()
                                       .frame(alignment: .center)
                               }
                           }
-                      } else if vm.notchState == .closed && showsIdleCat {
-                          RainbowCatIdle()
                        } else if vm.notchState == .open && showsSystemMonitor && openNotification == nil {
                            SystemMonitorHeader()
                                .frame(height: max(38, displayClosedNotchHeight))
@@ -773,6 +855,13 @@ struct ContentView: View {
                        } else {
                            Rectangle().fill(.clear).frame(width: vm.closedNotchSize.width - 20, height: displayClosedNotchHeight)
                        }
+                    }
+                    // Always there while the cat is on, so the cat and its
+                    // sky go on through every change of what the notch
+                    // shows, hidden while something else shows instead.
+                    .overlay(alignment: .top) {
+                        if rainbowCatEnabled { ClosedCatRow() }
+                    }
 
                         if coordinator.shouldShowSneakPeek(on: vm.screenUUID) {
                            if (coordinator.sneakPeekState(for: vm.screenUUID).type != .music) && (coordinator.sneakPeekState(for: vm.screenUUID).type != .battery) && !Defaults[.inlineOSD] && vm.notchState == .closed {
@@ -953,8 +1042,7 @@ struct ContentView: View {
     /// for a full-screen app, and media playing without the music pill.
     private var showsIdleCat: Bool {
         rainbowCatEnabled
-            && !coordinator.expandingView.show
-            && liveActivities.isEmpty
+            && (activitiesMakeWay || (!coordinator.expandingView.show && liveActivities.isEmpty))
     }
 
     /// A notification in the closed notch keeps the cat in the right wing,
@@ -972,32 +1060,91 @@ struct ContentView: View {
     /// as tall as the closed notch.
     private var catWingWidth: CGFloat { RainbowCatNSView.wingWidth }
 
-    /// The cat's wing. Opening the notch with the pointer here shows the
-    /// system monitor (see `noteOpeningFromCat`).
+    /// The cat's row: the starry wing on the left, the middle over the
+    /// cutout, the cat on the right. Always in place while the cat is on,
+    /// and shown only while the closed notch shows the cat, so the cat and
+    /// its sky are never made afresh: a cat made afresh would lose its notes
+    /// and play its way into warp again. What the notch shows fills the
+    /// slots: nothing for the idle cat, the album art and the song-change
+    /// peek for music, the app's icon for a notification. Opening the notch
+    /// with the pointer on the cat shows the system monitor (see
+    /// `noteOpeningFromCat`).
     @ViewBuilder
-    private func catWing(isPlaying: Bool) -> some View {
-        RainbowCat(isPlaying: isPlaying, isActive: vm.notchState == .closed)
-            .frame(width: catWingWidth, height: displayClosedNotchHeight)
+    func ClosedCatRow() -> some View {
+        let height = displayClosedNotchHeight
+        let middle = catRowMiddleWidth
+        let leftWing = foldsLeftWing ? 0 : catWingWidth
+        HStack(spacing: 0) {
+            ZStack(alignment: .trailing) {
+                HStack(spacing: 0) {
+                    // Folding away only narrows the frame around the sky, so
+                    // it keeps going and is full again when the wing comes back.
+                    RainbowStars().frame(width: catWingWidth, height: height)
+                        .frame(width: leftWing, alignment: .trailing)
+                        .clipped()
+                        .zIndex(1)
+                    Rectangle()
+                        .fill(.black)
+                        .frame(width: middle)
+                }
+                // Laid out in full and cut at the sides only, so a folded
+                // wing takes the art or icon with it and a badge keeps its
+                // corner.
+                catRowSlots(middleWidth: middle)
+                    .frame(width: catWingWidth + middle, height: height)
+                    .frame(width: leftWing + middle, alignment: .trailing)
+                    .mask(Rectangle().padding(.vertical, -20))
+            }
+            RainbowCat(isPlaying: musicManager.isPlaying, isActive: catRowShows)
+                .frame(width: catWingWidth, height: height)
+        }
+        .frame(height: height)
+        .opacity(catRowShows ? 1 : 0)
+        .allowsHitTesting(catRowShows)
     }
 
-    /// The cat on the right of the cutout and an equal empty wing on the
-    /// left, so the closed notch stays centred.
+    /// What fills the cat row's left wing and middle. Made only while the
+    /// row shows: the album art here and in the open player are one
+    /// matched geometry.
     @ViewBuilder
-    func RainbowCatIdle() -> some View {
-        HStack(spacing: 0) {
-            // Above the black middle, which its sky reaches in over. Folding
-            // away only narrows the frame around it, so the sky keeps going
-            // and is full again when the wing comes back.
-            RainbowStars().frame(width: catWingWidth, height: displayClosedNotchHeight)
-                .frame(width: foldsLeftWing ? 0 : catWingWidth, alignment: .trailing)
-                .clipped()
-                .zIndex(1)
-            Rectangle()
-                .fill(.black)
-                .frame(width: vm.closedNotchSize.width + 2 * liveActivityEdgeMargin)
-            catWing(isPlaying: musicManager.isPlaying)
+    private func catRowSlots(middleWidth: CGFloat) -> some View {
+        if catRowActivity != nil {
+            LiveActivityStack(items: liveActivities, index: $activityIndex) { item in
+                HStack(spacing: 0) {
+                    switch item {
+                    case .notification(let notification):
+                        notificationIconBesideCat(notification, iconOnly: false)
+                        Color.clear.frame(width: middleWidth)
+                    case .notificationIcon(let notification):
+                        notificationIconBesideCat(notification, iconOnly: true)
+                        Color.clear.frame(width: middleWidth)
+                    case .music:
+                        // Beside the cat: larger, centred in what shows of
+                        // this side, the wing and the margin before the cutout.
+                        closedAlbumArt(size: closedArtSize(besideCat: true))
+                            .offset(x: liveActivityEdgeMargin / 2)
+                            .frame(width: catWingWidth)
+                        Color.clear
+                            .overlay(musicPeekLabels())
+                            .frame(width: middleWidth)
+                    }
+                }
+            }
+        } else {
+            Color.clear
         }
-        .frame(height: displayClosedNotchHeight, alignment: .center)
+    }
+
+    /// A notification's icon in the cat row's left wing, as large as the
+    /// album art there.
+    private func notificationIconBesideCat(_ notification: SystemNotification, iconOnly: Bool) -> some View {
+        NotificationSourceIcon(
+            bundleID: notification.bundleID,
+            size: max(0, vm.effectiveClosedNotchHeight - 5),
+            showsBadge: iconOnly
+        )
+        .offset(x: liveActivityEdgeMargin / 2)
+        .frame(width: catWingWidth)
     }
 
     /// True while the song-change peek is expanding the closed pill inline.
@@ -1026,144 +1173,137 @@ struct ContentView: View {
     /// Space reserved for the title (left of the cutout) and artist (right).
     private let inlineMusicPeekLabelWidth: CGFloat = 110
 
+    /// The album art in the closed notch: larger beside the cat, whose
+    /// wider wings leave room for it.
+    private func closedArtSize(besideCat: Bool) -> CGFloat {
+        let inset: CGFloat = besideCat ? 5 : 12
+        if let scale = cornerRadiusScaleFactor {
+            return displayClosedNotchHeight - inset * scale
+        }
+        return displayClosedNotchHeight - inset
+    }
+
+    @ViewBuilder
+    private func closedAlbumArt(size: CGFloat) -> some View {
+        let closedCornerRadius: CGFloat = {
+            let base = MusicPlayerImageSizes.cornerRadiusInset.closed
+            if let scale = cornerRadiusScaleFactor {
+                return max(0, base * scale)
+            }
+            return base
+        }()
+
+        Image(nsImage: musicManager.albumArt)
+            .resizable().scaledToFit()
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius: closedCornerRadius)
+            )
+            .matchedGeometryEffect(id: "albumArt", in: albumArtNamespace)
+            .frame(width: size, height: size)
+            // An icon-only notification borrows the art's place for a
+            // while; the art stays underneath so it can come straight back.
+            .opacity(notificationManager.iconPeek == nil ? 1 : 0)
+            .overlay {
+                if hasPeekIcon {
+                    let peeking = notificationManager.iconPeek != nil
+                    NotificationSourceIcon(bundleID: peekIconBundleID, size: size, showsBadge: true)
+                        .opacity(peeking ? 1 : 0)
+                        .scaleEffect(peeking ? 1 : 0.8)
+                        .allowsHitTesting(false)
+                }
+            }
+            .animation(.easeInOut(duration: 0.3), value: notificationManager.iconPeek?.id)
+            .onChange(of: notificationManager.iconPeek?.id) { _, _ in
+                if let peek = notificationManager.iconPeek {
+                    peekIconBundleID = peek.bundleID
+                    hasPeekIcon = true
+                }
+            }
+    }
+
+    /// The song-change peek's title and artist, either side of the cutout.
+    /// .center, not .top: the album art beside them is vertically centred,
+    /// so top-aligned labels sat visibly high against it.
+    @ViewBuilder
+    private func musicPeekLabels() -> some View {
+        HStack(alignment: .center) {
+            if coordinator.expandingView.show
+                && coordinator.expandingView.type == .music {
+                MarqueeText(
+                    musicManager.songTitle,
+                    color: Defaults[.coloredSpectrogram]
+                        ? Color(nsColor: musicManager.avgColor) : Color.gray,
+                    delayDuration: 0.4,
+                    frameWidth: inlineMusicPeekLabelWidth
+                )
+                .opacity(
+                    (coordinator.expandingView.show
+                        && Defaults[.sneakPeekStyles] == .inline)
+                        ? 1 : 0
+                )
+                Spacer(minLength: vm.closedNotchSize.width)
+                // Song Artist
+                Text(musicManager.artistName)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(width: inlineMusicPeekLabelWidth, alignment: .trailing)
+                    .foregroundStyle(
+                        Defaults[.coloredSpectrogram]
+                            ? Color(nsColor: musicManager.avgColor)
+                            : Color.gray
+                    )
+                    .opacity(
+                        (coordinator.expandingView.show
+                            && coordinator.expandingView.type == .music
+                            && Defaults[.sneakPeekStyles] == .inline)
+                            ? 1 : 0
+                    )
+            }
+        }
+        .padding(.horizontal, 8)
+    }
+
+    /// Music in the closed notch without the cat: the art, the middle and
+    /// the waveform.
     @ViewBuilder
     func MusicLiveActivity() -> some View {
+        let artSize = closedArtSize(besideCat: false)
+        // The art's top/bottom gap to the pill; the leading offset below
+        // trims the row's edge slack down to this same inset.
+        let artVerticalInset = (displayClosedNotchHeight - artSize) / 2
         HStack(spacing: 0) {
-            // Closed-mode album art: scale padding and corner radius according to cornerRadiusScaleFactor
-            // The cat's wider wings leave room for bigger art.
-            let baseArtSize = displayClosedNotchHeight - (showsCatInPlayer ? 5 : 12)
-            let scaledArtSize: CGFloat = {
-                if let scale = cornerRadiusScaleFactor {
-                    return displayClosedNotchHeight - (showsCatInPlayer ? 5 : 12) * scale
-                }
-                return baseArtSize
-            }()
-            // The art's top/bottom gap to the pill; the leading offset below
-            // trims the row's edge slack down to this same inset.
-            let artVerticalInset = (displayClosedNotchHeight - scaledArtSize) / 2
-
-            let closedCornerRadius: CGFloat = {
-                let base = MusicPlayerImageSizes.cornerRadiusInset.closed
-                if let scale = cornerRadiusScaleFactor {
-                    return max(0, base * scale)
-                }
-                return base
-            }()
-
-            Image(nsImage: musicManager.albumArt)
-                .resizable().scaledToFit()
-                .clipShape(
-                    RoundedRectangle(
-                        cornerRadius: closedCornerRadius)
-                )
-                .matchedGeometryEffect(id: "albumArt", in: albumArtNamespace)
-                .frame(
-                    width: scaledArtSize,
-                    height: scaledArtSize
-                )
-                // An icon-only notification borrows the art's place for a
-                // while; the art stays underneath so it can come straight back.
-                .opacity(notificationManager.iconPeek == nil ? 1 : 0)
-                .overlay {
-                    if hasPeekIcon {
-                        let peeking = notificationManager.iconPeek != nil
-                        NotificationSourceIcon(bundleID: peekIconBundleID, size: scaledArtSize, showsBadge: true)
-                            .opacity(peeking ? 1 : 0)
-                            .scaleEffect(peeking ? 1 : 0.8)
-                            .allowsHitTesting(false)
-                    }
-                }
-                .animation(.easeInOut(duration: 0.3), value: notificationManager.iconPeek?.id)
-                .onChange(of: notificationManager.iconPeek?.id) { _, _ in
-                    if let peek = notificationManager.iconPeek {
-                        peekIconBundleID = peek.bundleID
-                        hasPeekIcon = true
-                    }
-                }
-                // Beside the cat, centred in what shows of this side: the wing
-                // and the margin before the cutout.
-                .offset(x: showsCatInPlayer ? liveActivityEdgeMargin / 2 : artVerticalInset - liveActivityEdgeMargin)
-                // As wide as the cat's wing on the other side, art in the middle of it.
-                .frame(width: showsCatInPlayer ? catWingWidth : nil, alignment: .center)
-                .background {
-                    // The cat's sky goes on behind the album art.
-                    if showsCatInPlayer {
-                        RainbowStars().frame(width: catWingWidth, height: displayClosedNotchHeight)
-                    }
-                }
+            closedAlbumArt(size: artSize)
+                .offset(x: artVerticalInset - liveActivityEdgeMargin)
                 .zIndex(1)
 
             Rectangle()
                 .fill(.black)
-                .overlay(
-                    // .center, not .top: the album art beside this is
-                    // vertically centered, so top-aligned labels sat visibly
-                    // high against it.
-                    HStack(alignment: .center) {
-                        if coordinator.expandingView.show
-                            && coordinator.expandingView.type == .music {
-                            MarqueeText(
-                                musicManager.songTitle,
-                                color: Defaults[.coloredSpectrogram]
-                                    ? Color(nsColor: musicManager.avgColor) : Color.gray,
-                                delayDuration: 0.4,
-                                frameWidth: inlineMusicPeekLabelWidth
-                            )
-                            .opacity(
-                                (coordinator.expandingView.show
-                                    && Defaults[.sneakPeekStyles] == .inline)
-                                    ? 1 : 0
-                            )
-                            Spacer(minLength: vm.closedNotchSize.width)
-                            // Song Artist
-                            Text(musicManager.artistName)
-                                .lineLimit(1)
-                                .truncationMode(.tail)
-                                .frame(width: inlineMusicPeekLabelWidth, alignment: .trailing)
-                                .foregroundStyle(
-                                    Defaults[.coloredSpectrogram]
-                                        ? Color(nsColor: musicManager.avgColor)
-                                        : Color.gray
-                                )
-                                .opacity(
-                                    (coordinator.expandingView.show
-                                        && coordinator.expandingView.type == .music
-                                        && Defaults[.sneakPeekStyles] == .inline)
-                                        ? 1 : 0
-                                )
-                        }
-                    }
-                    .padding(.horizontal, 8)
-                )
+                .overlay(musicPeekLabels())
                 .frame(width: musicActivityCenterWidth)
 
-            if showsCatInPlayer {
-                // The trail is the waveform while something plays.
-                catWing(isPlaying: musicManager.isPlaying)
-            } else {
-                HStack {
-                    MusicVisualizer(
-                        isPlaying: musicManager.isPlaying,
-                        tintColor: Defaults[.coloredSpectrogram]
-                        ? Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.5)
-                        : Color.gray,
-                        isActive: vm.notchState == .closed
-                    )
-                    .frame(width: 18, height: 12)
-                }
-                .frame(
-                    width: max(
-                        0,
-                        displayClosedNotchHeight - 12
-                            + gestureProgress / 2
-                    ),
-                    height: max(
-                        0,
-                        displayClosedNotchHeight - 12
-                    ),
-                    alignment: .center
+            HStack {
+                MusicVisualizer(
+                    isPlaying: musicManager.isPlaying,
+                    tintColor: Defaults[.coloredSpectrogram]
+                    ? Color(nsColor: musicManager.avgColor).ensureMinimumBrightness(factor: 0.5)
+                    : Color.gray,
+                    isActive: vm.notchState == .closed
                 )
+                .frame(width: 18, height: 12)
             }
+            .frame(
+                width: max(
+                    0,
+                    displayClosedNotchHeight - 12
+                        + gestureProgress / 2
+                ),
+                height: max(
+                    0,
+                    displayClosedNotchHeight - 12
+                ),
+                alignment: .center
+            )
         }
         .frame(
             height: displayClosedNotchHeight,
