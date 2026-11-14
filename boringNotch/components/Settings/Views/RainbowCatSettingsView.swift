@@ -63,7 +63,7 @@ struct RainbowCatSettingsView: View {
 
             Section {
                 Defaults.Toggle(key: .rainbowCat) {
-                    Text("Show the rainbow cat")
+                    Text("Show the piano cat")
                 }
             } footer: {
                 Text("While nothing plays, a pixel cat with a piano keyboard for a body runs on the right of the closed notch, with an empty wing of the same width on the left. It runs faster the busier the CPU is.")
@@ -124,7 +124,7 @@ struct RainbowCatSettingsView: View {
         }
         .formStyle(.grouped)
         .accentColor(.effectiveAccent)
-        .navigationTitle("Rainbow Cat")
+        .navigationTitle("Piano Cat")
     }
 
     /// The closed notch at twice the size, across the whole row, with the
