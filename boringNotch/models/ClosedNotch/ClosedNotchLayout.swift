@@ -23,6 +23,9 @@ struct ClosedNotchLayout: Equatable {
     var edgeMargin: CGFloat
     /// Radius of the closed notch's bottom corners.
     var bottomCornerRadius: CGFloat
+    /// How far what the closed notch shows reaches left of the cutout, not
+    /// counting the bottom corner. Nil for the idle cat's starry wing.
+    var leftReach: CGFloat? = nil
 
     // MARK: - Hover region
 
@@ -42,6 +45,12 @@ struct ClosedNotchLayout: Equatable {
 
     static let batteryStatusWidth: CGFloat = 640
 
+    /// The cat's row: a wing either side of the cutout and its margins. The
+    /// idle cat, and music or a notification beside the cat, all fill it.
+    var catRowWidth: CGFloat {
+        cutoutWidth + 2 * catWingWidth + 2 * edgeMargin
+    }
+
     /// Width of the transparent chin under the closed notch, which is what
     /// the pointer can hover over.
     func chinWidth(for content: ChinContent) -> CGFloat {
@@ -53,18 +62,17 @@ struct ClosedNotchLayout: Equatable {
         case .batteryStatus:
             return Self.batteryStatusWidth
         case .notification(let withCat):
+            // Beside the cat it is the cat's row.
+            if withCat { return catRowWidth }
             let iconSide = max(0, effectiveRowHeight - 12)
-            var width = cutoutWidth + 2 * iconSide + 20
-            if withCat { width += 2 * (catWingWidth - iconSide) }
-            return width
+            return cutoutWidth + 2 * iconSide + 20
         case .music(let withCat, let inlinePeekWidth):
+            let peek = inlinePeekWidth.map { 2 * $0 } ?? 0
+            if withCat { return catRowWidth + peek }
             let artSide = max(0, rowHeight - 12)
-            var width = cutoutWidth + 2 * artSide + 20 + 2 * edgeMargin + 2
-            if withCat { width += 2 * (catWingWidth - artSide) }
-            if let inlinePeekWidth { width += 2 * inlinePeekWidth }
-            return width
+            return cutoutWidth + 2 * artSide + 20 + 2 * edgeMargin + 2 + peek
         case .idleCat:
-            return cutoutWidth + 2 * catWingWidth + 2 * edgeMargin
+            return catRowWidth
         }
     }
 
@@ -80,7 +88,8 @@ struct ClosedNotchLayout: Equatable {
     /// From the left wing's outer edge to the cutout.
     func leftWingSpan(on screen: CGRect) -> WingSpan {
         let cutout = screen.midX - cutoutWidth / 2
-        return WingSpan(outer: cutout - edgeMargin - catWingWidth - bottomCornerRadius, cutout: cutout)
+        let reach = leftReach ?? (edgeMargin + catWingWidth)
+        return WingSpan(outer: cutout - reach - bottomCornerRadius, cutout: cutout)
     }
 
     /// Whether the pointer is in the menu bar, from `slack` points left of

@@ -39,8 +39,8 @@ final class ClosedNotchLayoutTests: XCTestCase {
     func testChinWidthOfNotification() {
         // Icon side 32 - 12 = 20 on each side, plus 20.
         XCTAssertEqual(layout.chinWidth(for: .notification(withCat: false)), 200 + 40 + 20)
-        // With the cat, the right side grows to the cat's wing.
-        XCTAssertEqual(layout.chinWidth(for: .notification(withCat: true)), 260 + 2 * (70 - 20))
+        // Beside the cat it is the cat's row, as wide as the idle cat's.
+        XCTAssertEqual(layout.chinWidth(for: .notification(withCat: true)), 200 + 140 + 16)
     }
 
     func testNotificationUsesConfiguredHeightAndMusicUsesDrawnHeight() {
@@ -55,9 +55,9 @@ final class ClosedNotchLayoutTests: XCTestCase {
     func testChinWidthOfMusic() {
         let plain: CGFloat = 200 + 40 + 20 + 16 + 2
         XCTAssertEqual(layout.chinWidth(for: .music(withCat: false, inlinePeekWidth: nil)), plain)
-        XCTAssertEqual(layout.chinWidth(for: .music(withCat: true, inlinePeekWidth: nil)), plain + 2 * (70 - 20))
-        XCTAssertEqual(layout.chinWidth(for: .music(withCat: true, inlinePeekWidth: 110)),
-                       plain + 2 * (70 - 20) + 220)
+        // Beside the cat it is the cat's row, widened by the peek's labels.
+        XCTAssertEqual(layout.chinWidth(for: .music(withCat: true, inlinePeekWidth: nil)), 200 + 140 + 16)
+        XCTAssertEqual(layout.chinWidth(for: .music(withCat: true, inlinePeekWidth: 110)), 200 + 140 + 16 + 220)
     }
 
     func testChinWidthOfIdleCat() {

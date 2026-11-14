@@ -173,9 +173,6 @@ struct NotificationLiveActivity: View {
     let notification: SystemNotification
     /// Just the app's icon on the left, for an icon-only app.
     var iconOnly = false
-    /// With the rainbow cat on, it keeps the right wing (running with notes
-    /// when this is true) and the icon gets a wing as wide on the left.
-    var catPlaying: Bool? = nil
 
     @State private var ringScale: CGFloat = 1
     @State private var ringOpacity = 0.0
@@ -184,35 +181,21 @@ struct NotificationLiveActivity: View {
         max(0, vm.effectiveClosedNotchHeight - 12)
     }
 
+    /// Without the cat: the icon, the middle and a dot. Beside the cat the
+    /// icon goes in the cat's row instead (see `ContentView.ClosedCatRow`).
     var body: some View {
         HStack {
-            // Beside the cat: bigger, and centred in what shows of this side,
-            // the wing and the margin before the cutout, like the album art.
             NotificationSourceIcon(
                 bundleID: notification.bundleID,
-                size: catPlaying == nil ? itemSize : max(0, vm.effectiveClosedNotchHeight - 5),
+                size: itemSize,
                 showsBadge: iconOnly
             )
-                .offset(x: catPlaying == nil ? 0 : liveActivityEdgeMargin / 2)
-                .frame(width: catPlaying == nil ? nil : RainbowCatNSView.wingWidth, alignment: .center)
-                .background {
-                    // The cat's sky goes on behind the icon.
-                    if catPlaying != nil {
-                        RainbowStars().frame(width: RainbowCatNSView.wingWidth, height: vm.effectiveClosedNotchHeight)
-                    }
-                }
-                .zIndex(1)
 
             Rectangle()
                 .fill(.black)
                 .frame(width: vm.closedNotchSize.width - cornerRadiusInsets.closed.top)
 
-            if let catPlaying {
-                RainbowCat(isPlaying: catPlaying, isActive: vm.notchState == .closed)
-                    .frame(width: RainbowCatNSView.wingWidth, height: vm.effectiveClosedNotchHeight)
-            } else {
-                dot
-            }
+            dot
         }
         .frame(height: vm.effectiveClosedNotchHeight)
         .onAppear { pulse() }

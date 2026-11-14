@@ -65,7 +65,7 @@ The sky has three depth layers, with closer stars appearing larger, brighter and
 - Media: the cat can replace the waveform beside the album art and emit colored notes in alternating forward and backward directions. Intervals, angles and sway vary randomly, and notes traveling in the same direction do not overlap. Enabling "Notes follow the volume" produces more notes as volume rises. This requires the realtime audio waveform.
 - Notifications: the cat runs beside a notification's icon.
 - Preview: the settings page has a full-width preview and test buttons that show the idle, speed-up, warp, full load and singing states in the preview and on the notch at the same time. Each test lasts 15 seconds.
-- Menu avoidance: when the left starry wing covers app menus, moving the pointer over it collapses the wing to reveal them. The wing expands again after the pointer leaves the menu bar and all menus are closed.
+- Menu avoidance: when the left side of the notch covers app menus, moving the pointer over it collapses that side to reveal them. This also works while media plays or a notification shows, and the cat keeps its place and its motion. The left side expands again after the pointer leaves the menu bar and all menus are closed.
 
 <p align="center"><img src="docs/images/menu-avoidance.gif" alt="The starry wing folds away as the pointer comes over it, uncovering the Help menu" width="420"><br>Menu avoidance</p>
 

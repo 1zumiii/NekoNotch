@@ -93,7 +93,7 @@ struct RainbowCatSettingsView: View {
                     Text("Make way for app menus")
                 }
             } footer: {
-                Text("When an app has so many menus that the starry wing left of the notch covers the last of them, the wing folds away as the pointer comes over it, and opens again once the pointer has left the menu bar and no menu is open.")
+                Text("When an app has so many menus that the left side of the notch covers the last of them, it folds away as the pointer comes over it, and opens again once the pointer has left the menu bar and no menu is open. This works while music or a notification shows too, and the cat keeps running and singing meanwhile.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
