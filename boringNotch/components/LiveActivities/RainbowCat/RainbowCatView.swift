@@ -320,7 +320,7 @@ final class RainbowCatNSView: NSView, AudioCaptureLevelsConsumer {
     /// The cat and the sky each speed up as far as the settings say.
     private func setCPULoad(_ load: Double) {
         guard !reducesMotion else { return }
-        let speed = Float(1 + min(max(load, 0), 1) * (Defaults[.rainbowCatMaxSpeed] - 1))
+        let speed = Float(1 + CPULoadMonitor.pace(for: load) * (Defaults[.rainbowCatMaxSpeed] - 1))
         StarSky.retime(stage, to: speed)
         sky.update(load: load, parentSpeed: stage.speed)
     }

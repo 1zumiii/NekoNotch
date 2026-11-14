@@ -901,26 +901,6 @@
         }
       }
     },
-    "Cat at full load" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "猫的满载速度"
-          }
-        }
-      }
-    },
-    "Stars at full load" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "星空的满载速度"
-          }
-        }
-      }
-    },
     "Warp speed" : {
       "localizations" : {
         "zh-Hans" : {
@@ -937,16 +917,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "跃迁阈值（CPU 占用率）"
-          }
-        }
-      }
-    },
-    "The cat and the stars speed up with the CPU load, from their resting pace up to the speeds above at full load. With warp speed on, past the threshold the stars give way to streaks of light; they come back once the load drops 10% below it." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "CPU 占用率越高，猫和星空的移动速度越快，满载时达到设定倍数。开启跃迁效果后，占用率达到阈值时，星星变为光线；低于阈值 10 个百分点时，恢复星星效果。"
           }
         }
       }
@@ -9337,6 +9307,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "音符跟随音量"
+          }
+        }
+      }
+    },
+    "Cat at its fastest" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "猫的最高速度"
+          }
+        }
+      }
+    },
+    "Stars at their fastest" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "星空的最高速度"
+          }
+        }
+      }
+    },
+    "The cat and the stars speed up with the CPU load, from their resting pace up to the speeds above: reached at the warp threshold with warp speed on, at full load with it off. With warp speed on, past the threshold the stars give way to streaks of light; they come back once the load drops 10% below it." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CPU 占用率越高，猫和星空的移动速度越快：开启跃迁效果时，在跃迁阈值处达到设定倍数；关闭时，在满载时达到。开启跃迁效果后，占用率达到阈值时，星星变为光线；低于阈值 10 个百分点时，恢复星星效果。"
           }
         }
       }

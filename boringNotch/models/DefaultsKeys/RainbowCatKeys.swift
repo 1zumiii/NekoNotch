@@ -33,7 +33,7 @@ extension Defaults.Keys {
     static let rainbowCatMaxSpeed = Key<Double>("rainbowCatMaxSpeed", default: 3)
 
     /// How many times as fast the stars drift at full CPU load as at rest.
-    static let rainbowCatSkyMaxSpeed = Key<Double>("rainbowCatSkyMaxSpeed", default: 4)
+    static let rainbowCatSkyMaxSpeed = Key<Double>("rainbowCatSkyMaxSpeed", default: 5.5)
 
     /// Past `rainbowCatWarpThreshold` CPU load, the stars turn into streaks of light.
     static let rainbowCatWarp = Key<Bool>("rainbowCatWarp", default: true)

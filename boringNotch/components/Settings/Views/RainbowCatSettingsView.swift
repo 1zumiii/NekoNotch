@@ -100,8 +100,8 @@ struct RainbowCatSettingsView: View {
             .disabled(!enabled)
 
             Section {
-                speedSlider("Cat at full load", value: $catMaxSpeed, range: 1...6, step: 0.5)
-                speedSlider("Stars at full load", value: $skyMaxSpeed, range: 1...10, step: 0.5)
+                speedSlider("Cat at its fastest", value: $catMaxSpeed, range: 1...6, step: 0.5)
+                speedSlider("Stars at their fastest", value: $skyMaxSpeed, range: 1...10, step: 0.5)
                 Toggle(isOn: $warp) {
                     Text("Warp speed")
                 }
@@ -116,7 +116,7 @@ struct RainbowCatSettingsView: View {
             } header: {
                 Text("Speed")
             } footer: {
-                Text("The cat and the stars speed up with the CPU load, from their resting pace up to the speeds above at full load. With warp speed on, past the threshold the stars give way to streaks of light; they come back once the load drops 10% below it.")
+                Text("The cat and the stars speed up with the CPU load, from their resting pace up to the speeds above: reached at the warp threshold with warp speed on, at full load with it off. With warp speed on, past the threshold the stars give way to streaks of light; they come back once the load drops 10% below it.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

@@ -6,6 +6,7 @@
 //  only while a cat is on screen. The same reading keeps the system
 //  monitor's history going while the panel is closed.
 //
+import Defaults
 import Foundation
 
 @MainActor
@@ -68,6 +69,15 @@ final class CPULoadMonitor {
             self.simulated = nil
             self.broadcast()
         }
+    }
+
+    /// How far the cat and the sky are from their resting pace towards their
+    /// fastest, 0...1. With warp on they reach it at the warp threshold, as
+    /// past that the sky is in warp; with warp off, at full load.
+    nonisolated static func pace(for load: Double) -> Double {
+        let load = min(max(load, 0), 1)
+        guard Defaults[.rainbowCatWarp] else { return load }
+        return min(load / max(Defaults[.rainbowCatWarpThreshold], 0.05), 1)
     }
 
     private func broadcast() {
