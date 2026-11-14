@@ -366,6 +366,7 @@ final class StarSky: @unchecked Sendable {
         Self.retime(stars, to: warping ? Self.flingSpeed : 1)
         Self.retime(prefill, to: warping && !prefillHoldsStreaks ? Self.flingSpeed : 1)
         Self.retime(twinkles.layer, to: warping ? Self.flingSpeed : 1)
+        twinkles.matchPace()
         Self.retime(brakingStars, to: brakingStarsSpeed, tolerance: 0)
         twinkles.setSuspended(warping || braking != nil)
         meteors.setSuspended(warping || braking != nil)
@@ -387,6 +388,7 @@ final class StarSky: @unchecked Sendable {
         let load = min(max(load, 0), 1)
         let skySpeed = 1 + load * (Defaults[.rainbowCatSkyMaxSpeed] - 1)
         Self.retime(layer, to: Float(skySpeed) / max(parentSpeed, 0.01))
+        twinkles.matchPace()
         if braking != nil { Self.retime(brakingStars, to: brakingStarsSpeed, tolerance: 0) }
 
         let threshold = Defaults[.rainbowCatWarpThreshold]
