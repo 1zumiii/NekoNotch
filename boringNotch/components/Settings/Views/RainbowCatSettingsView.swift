@@ -75,11 +75,14 @@ struct RainbowCatSettingsView: View {
                 Defaults.Toggle(key: .rainbowCatInPlayer) {
                     Text("Replace the waveform while playing")
                 }
+                Defaults.Toggle(key: .rainbowCatNotesFollowVolume) {
+                    Text("Notes follow the volume")
+                }
                 Defaults.Toggle(key: .rainbowCatSystemMonitor) {
                     Text("Open the system monitor from the cat")
                 }
             } footer: {
-                Text("While media plays, the cat takes the waveform's place beside the album art, and coloured notes float off behind it instead of the rainbow, more of them the louder the music. Hovering over the cat or clicking it opens CPU, memory, network, storage, battery and energy use instead of the usual tabs.")
+                Text("While media plays, the cat takes the waveform's place beside the album art, and coloured notes float off behind it instead of the rainbow, at a steady pace, or more of them the louder the music when they follow the volume (this needs the realtime audio waveform). Hovering over the cat or clicking it opens CPU, memory, network, storage, battery and energy use instead of the usual tabs.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
