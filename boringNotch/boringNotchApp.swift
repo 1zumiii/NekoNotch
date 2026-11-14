@@ -10,6 +10,17 @@ import Defaults
 import KeyboardShortcuts
 import SwiftUI
 
+/// True when this process is the host the unit tests run in. It then shows
+/// nothing and starts nothing: a second notch window over the real app's,
+/// stalled while the tests hold its main thread, covers notifications and
+/// spins the pointer.
+let isRunningTests: Bool = {
+    let environment = ProcessInfo.processInfo.environment
+    return environment["XCTestConfigurationFilePath"] != nil
+        || environment["XCTestBundlePath"] != nil
+        || environment["XCTestSessionIdentifier"] != nil
+}()
+
 @main
 struct DynamicNotchApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -20,13 +31,14 @@ struct DynamicNotchApp: App {
         #if DEBUG
         OTPDetector.runSelfCheck()
         #endif
+        guard !isRunningTests else { return }
         Task { @MainActor in
             UpdateChecker.shared.start()
         }
     }
 
     var body: some Scene {
-        MenuBarExtra("NekoNotch", systemImage: "sparkle", isInserted: $showMenuBarIcon) {
+        MenuBarExtra("NekoNotch", systemImage: "sparkle", isInserted: isRunningTests ? .constant(false) : $showMenuBarIcon) {
             Button("Settings") {
                 DispatchQueue.main.async {
                     SettingsWindowController.shared.showWindow()
@@ -100,6 +112,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        // Nothing was started under the tests; touching the managers here
+        // would only start them on the way out.
+        guard !isRunningTests else { return }
         // Flush debounced shelf persistence to avoid losing recent changes
         ShelfStateViewModel.shared.flushSync()
 
@@ -139,6 +154,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        guard !isRunningTests else { return }
         SettingsWindowController.shared.setCamera(camera)
         migrateDisplayModeIfNeeded()
 
