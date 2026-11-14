@@ -155,6 +155,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         guard !isRunningTests else { return }
+        MainThreadWatchdog.shared.start()
         SettingsWindowController.shared.setCamera(camera)
         migrateDisplayModeIfNeeded()
 
