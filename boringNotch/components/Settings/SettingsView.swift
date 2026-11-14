@@ -41,7 +41,7 @@ private enum SettingsTab: String, CaseIterable, Identifiable {
         case .calendar: "Calendar"
         case .shelf: "Shelf"
         case .dashboard: "Dashboard"
-        case .rainbowCat: "Rainbow Cat"
+        case .rainbowCat: "Piano Cat"
         case .mixer: "Mixer"
         case .mirror: "Mirror"
         case .battery: "Battery"
