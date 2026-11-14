@@ -175,7 +175,7 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --draft \
             $prerelease \
-            --title "$GITHUB_REF_NAME" \
+            --title "NekoNotch ${GITHUB_REF_NAME#v}" \
             --notes-file notes.md \
             "artifacts/$ASSET" \
             "artifacts/$ASSET.sha256"
