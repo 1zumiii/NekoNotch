@@ -12,7 +12,12 @@ import AVFoundation
 
 private let kSystemDefinedEventType = CGEventType(rawValue: 14)!
 
-final class MediaKeyInterceptor {
+/// The tap runs on a thread of its own, not the main thread: an active tap
+/// holds up every input event behind the one it is handling, so a busy main
+/// thread used to stall clicks and keys all over the system. The tap only
+/// decides whether to swallow an event; what a key does runs on the main
+/// thread afterwards.
+final class MediaKeyInterceptor: @unchecked Sendable {
     static let shared = MediaKeyInterceptor()
 
     private enum NXKeyType: Int {
@@ -27,6 +32,8 @@ final class MediaKeyInterceptor {
 
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
+    /// The run loop of the tap's own thread, to stop it again.
+    private var tapRunLoop: CFRunLoop?
     private let step: Float = 1.0 / 16.0
     private var audioPlayer: AVAudioPlayer?
 
@@ -89,13 +96,15 @@ final class MediaKeyInterceptor {
                 let interceptor = Unmanaged<MediaKeyInterceptor>.fromOpaque(userInfo).takeUnretainedValue()
 
                 if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-                    guard AXIsProcessTrusted() else {
-                        DispatchQueue.main.async {
+                    // Back on through the main thread: while that is stuck the
+                    // tap stays off and events go straight past it.
+                    DispatchQueue.main.async {
+                        guard AXIsProcessTrusted() else {
                             interceptor.stop()
+                            return
                         }
-                        return nil
+                        interceptor.reenableEventTap(after: type)
                     }
-                    interceptor.reenableEventTap(after: type)
                     return nil
                 }
 
@@ -107,7 +116,7 @@ final class MediaKeyInterceptor {
         if let eventTap {
             runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0)
             if let runLoopSource {
-                CFRunLoopAddSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
+                tapRunLoop = Self.startTapThread(with: runLoopSource)
             }
             CGEvent.tapEnable(tap: eventTap, enable: true)
         } else {
@@ -115,16 +124,36 @@ final class MediaKeyInterceptor {
         }
     }
 
+    /// A thread that does nothing but run the tap, at the priority of input.
+    /// Returns once its run loop holds the tap's source.
+    private static func startTapThread(with source: CFRunLoopSource) -> CFRunLoop {
+        var runLoop: CFRunLoop?
+        let ready = DispatchSemaphore(value: 0)
+        let thread = Thread {
+            runLoop = CFRunLoopGetCurrent()
+            CFRunLoopAddSource(runLoop, source, .commonModes)
+            ready.signal()
+            CFRunLoopRun()
+        }
+        thread.name = "MediaKeyTap"
+        thread.qualityOfService = .userInteractive
+        thread.start()
+        ready.wait()
+        return runLoop!
+    }
+
     func stop() {
         if let eventTap {
             CGEvent.tapEnable(tap: eventTap, enable: false)
             CFMachPortInvalidate(eventTap)
         }
-        if let runLoopSource {
-            CFRunLoopRemoveSource(CFRunLoopGetMain(), runLoopSource, .commonModes)
+        if let runLoopSource, let tapRunLoop {
+            CFRunLoopRemoveSource(tapRunLoop, runLoopSource, .commonModes)
+            CFRunLoopStop(tapRunLoop)
         }
 
         runLoopSource = nil
+        tapRunLoop = nil
         eventTap = nil
     }
 
@@ -206,15 +235,14 @@ final class MediaKeyInterceptor {
             break
         }
 
-        // Handle option key action (without shift)
-        if option && !shift {
-            if handleOptionAction(for: keyType, command: command) {
-                return nil
+        // Swallowed here, acted on by the main thread without waiting for it.
+        DispatchQueue.main.async {
+            // Option (without shift) has its own action.
+            if option && !shift, self.handleOptionAction(for: keyType, command: command) {
+                return
             }
+            self.handleKeyPress(keyType: keyType, option: option, shift: shift, command: command)
         }
-
-        // Handle normal key press
-        handleKeyPress(keyType: keyType, option: option, shift: shift, command: command)
         return nil
     }
 
