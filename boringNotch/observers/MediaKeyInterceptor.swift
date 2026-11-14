@@ -56,6 +56,9 @@ final class MediaKeyInterceptor: @unchecked Sendable {
     // MARK: - Event Tap
 
     func start(promptIfNeeded: Bool = false) async {
+        // A test host must not hold up the system's input: the tests may run
+        // in several hosts at once, and each would add an active tap.
+        guard !isRunningTests else { return }
         // Ensure OSD replacement is enabled
         guard Defaults[.osdReplacement] else {
             stop()

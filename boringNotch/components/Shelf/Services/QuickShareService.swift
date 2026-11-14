@@ -111,6 +111,9 @@ final class QuickShareService: ObservableObject {
     private var lifecycleDelegate: SharingLifecycleDelegate?
 
     init() {
+        // Discovery shows a share picker, which makes the system start a
+        // share sheet process and several WebKit processes for each host.
+        guard !isRunningTests else { return }
         Task {
             await discoverAvailableProviders()
         }
