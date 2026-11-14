@@ -35,12 +35,12 @@ While no media plays, a pixel cat with a piano keyboard for a body runs on the r
 </div>
 
 - Speed: the cat and the stars move faster as CPU load rises. Their top speeds at full load are set separately; the defaults are 3× for the cat and 4× for the stars.
-- Warp: when CPU load reaches the threshold (70% by default), the stars rush out of sight and turn into streaks of light. They return once the load falls 10 percentage points below the threshold. Warp can be turned off.
-- Sky: stars come in two layers, with near ones bigger, brighter and faster; some of them twinkle. Stars drift in from the outer edge, pass behind the notch and come out on the other side.
-- Media: the cat can replace the waveform beside the album art. Colored notes rise from its head as it runs, more of them the louder the music.
+- Warp: when CPU load reaches the threshold (70% by default), a red exclamation mark flashes three times above the cat's head, the cat flies through a blue ring, and the stars rush out of sight and turn into streaks of light while the ring falls behind, faster and faster, and leaves past the far wing. Once the load falls 10 percentage points below the threshold, the cat stops hard: the sky flashes, the streaks vanish, the stars fill the sky and slow down, and the cat lurches forward and settles back. Warp can be turned off.
+- Sky: stars come in three layers, the nearer the bigger, brighter and faster, each a little brighter or dimmer than the next, in white, pale yellow and pale blue; some of them twinkle, and now and then a shooting star crosses. Stars drift in from the outer edge, pass behind the notch and come out on the other side.
+- Media: the cat can replace the waveform beside the album art. Colored notes rise from its head as it runs, leaning back and forward in turn, at random intervals, angles and sway, and notes leaning the same way never overlap. With "Notes follow the volume" on, more of them rise the louder the music (this needs the realtime audio waveform).
 - Notifications: the cat runs beside a notification's icon.
 - Preview: the settings page has a full-width preview and test buttons that show the idle, speed-up, warp, full load and singing states in the preview and on the notch at the same time. Each test lasts 15 seconds.
-- Power: Core Animation and particle emitters play the animation, and CPU load is read every 2 seconds. While idle, the app uses about 0.5% CPU.
+- Power: Core Animation and particle emitters play the animation; the app only works out a path when a note or a shooting star appears, and CPU load is read every 2 seconds. While idle, the app uses about 0.5% CPU.
 - Making way for menus: when an app has so many menus that the starry wing covers the last of them, the wing folds away as the pointer comes over it, uncovering the menus, and opens again once the pointer has left the menu bar and no menu is open.
 
 <p align="center"><img src="docs/images/menu-avoidance.gif" alt="The starry wing folds away as the pointer comes over it, uncovering the Help menu" width="420"><br>Making way for app menus</p>
