@@ -15,6 +15,29 @@
 
 NekoNotch started from [Boring Notch](https://github.com/TheBoredTeam/boring.notch) `v2.8-rc.2` and is now an independent project. Features inherited from upstream, such as music playback, the calendar and the file shelf, are described in [README.upstream.md](README.upstream.md).
 
+## Download and install
+
+Requires macOS 14 or later.
+
+### First installation
+
+1. Download the latest `NekoNotch-<version>.zip` from [Releases](https://github.com/1zumiii/NekoNotch/releases), unzip it, and move `NekoNotch.app` to Applications.
+2. The app is not notarized by Apple. Open it the first time by right-clicking it in Finder and choosing Open, or run:
+
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/NekoNotch.app
+   ```
+
+3. Grant the required permissions listed under [Permissions](#permissions).
+
+### Updates and permissions
+
+When a new version is out, the About page and the menu bar menu link to it. The app never downloads or installs updates itself.
+
+To update, replace the old version in Applications. Starting with 1.1.1, releases use a fixed signing certificate. macOS identifies the app by its bundle ID and certificate, preserving permissions across updates.
+
+Accessibility, Full Disk Access and other permissions must be granted again when updating from 1.1.0 or switching between a local build and a release. Version 1.1.0 used ad-hoc signing, which ties permissions to the code hash. Local builds and releases use different certificates. To grant permissions again, remove NekoNotch from the relevant permission lists in System Settings, then add it back.
+
 ## Features
 
 ### Piano cat
@@ -28,22 +51,25 @@ While no media plays, a pixel cat with a piano keyboard for a body runs on the r
     <td align="center"><img src="docs/images/cat-warp-in.gif" alt="Piano cat: from medium load into warp, the exclamation mark flashing and the cat flying through the blue ring" width="306"><br>Into warp</td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/images/cat-brake.gif" alt="Piano cat: the load drops to medium and the cat sits back and brakes out of warp, the stars sliding to a stop in three steps" width="306"><br>Out of warp (hard stop)</td>
+    <td align="center"><img src="docs/images/cat-brake.gif" alt="Piano cat: the load drops to medium and the cat stops hard out of warp, sitting back, the stars sliding to a stop in three steps" width="306"><br>Out of warp (hard stop)</td>
     <td align="center"><img src="docs/images/cat-singing.gif" alt="Piano cat singing while media plays" width="306"><br>Playing media</td>
   </tr>
 </table>
 </div>
 
-- Speed: the cat and the stars move faster as CPU load rises, reaching their top speeds at the warp threshold with warp on, or at full load with it off. The top speeds are set separately; the defaults are 3× for the cat and 5.5× for the stars. The cat has short legs and looks frantic when it runs too fast, so the sky carries most of the sense of speed.
-- Warp: when CPU load reaches the threshold (70% by default), a red exclamation mark flashes three times above the cat's head, the cat flies through a blue ring, and the stars rush out of sight and turn into streaks of light while the ring falls behind, faster and faster, and leaves past the far wing. Once the load falls 10 percentage points below the threshold, the cat stops hard: it sits back with its forelegs braced and its rainbow flicks up, while the streaks break into stars with tails that slide back three times, each slide shorter and each tail shorter, until the cat runs on after about a second. Warp can be turned off.
-- Sky: stars come in three layers, the nearer the bigger, brighter and faster, each a little brighter or dimmer than the next, in white, pale yellow and pale blue; some of them twinkle, and now and then a shooting star crosses. Stars drift in from the outer edge, pass behind the notch and come out on the other side.
-- Media: the cat can replace the waveform beside the album art. Colored notes rise from its head as it runs, leaning back and forward in turn, at random intervals, angles and sway, and notes leaning the same way never overlap. With "Notes follow the volume" on, more of them rise the louder the music (this needs the realtime audio waveform).
+The cat and stars speed up as CPU load rises. At the warp threshold (70% by default), a red exclamation mark flashes three times, the cat passes through a blue ring, and the stars turn into light streaks. When load falls 10 percentage points below the threshold, the cat sits back and stops hard. The stars slide to a stop in three steps, and the cat resumes running after about a second. Warp can be turned off in the settings.
+
+The sky has three depth layers, with closer stars appearing larger, brighter and faster. Stars vary in brightness and color, including white, pale yellow and pale blue. They pass behind the notch and exit on the other side, accompanied by twinkling and occasional shooting stars.
+
+- Speed and warp: each speed limit can be set separately, with defaults of 3× idle speed for the cat and 5.5× for the stars. With warp enabled, both reach their top speeds at the warp threshold. With warp disabled, they reach them at full load.
+- Media: the cat can replace the waveform beside the album art and emit colored notes in alternating forward and backward directions. Intervals, angles and sway vary randomly, and notes traveling in the same direction do not overlap. Enabling "Notes follow the volume" produces more notes as volume rises. This requires the realtime audio waveform.
 - Notifications: the cat runs beside a notification's icon.
 - Preview: the settings page has a full-width preview and test buttons that show the idle, speed-up, warp, full load and singing states in the preview and on the notch at the same time. Each test lasts 15 seconds.
-- Power: Core Animation and particle emitters play the animation; the app only works out a path when a note or a shooting star appears, and CPU load is read every 2 seconds. While idle, the app uses about 0.5% CPU.
-- Making way for menus: when an app has so many menus that the starry wing covers the last of them, the wing folds away as the pointer comes over it, uncovering the menus, and opens again once the pointer has left the menu bar and no menu is open.
+- Menu avoidance: when the left starry wing covers app menus, moving the pointer over it collapses the wing to reveal them. The wing expands again after the pointer leaves the menu bar and all menus are closed.
 
-<p align="center"><img src="docs/images/menu-avoidance.gif" alt="The starry wing folds away as the pointer comes over it, uncovering the Help menu" width="420"><br>Making way for app menus</p>
+<p align="center"><img src="docs/images/menu-avoidance.gif" alt="The starry wing folds away as the pointer comes over it, uncovering the Help menu" width="420"><br>Menu avoidance</p>
+
+Core Animation and particle emitters handle animation playback. Paths are calculated when notes and shooting stars appear, and CPU load is read every 2 seconds. At idle, the app uses about 0.5% CPU.
 
 ### System monitor
 
@@ -69,7 +95,7 @@ Notifications can appear right in the notch. An app's system banners can be turn
 - Full screen: while a full-screen app hides the notch, a notification with text scrolls once in a single line below it.
 - Click-through: clicking a notification captured from a banner clicks the system banner, so the app opens the matching conversation or item.
 - Notifications tab: lists the last 50 notifications, newest first. Open the app, remove one, or clear them all. A red dot on the tab icon marks notifications not yet seen.
-- Focus: by default, the notch shows only what the current Focus allows; the rest go to the history with a moon mark. The alternatives are to show all or none. A Focus that starts on a schedule is not detected.
+- Focus: by default, the notch shows only notifications allowed by the current Focus. Other notifications are saved to history with a moon icon. Settings also allow showing all notifications or hiding them all. Scheduled Focus activation is not detected.
 - Service status: the notification settings show whether the helper, the banner reader and the database reader are running, with a "Restart services" button and test notifications.
 
 <div align="center">
@@ -89,8 +115,8 @@ The dashboard uses a 12 × 4 grid. Each card's position and size can be changed 
 
 <p align="center"><img src="docs/images/screenshot-dashboard.png" alt="Dashboard: Claude quota and the AI usage heat map" width="602"></p>
 
-- Claude and Codex quotas: show how much of each account's quota is used. The Claude card switches between the App and CLI accounts and marks the sample time and stale data. The data comes from the collector scripts in `scripts/`; see [the collector guide](scripts/AI_USAGE.md) to install them.
-- AI usage: adds up Claude and Codex tokens and draws daily usage as a heat map. Claude is orange and Codex violet; days with both blend the colors by share, and the shade shows the total. Days are counted in UTC.
+- Claude and Codex quotas: show the proportion of each account's quota used. The Claude card can switch between App and CLI accounts and indicates the sample time and stale data. Data comes from the collector scripts in `scripts/`. See [the collector guide](scripts/AI_USAGE.md) for installation instructions.
+- AI usage: totals Claude and Codex tokens and displays daily usage as a heat map. Claude is orange and Codex is purple. Days with both blend the colors in proportion to usage, with intensity indicating the total. Dates use UTC.
 - Token totals include cache tokens and skip duplicate transcript records. Usage already counted is kept after transcripts are deleted. The totals cover only the sessions this Mac can read, not an account's usage on every device.
 
 ### Mixer
@@ -100,7 +126,7 @@ Per-app volume control built on Core Audio process taps (macOS 14.2 or later).
 <p align="center"><img src="docs/images/screenshot-mixer.png" alt="Mixer" width="602"></p>
 
 - Set the volume of each app playing audio, with mute, solo, left/right balance and mono.
-- Send each app to its own output device; if the device disconnects, the app falls back to the system default and switches back when the device returns.
+- Route each app to a separate output device. If the device disconnects, audio falls back to the system default and switches back when the device reconnects.
 - Control system output and microphone input, including device, volume and mute.
 - Per-app settings are remembered and can be saved as named scenes to restore later.
 - Live level meters are calculated only while the page is visible. With the page hidden, the mixer uses about 0.2%–0.3% of one core.
@@ -122,25 +148,6 @@ Per-app volume control built on Core Audio process taps (macOS 14.2 or later).
 </div>
 
 <p align="center"><img src="docs/images/waveform.gif" alt="The multicolor waveform beside the album art while music plays" width="272"><br>Multicolor waveform</p>
-
-## Download and install
-
-Requires macOS 14 or later.
-
-1. Download the latest `NekoNotch-<version>.zip` from [Releases](https://github.com/1zumiii/NekoNotch/releases), unzip it, and move `NekoNotch.app` to Applications.
-2. The app is not notarized by Apple. Open it the first time by right-clicking it in Finder and choosing Open, or run:
-
-   ```bash
-   xattr -dr com.apple.quarantine /Applications/NekoNotch.app
-   ```
-
-3. Grant the permissions it asks for; see [Permissions](#permissions).
-
-When a new version is out, the About page and the menu bar menu link to it. The app never downloads or installs updates itself.
-
-To update, replace the old version in Applications with the new one. From 1.1.1 on, releases are signed with a fixed certificate, so macOS knows the app by its bundle ID and that certificate and keeps the permissions it has granted.
-
-Accessibility, Full Disk Access and the others have to be granted again when updating from 1.1.0, which was signed ad hoc and had its permissions recorded against the code hash, and when swapping between a build of your own and a release, which use different certificates. Remove the old NekoNotch entry from each list in System Settings, then add it again.
 
 ## Build from source
 
@@ -170,7 +177,7 @@ xcodebuild -project boringNotch.xcodeproj -scheme boringNotch -configuration Rel
   -xcconfig Configuration/LocalSigning.xcconfig build
 ```
 
-The app and its XPC helper are both signed with that certificate, macOS identifies them by bundle ID and certificate, and permissions survive a rebuild.
+The app and its XPC helper use the same certificate. macOS identifies them by bundle ID and certificate, preserving permissions across rebuilds.
 
 ## Permissions
 
@@ -184,7 +191,7 @@ The app and its XPC helper are both signed with that certificate, macOS identifi
 ## Privacy
 
 - The notification history and the clipboard entries are kept in memory only and cleared when the app quits.
-- Quotas and AI usage are read from files the local collector scripts write; nothing is uploaded.
+- Quotas and AI usage are read from files generated by local collector scripts. No data is uploaded.
 - The update check asks the GitHub API (`api.github.com`) for this repository's latest release, at most once a day by default. It can be turned off on the About page.
 
 ## Contributing
