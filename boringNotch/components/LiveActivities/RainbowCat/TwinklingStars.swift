@@ -7,6 +7,11 @@
 //  drift and a looping brightness animation: Core Animation runs both, and
 //  the only code is a relaunch when a star has left the sky.
 //
+//  Each star is two layers. The outer one drifts, at whatever pace the sky
+//  keeps (faster under load, flung away at warp); the inner one twinkles,
+//  its speed the inverse of the outer one's, so it twinkles in real time
+//  however fast the star is going (see `matchPace`).
+//
 import AppKit
 import QuartzCore
 
@@ -14,6 +19,8 @@ final class TwinklingStars {
     /// Fills the sky's stage; the stars drift across it from right to left.
     let layer = CALayer()
     private var stars: [CALayer] = []
+    /// Each star's image, the layer that twinkles.
+    private var glints: [CALayer] = []
     private var farImages: [CGImage] = []
     private var nearImages: [CGImage] = []
     private var scale: CGFloat = 2
@@ -28,14 +35,28 @@ final class TwinklingStars {
     private static let minEntryGap: CFTimeInterval = 3
     private static let driftKey = "drift"
     private static let twinkleKey = "twinkle"
+    private static let showKey = "show"
 
     init(count: Int) {
         stars = (0..<count).map { _ in
             let star = CALayer()
-            star.magnificationFilter = .nearest
             star.opacity = 0
             layer.addSublayer(star)
             return star
+        }
+        glints = stars.map { star in
+            let glint = CALayer()
+            glint.magnificationFilter = .nearest
+            star.addSublayer(glint)
+            return glint
+        }
+    }
+
+    /// Keeps the twinkling in real time: call whenever the pace of this
+    /// layer or any above it changes.
+    func matchPace() {
+        for (star, glint) in zip(stars, glints) {
+            StarSky.retime(glint, to: 1 / StarSky.effectiveSpeed(of: star), tolerance: 0)
         }
     }
 
@@ -83,8 +104,9 @@ final class TwinklingStars {
         waiting = []
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        for star in stars {
+        for (star, glint) in zip(stars, glints) {
             star.removeAllAnimations()
+            glint.removeAllAnimations()
             star.opacity = 0
         }
         CATransaction.commit()
@@ -110,11 +132,13 @@ final class TwinklingStars {
             : layer.bounds.maxX + size.width + .random(in: 0...16)
         let endX = -size.width
 
+        guard let glint = star.sublayers?.first else { return }
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        star.contents = image
-        star.contentsScale = scale
         star.bounds = CGRect(origin: .zero, size: size)
+        glint.contents = image
+        glint.contentsScale = scale
+        glint.frame = star.bounds
         // Where it ends up: out of sight once the drift is over.
         star.position = CGPoint(x: endX, y: y)
         star.opacity = 0
@@ -133,6 +157,13 @@ final class TwinklingStars {
         drift.fillMode = .backwards
         drift.delegate = DriftEnd(owner: self, star: star)
 
+        // In sight for as long as the drift lasts.
+        let show = CABasicAnimation(keyPath: "opacity")
+        show.fromValue = 1
+        show.toValue = 1
+        show.duration = drift.duration
+        show.beginTime = begin
+
         // Bright most of the time, dimming now and then; each star at its
         // own pace and phase, so they never blink together.
         let twinkle = CAKeyframeAnimation(keyPath: "opacity")
@@ -141,11 +172,13 @@ final class TwinklingStars {
         twinkle.keyTimes = [0, 0.35, 0.5, 0.65, 0.82, 1]
         twinkle.duration = .random(in: 1.4...2.8)
         twinkle.timeOffset = .random(in: 0...twinkle.duration)
-        twinkle.repeatDuration = drift.duration
-        twinkle.beginTime = begin
+        twinkle.repeatCount = .infinity
         twinkle.preferredFrameRateRange = CAFrameRateRange(minimum: 8, maximum: 30, preferred: 15)
 
-        star.add(twinkle, forKey: Self.twinkleKey)
+        glint.removeAnimation(forKey: Self.twinkleKey)
+        StarSky.retime(glint, to: 1 / StarSky.effectiveSpeed(of: star), tolerance: 0)
+        glint.add(twinkle, forKey: Self.twinkleKey)
+        star.add(show, forKey: Self.showKey)
         star.add(drift, forKey: Self.driftKey)
     }
 }
