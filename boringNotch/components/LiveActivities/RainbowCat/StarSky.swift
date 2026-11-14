@@ -14,7 +14,8 @@ import AppKit
 import Defaults
 import QuartzCore
 
-final class StarSky {
+/// Used on the main thread only; its timer fires on the main run loop.
+final class StarSky: @unchecked Sendable {
     /// Add to the stage; its frame is set by `layout`.
     let layer = CALayer()
     private let stars = CAEmitterLayer()
@@ -31,10 +32,35 @@ final class StarSky {
     private static let prefillDuration: CFTimeInterval = 0.05
     private let twinkles = TwinklingStars(count: 3)
     private let meteors = ShootingStars()
+    /// A pale blue glow over the whole sky for a moment as warp ends.
+    private let flash = CALayer()
+    /// Steps the stars back down to their pace after a hard stop.
+    private var braking: Timer?
+    /// Coming out of warp the stars are this many times as fast, slowing to
+    /// their own pace over `brakeSteps`.
+    private static let brakeSpeeds: [Float] = [3, 2.4, 1.9, 1.5, 1.2, 1.05, 1]
+    private static let brakeStep: TimeInterval = 0.05
     private var images: [String: CGImage] = [:]
     private var scale: CGFloat = 2
+    /// Warp as the stars and streaks show it.
     private var warping = false
+    /// Warp as the CPU load asks for it; going in waits `warpEntryDelay`.
+    private var wantsWarp = false
+    private var warpEntry: Timer?
     private var running = false
+
+    /// Called the moment the load asks for warp, `warpEntryDelay` before the
+    /// sky goes to it: time for the cat to notice its ring and fly through it.
+    var onWarpEntry: (() -> Void)?
+    /// Called when the load no longer asks for warp: `fromWarp` is true if
+    /// the sky had gone to it and has just stopped hard, false if it had not
+    /// got there yet.
+    var onWarpExit: ((_ fromWarp: Bool) -> Void)?
+    /// The cat's "!" flashes this long, then the ring takes `ringApproach`
+    /// to reach it.
+    static let warpAlert: TimeInterval = 0.6
+    static let ringApproach: TimeInterval = 0.35
+    static let warpEntryDelay: TimeInterval = warpAlert + ringApproach
 
     /// How wide the strip out of sight is where stars are born.
     static let birthBand: CGFloat = 16
@@ -109,6 +135,9 @@ final class StarSky {
         prefill.emitterMode = .surface
         prefill.renderMode = .unordered
         prefill.birthRate = 0
+        flash.backgroundColor = CGColor(red: 0.75, green: 0.88, blue: 1, alpha: 1)
+        flash.opacity = 0
+        layer.addSublayer(flash)
         layer.addSublayer(prefill)
         layer.addSublayer(stars)
         layer.addSublayer(streaks)
@@ -127,6 +156,7 @@ final class StarSky {
             emitter.emitterPosition = CGPoint(x: birthX, y: layer.bounds.midY)
             emitter.emitterSize = CGSize(width: Self.birthBand, height: layer.bounds.height)
         }
+        flash.frame = layer.bounds
         prefill.frame = layer.bounds
         prefill.emitterPosition = CGPoint(x: layer.bounds.midX, y: layer.bounds.midY)
         prefill.emitterSize = layer.bounds.size
@@ -182,6 +212,13 @@ final class StarSky {
         }
     }
 
+    /// Fresh streak cells take the streaks still out with the old ones.
+    private func clearStreaks() {
+        streaks.emitterCells = Self.kinds.filter(\.streak).compactMap { kind in
+            images[kind.name].map { cell(kind, image: $0, scale: scale) }
+        }
+    }
+
     func start() {
         guard !running else { return }
         running = true
@@ -204,6 +241,8 @@ final class StarSky {
 
     func stop() {
         running = false
+        braking?.invalidate()
+        braking = nil
         stars.birthRate = 0
         streaks.birthRate = 0
         prefill.birthRate = 0
@@ -261,10 +300,73 @@ final class StarSky {
 
         let threshold = Defaults[.rainbowCatWarpThreshold]
         let warp = Defaults[.rainbowCatWarp]
-            && (warping ? load >= threshold - Self.hysteresis : load >= threshold)
-        guard warp != warping else { return }
-        warping = warp
-        applyWarp()
+            && (wantsWarp ? load >= threshold - Self.hysteresis : load >= threshold)
+        guard warp != wantsWarp else { return }
+        wantsWarp = warp
+        warpEntry?.invalidate()
+        warpEntry = nil
+        braking?.invalidate()
+        braking = nil
+        guard warp else {
+            let fromWarp = warping
+            warping = false
+            applyWarp()
+            if fromWarp { stopHard() }
+            onWarpExit?(fromWarp)
+            return
+        }
+        onWarpEntry?()
+        let timer = Timer(timeInterval: Self.warpEntryDelay, repeats: false) { [weak self] _ in
+            guard let self, self.wantsWarp else { return }
+            self.warpEntry = nil
+            self.warping = true
+            self.applyWarp()
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        warpEntry = timer
+    }
+
+    /// Out of warp the way films do it: a flash, the streaks gone at once,
+    /// and a sky full of stars still rushing by, braking to their own pace.
+    private func stopHard() {
+        guard running else { return }
+        clearStreaks()
+        fillSky()
+
+        let glow = CAKeyframeAnimation(keyPath: "opacity")
+        glow.values = [0, 0.35, 0]
+        glow.keyTimes = [0, 0.3, 1]
+        glow.duration = 0.25
+        glow.speed = 1 / Self.effectiveSpeed(of: layer)
+        flash.add(glow, forKey: "flash")
+
+        var steps = Self.brakeSpeeds[...]
+        func brake() {
+            guard let speed = steps.popFirst() else {
+                braking?.invalidate()
+                braking = nil
+                return
+            }
+            Self.retime(stars, to: speed)
+            Self.retime(prefill, to: speed)
+            Self.retime(twinkles.layer, to: speed)
+        }
+        brake()
+        let timer = Timer(timeInterval: Self.brakeStep, repeats: true) { _ in brake() }
+        RunLoop.main.add(timer, forMode: .common)
+        braking = timer
+    }
+
+    /// How fast a layer's time runs against the clock, its ancestors' speeds
+    /// included.
+    static func effectiveSpeed(of layer: CALayer) -> Float {
+        var speed: Float = 1
+        var current: CALayer? = layer
+        while let each = current {
+            speed *= each.speed
+            current = each.superlayer
+        }
+        return max(speed, 0.01)
     }
 
     /// Changing a layer's speed mid-loop would jump; carrying its local time

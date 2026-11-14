@@ -188,6 +188,51 @@ enum PixelCatSprites {
         return starTints.compactMap { tint in image(rows: shape, scale: scale) { $0 == "X" ? tint : nil } }
     }
 
+    /// The ring the cat flies through on its way into warp, seen from the
+    /// side: a bright cyan rim with deep blue inside it. Split into the half
+    /// behind the cat and the half in front, the same size so they line up.
+    static let warpRingRows = [
+        "..BBB..",
+        ".BBDBB.",
+        ".BD.DB.",
+        "BD...DB",
+        "BD...DB",
+        "BD...DB",
+        "BD...DB",
+        "BD...DB",
+        "BD...DB",
+        "BD...DB",
+        ".BD.DB.",
+        ".BBDBB.",
+        "..BBB..",
+    ]
+
+    /// A red "!" in half pixels with the notes' white outline, flashed over
+    /// the cat's head when it sees the warp ring coming.
+    static let alertRows = ["XX", "XX", "XX", "XX", "XX", "XX", "..", "XX"]
+
+    static func alertImage(scale: CGFloat) -> CGImage? {
+        outlinedImage(rows: alertRows, scale: scale, color: (0.95, 0.16, 0.18))
+    }
+
+    static func warpRingImages(scale: CGFloat) -> (back: CGImage, front: CGImage)? {
+        let middle = (warpRingRows.first?.count ?? 0) / 2
+        func half(front: Bool) -> CGImage? {
+            let rows = warpRingRows.map { row in
+                String(row.enumerated().map { column, character in (column >= middle) == front ? character : "." })
+            }
+            return image(rows: rows, scale: scale) { character in
+                switch character {
+                case "B": (0.45, 0.88, 1.0)
+                case "D": (0.16, 0.42, 1.0)
+                default: nil
+                }
+            }
+        }
+        guard let back = half(front: false), let front = half(front: true) else { return nil }
+        return (back, front)
+    }
+
     /// The furthest stars: a single point, half a sprite pixel, in each tint.
     static func dustImages(scale: CGFloat) -> [CGImage] {
         let side = max(1, Int(scale.rounded()))
