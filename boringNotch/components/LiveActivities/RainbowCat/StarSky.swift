@@ -51,6 +51,10 @@ final class StarSky: @unchecked Sendable {
     private var warping = false
     /// Warp as the CPU load asks for it; going in waits `warpEntryDelay`.
     private var wantsWarp = false
+    /// False until the first load after `start`: a sky that starts already
+    /// past the threshold goes straight to warp, with no "!" or ring, since
+    /// nothing was seen to speed up.
+    private var hasLoad = false
     private var warpEntry: Timer?
     private var running = false
 
@@ -306,6 +310,7 @@ final class StarSky: @unchecked Sendable {
         warpEntry = nil
         wantsWarp = false
         warping = false
+        hasLoad = false
         braking?.invalidate()
         braking = nil
         removeBrakingStars()
@@ -394,6 +399,13 @@ final class StarSky: @unchecked Sendable {
         let threshold = Defaults[.rainbowCatWarpThreshold]
         let warp = Defaults[.rainbowCatWarp]
             && (wantsWarp ? load >= threshold - Self.hysteresis : load >= threshold)
+        guard hasLoad else {
+            hasLoad = true
+            wantsWarp = warp
+            warping = warp
+            applyWarp()
+            return
+        }
         guard warp != wantsWarp else { return }
         wantsWarp = warp
         warpEntry?.invalidate()
