@@ -1,10 +1,30 @@
 # Changelog
 
-## Unreleased
+## 1.2.0
+
+### Added
+
+- The piano cat goes into warp with a transition: a red "!" flashes three times over its head, it flies through a blue ring and the sky goes to warp as it passes. The ring falls behind, faster and faster, behind the notch and out past the far wing. The cat stops singing until warp has begun.
+- The piano cat brakes hard out of warp: it braces for an instant, then sits back with its keyboard leaning up and pressed a little shorter, forelegs braced and tail flung forward, while its rainbow flicks up and the streaks break into stars that slide to a stop in three steps.
+- The sky behind the cat has a third layer of faint dust, stars of varying brightness in white, pale yellow and pale blue, and now and then a shooting star.
+- A switch, off by default, makes the notes follow the volume: more of them the louder the music. Off, they rise at a steady pace.
+- When the main thread stops answering for more than 1.5 seconds, the app records where it is stuck in `Library/Logs/MainThreadStalls.log` in its container.
 
 ### Changed
 
+- The rainbow cat is now called the piano cat.
+- The notes come at random intervals, angles and sway, leaning back and forward in turn, and notes leaning the same way never overlap.
+- The cat and the stars reach their top speeds at the warp threshold instead of at full load, so the whole range shows before warp. The defaults are 3x for the cat, whose short legs look frantic any faster, and 5.5x for the stars.
+- Near stars no longer drift by side by side, and twinkling stars come in at least three seconds apart.
 - The AI usage collector has new names: its folder is `~/Library/Application Support/NekoNotch` instead of `RunCatIntegrations`, the Codex file is `codex-usage.json` in that folder instead of `~/.codex/runcat-usage.json`, and the LaunchAgent is `io.github.1zumiii.nekonotch.ai-usage`. The app reads only the new locations and no longer needs access to `~/.codex`. If you installed the collector before, run `python3 scripts/install-ai-usage.py` again after updating: it moves the existing data, token cache included, retires the old agent and updates the Claude Code status line.
+
+### Fixed
+
+- The XPC helper requires the app to be signed with the same certificate as itself. Without a Team ID it used to check only the app's identifier, which anyone can sign with.
+- The media key tap runs on a thread of its own, so a busy main thread no longer holds up clicks and keys across the system. Unit test runs no longer start the app's services, which had stalled clicks for a few seconds while they ran.
+- If macOS changes how it stores notification records, the service status says the database cannot be read and names who is affected, instead of dropping every record without a word.
+- Twinkling stars no longer twinkle faster under load and at warp.
+- Notes no longer come out in step after a pause in the media.
 
 ### Removed
 
