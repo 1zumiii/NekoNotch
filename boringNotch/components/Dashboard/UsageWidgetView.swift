@@ -62,7 +62,6 @@ struct UsageWidgetView: View {
         let age = Freshness.text(of: snapshot.lastUpdatedDate, at: now) ?? "—"
         let date = snapshot.lastUpdatedDate?.formatted(date: .abbreviated, time: .standard) ?? "—"
         return snapshot.title + " · " + age + "\n" + String(localized: "Updated") + ": " + date
-            + (snapshot.isStale(at: now) ? "\n" + String(localized: "Older data; showing the last recorded usage.") : "")
     }
 
     private var claudeStrip: some View {
@@ -81,9 +80,6 @@ struct UsageWidgetView: View {
                                     .font(.system(size: 10, weight: .semibold, design: .rounded))
                             }
                             Spacer(minLength: 0)
-                            if snapshot.isStale(at: context.date) {
-                                Text("Older data").font(.system(size: 8)).foregroundStyle(.orange)
-                            }
                         } else {
                             Text("No usage data yet").font(.system(size: 10)).foregroundStyle(.secondary)
                         }
@@ -104,8 +100,7 @@ struct UsageWidgetView: View {
         TimelineView(.periodic(from: .now, by: 30)) { context in
             let date = snapshot?.lastUpdatedDate
             let age = Freshness.text(of: date, at: context.date)
-            let stale = isClaude && snapshot?.isStale(at: context.date) == true
-            let subtitle = stale ? String(localized: "Older data") : [snapshot?.model, age].compactMap { $0 }.joined(separator: " · ")
+            let subtitle = [snapshot?.model, age].compactMap { $0 }.joined(separator: " · ")
             DashboardCard(icon: icon, tint: source.tint, title: title, subtitle: subtitle.isEmpty ? nil : subtitle) {
                 if isClaude { clientSelector } else { FreshnessDot(date: date, now: context.date) }
             } content: {

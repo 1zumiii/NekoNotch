@@ -9085,26 +9085,6 @@
         }
       }
     },
-    "Older data" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "数据较旧"
-          }
-        }
-      }
-    },
-    "Older data; showing the last recorded usage." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "数据较旧，当前显示上次记录的用量。"
-          }
-        }
-      }
-    },
     "Updated" : {
       "localizations" : {
         "zh-Hans" : {
