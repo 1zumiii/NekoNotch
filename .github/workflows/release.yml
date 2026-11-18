@@ -13,8 +13,39 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Re-pushing a tag that already has a release (after a history rewrite, for
+  # example) would otherwise build it again and draft a second release beside
+  # the first. The check runs on Linux so a skipped tag costs no macOS minutes.
+  check:
+    name: Check for an existing release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      exists: ${{ steps.lookup.outputs.exists }}
+
+    steps:
+      - name: Look up releases for the tag
+        id: lookup
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Listing releases, rather than gh release view, also finds drafts,
+          # which are not attached to their tag until they are published.
+          ids="$(
+            gh api "repos/$GITHUB_REPOSITORY/releases" --paginate \
+              --jq ".[] | select(.tag_name == \"$GITHUB_REF_NAME\") | .id"
+          )"
+          if [ -n "$ids" ]; then
+            echo "$GITHUB_REF_NAME already has a release ($(echo $ids)); skipping the build."
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
   release:
     name: Build and draft the release
+    needs: check
+    if: needs.check.outputs.exists != 'true'
     runs-on: macos-26
     timeout-minutes: 45
 
