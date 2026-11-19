@@ -148,8 +148,23 @@ def atomic_json(path, value):
             os.unlink(name)
 
 
+def same_claude_account(home):
+    """True when the desktop app and Claude Code are signed in to one account,
+    False when they differ, None when either side is unknown. Only the two
+    account ids are compared; nothing else is read from these files."""
+    try:
+        cli = json.loads((home / ".claude.json").read_text()).get("oauthAccount", {}).get("accountUuid")
+        app = json.loads((home / "Library/Application Support/Claude/config.json").read_text()).get("lastKnownAccountUuid")
+    except (OSError, ValueError, AttributeError):
+        return None
+    if not isinstance(cli, str) or not isinstance(app, str) or not cli or not app:
+        return None
+    return cli == app
+
+
 def export_app_quota(home, output):
-    """Export only the latest App quota sample into the sandbox-readable folder."""
+    """Export only the latest App quota sample into the sandbox-readable folder,
+    with whether the CLI uses the same account (sameAccount, when known)."""
     try:
         history = json.loads((home / "Library/Application Support/Claude/plan-usage-history.json").read_text())
         version = history.get("version")
@@ -169,6 +184,9 @@ def export_app_quota(home, output):
         snapshot = {"version": 2, "samples": [{"t": latest["t"], "u": values}]}
     except (OSError, ValueError, TypeError, AttributeError):
         return
+    same = same_claude_account(home)
+    if same is not None:
+        snapshot["sameAccount"] = same
     try:
         if json.loads(output.read_text()) == snapshot:
             return

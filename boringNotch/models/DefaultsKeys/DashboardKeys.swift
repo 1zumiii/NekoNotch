@@ -17,4 +17,8 @@ extension Defaults.Keys {
 
     /// The grid `dashboardLayout` was saved in; see DashboardLayout.migrateIfNeeded.
     static let dashboardLayoutVersion = Key<Int>("dashboardLayoutVersion", default: 1)
+
+    /// When the desktop app and Claude Code share an account, the Claude card
+    /// hides its App / CLI selector and shows the fresher of the two samples.
+    static let claudeMergeSameAccount = Key<Bool>("claudeMergeSameAccount", default: true)
 }

@@ -22,6 +22,19 @@ struct UsageSnapshot: Decodable, Equatable {
     let metrics: [UsageMetric]
     let lastUpdatedDate: Date?
     var staleAt: Date? = nil
+    /// App quota only: whether Claude Code is signed in to the same account,
+    /// as the collector found it; nil when unknown.
+    var sameAccount: Bool? = nil
+
+    /// For one account seen through two clients: the sample whose reset time
+    /// has not passed, then the newer one.
+    static func fresher(_ a: UsageSnapshot?, _ b: UsageSnapshot?, at now: Date) -> UsageSnapshot? {
+        guard let a, let b else { return a ?? b }
+        let aExpired = a.staleAt.map { now >= $0 } == true
+        let bExpired = b.staleAt.map { now >= $0 } == true
+        if aExpired != bExpired { return aExpired ? b : a }
+        return (a.lastUpdatedDate ?? .distantPast) >= (b.lastUpdatedDate ?? .distantPast) ? a : b
+    }
 
     func isStale(at now: Date) -> Bool {
         guard let lastUpdatedDate else { return true }
@@ -88,10 +101,13 @@ struct UsageSource: Identifiable {
 }
 
 /// Decode each account's original sample; never select between accounts by age.
+/// Only when the collector marks both clients as one account (sameAccount) may
+/// the card pick the fresher sample, see UsageSnapshot.fresher.
 enum ClaudeQuotaDecoder {
     private struct History: Decodable {
         let version: Int
         let samples: [Sample]
+        let sameAccount: Bool?
     }
     private struct Sample: Decodable {
         let t: Double
@@ -123,7 +139,8 @@ enum ClaudeQuotaDecoder {
                        metric("7d", history.version == 2 ? sample.u?.sd : sample.sd)].compactMap { $0 }
         guard !metrics.isEmpty else { return nil }
         return UsageSnapshot(title: "Claude App", symbol: "staroflife", metrics: metrics,
-                             lastUpdatedDate: Date(timeIntervalSince1970: sample.t / 1000))
+                             lastUpdatedDate: Date(timeIntervalSince1970: sample.t / 1000),
+                             sameAccount: history.sameAccount)
     }
     static func cli(_ data: Data) throws -> UsageSnapshot? {
         let limits = try JSONDecoder().decode(Limits.self, from: data)

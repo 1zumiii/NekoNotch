@@ -2,6 +2,7 @@
 //  UsageWidgetView.swift
 //  boringNotch
 //
+import Defaults
 import SwiftUI
 
 /// A Claude or Codex usage card that adapts to the cells it is given:
@@ -13,9 +14,19 @@ struct UsageWidgetView: View {
 
     @ObservedObject private var store = UsageStore.shared
     @AppStorage("claudeQuotaClient") private var claudeClient = "app"
+    @Default(.claudeMergeSameAccount) private var mergeSameAccount
 
     private var isClaude: Bool { source.id == "claude" }
-    private var snapshot: UsageSnapshot? { store.snapshots[isClaude && claudeClient == "cli" ? "claudeCLI" : source.id] }
+    /// One account behind both clients: no selector, the fresher sample wins.
+    private var isMerged: Bool { isClaude && mergeSameAccount && store.snapshots["claude"]?.sameAccount == true }
+    private var showsSelector: Bool { isClaude && !isMerged }
+    private var snapshot: UsageSnapshot? {
+        guard isClaude else { return store.snapshots[source.id] }
+        if isMerged {
+            return UsageSnapshot.fresher(store.snapshots["claude"], store.snapshots["claudeCLI"], at: Date())
+        }
+        return store.snapshots[claudeClient == "cli" ? "claudeCLI" : "claude"]
+    }
     private var isStrip: Bool { size.height < 90 }
     private var title: String { isClaude ? "Claude" : snapshot?.title ?? source.displayName }
     private var icon: String { snapshot?.symbol ?? source.icon }
@@ -71,7 +82,7 @@ struct UsageWidgetView: View {
                     HStack(spacing: 4) {
                         Text("Claude").font(.system(size: 12, weight: .semibold))
                         Spacer(minLength: 0)
-                        clientSelector
+                        if showsSelector { clientSelector }
                     }
                     HStack(spacing: 6) {
                         if let snapshot {
@@ -102,7 +113,7 @@ struct UsageWidgetView: View {
             let age = Freshness.text(of: date, at: context.date)
             let subtitle = [snapshot?.model, age].compactMap { $0 }.joined(separator: " · ")
             DashboardCard(icon: icon, tint: source.tint, title: title, subtitle: subtitle.isEmpty ? nil : subtitle) {
-                if isClaude { clientSelector } else { FreshnessDot(date: date, now: context.date) }
+                if showsSelector { clientSelector } else { FreshnessDot(date: date, now: context.date) }
             } content: {
                 if let snapshot {
                     rings(snapshot)

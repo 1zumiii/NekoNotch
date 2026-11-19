@@ -50,6 +50,18 @@ struct DashboardSettingsView: View {
             }
 
             Section {
+                Defaults.Toggle(key: .claudeMergeSameAccount) {
+                    Text("Merge Claude App and CLI on the same account")
+                }
+            } header: {
+                Text("Claude")
+            } footer: {
+                Text("When the desktop app and Claude Code are signed in to the same account, the Claude card hides the App / CLI switch and shows whichever sample is newer.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
                 Button("Reset layout") {
                     storedLayout = DashboardLayout.defaults
                     selection = nil

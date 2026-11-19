@@ -45,6 +45,26 @@ class StatsTests(unittest.TestCase):
             stats.export_app_quota(home, output)
             self.assertEqual(json.loads(output.read_text()), expected)
 
+    def test_app_quota_export_marks_whether_the_cli_shares_the_account(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            home = Path(temporary)
+            source = home / "Library/Application Support/Claude/plan-usage-history.json"
+            source.parent.mkdir(parents=True)
+            source.write_text(json.dumps({"version": 2, "samples": [{"t": 1000, "u": {"fh": 2, "sd": 85}}]}))
+            config = source.parent / "config.json"
+            config.write_text(json.dumps({"lastKnownAccountUuid": "a", "oauth:tokenCacheV2": "secret"}))
+            output = home / "export.json"
+            (home / ".claude.json").write_text(json.dumps({"oauthAccount": {"accountUuid": "a", "emailAddress": "x"}}))
+            stats.export_app_quota(home, output)
+            self.assertEqual(json.loads(output.read_text()),
+                             {"version": 2, "samples": [{"t": 1000, "u": {"fh": 2, "sd": 85}}], "sameAccount": True})
+            (home / ".claude.json").write_text(json.dumps({"oauthAccount": {"accountUuid": "b"}}))
+            stats.export_app_quota(home, output)
+            self.assertIs(json.loads(output.read_text())["sameAccount"], False)
+            config.unlink()
+            stats.export_app_quota(home, output)
+            self.assertNotIn("sameAccount", json.loads(output.read_text()))
+
     def test_claude_stream_blocks_and_client_overlap_count_once(self):
         records = stats.parse_lines(lines([claude(5), claude(10), claude(10, "claude-desktop")]), "claude")
         self.assertEqual(list(records.values()), [["claude", "2026-11-12", 70]])

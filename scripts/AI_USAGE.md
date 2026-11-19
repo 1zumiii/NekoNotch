@@ -73,6 +73,17 @@ selects the other account. A sample older than 15 minutes, or a CLI sample whose
 reset time has passed, is labeled as older data; its percentage is retained
 rather than replaced by a zero. Hovering shows the selected client and sample time.
 
+The collector also compares the account id of the desktop app
+(`lastKnownAccountUuid` in its `config.json`) with that of Claude Code
+(`oauthAccount.accountUuid` in `~/.claude.json`) and writes the result to the
+App export as `sameAccount`; nothing else from those files is read or copied.
+When both clients use one account and the dashboard setting "Merge Claude App
+and CLI on the same account" (`claudeMergeSameAccount`, on by default) is on,
+the card hides the selector and shows the fresher sample: one whose reset time
+has not passed, then the newer one. The desktop app writes its history only
+now and then (gaps of hours are normal), so the CLI sample is usually the one
+shown while Claude Code is in use.
+
 Decoder checks, from the repository root:
 
 ```sh

@@ -20,6 +20,14 @@ struct ClaudeQuotaTests {
         assert(v1.windows.map(\.formattedValue) == ["4%", "5%"])
         let unsupported = try ClaudeQuotaDecoder.app(Data(#"{"version":3,"samples":[]}"#.utf8))
         assert(unsupported == nil)
-        print("Passed: account separation, sample order, timestamp units, expiry, retained values, missing data, legacy format, unsupported format")
+        assert(app.sameAccount == nil)
+        let shared = try ClaudeQuotaDecoder.app(Data(#"{"version":2,"samples":[{"t":3000000,"u":{"fh":2,"sd":85}}],"sameAccount":true}"#.utf8))!
+        assert(shared.sameAccount == true)
+        // Newer wins; a sample whose reset passed loses to an older live one.
+        assert(UsageSnapshot.fresher(app, cli, at: Date(timeIntervalSince1970: 2050))?.title == "Claude CLI")
+        assert(UsageSnapshot.fresher(app, cli, at: Date(timeIntervalSince1970: 2200))?.title == "Claude App")
+        assert(UsageSnapshot.fresher(shared, cli, at: Date(timeIntervalSince1970: 3100))?.title == "Claude App")
+        assert(UsageSnapshot.fresher(nil, cli, at: Date())?.title == "Claude CLI")
+        print("Passed: account separation, sample order, timestamp units, expiry, retained values, missing data, legacy format, unsupported format, same-account merge")
     }
 }
