@@ -28,6 +28,14 @@ struct ClaudeQuotaTests {
         assert(UsageSnapshot.fresher(app, cli, at: Date(timeIntervalSince1970: 2200))?.title == "Claude App")
         assert(UsageSnapshot.fresher(shared, cli, at: Date(timeIntervalSince1970: 3100))?.title == "Claude App")
         assert(UsageSnapshot.fresher(nil, cli, at: Date())?.title == "Claude CLI")
-        print("Passed: account separation, sample order, timestamp units, expiry, retained values, missing data, legacy format, unsupported format, same-account merge")
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let codex = try decoder.decode(UsageSnapshot.self, from: Data(#"{"title":"Codex","symbol":null,"metrics":[{"title":"5h","formattedValue":"27%","normalizedValue":0.27,"resetsAt":"2026-11-19T12:17:07Z"},{"title":"7d","formattedValue":"92%","normalizedValue":0.92}],"lastUpdatedDate":"2026-11-19T07:27:37Z"}"#.utf8))
+        let reset = Date(timeIntervalSince1970: 1795090627)
+        assert(codex.resettingWindows(at: reset - 1).windows.map(\.formattedValue) == ["27%", "92%"])
+        assert(codex.resettingWindows(at: reset).windows.map(\.formattedValue) == ["0%", "92%"])
+        assert(cli.resettingWindows(at: Date(timeIntervalSince1970: 9999)).windows.map(\.formattedValue) == ["35%", "67%"],
+               "Claude CLI keeps its value past a reset")
+        print("Passed: account separation, sample order, timestamp units, expiry, retained values, missing data, legacy format, unsupported format, same-account merge, Codex reset")
     }
 }

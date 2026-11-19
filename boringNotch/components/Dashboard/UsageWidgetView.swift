@@ -16,20 +16,32 @@ struct UsageWidgetView: View {
     @AppStorage("claudeQuotaClient") private var claudeClient = "app"
     @Default(.claudeMergeSameAccount) private var mergeSameAccount
 
+    /// The quota card: Claude (App / CLI, or both merged) and Codex behind one switch.
     private var isClaude: Bool { source.id == "claude" }
-    /// One account behind both clients: no selector, the fresher sample wins.
+    /// One account behind both Claude clients: one Claude tab, the fresher sample wins.
     private var isMerged: Bool { isClaude && mergeSameAccount && store.snapshots["claude"]?.sameAccount == true }
-    private var showsSelector: Bool { isClaude && !isMerged }
+    private var showsCodex: Bool { isClaude && claudeClient == "codex" }
+    /// The source on screen: its tint, icon and fallback title.
+    private var shown: UsageSource { showsCodex ? .codex : source }
+    private var tabs: [(label: String, value: String)] {
+        isMerged ? [("Claude", "app"), ("Codex", "codex")] : [("App", "app"), ("CLI", "cli"), ("Codex", "codex")]
+    }
+    private func isSelected(_ value: String) -> Bool {
+        // Merged, the CLI choice is part of the single Claude tab.
+        isMerged && value == "app" ? !showsCodex : claudeClient == value
+    }
     private var snapshot: UsageSnapshot? {
         guard isClaude else { return store.snapshots[source.id] }
+        if showsCodex { return store.snapshots["codex"]?.resettingWindows(at: Date()) }
         if isMerged {
             return UsageSnapshot.fresher(store.snapshots["claude"], store.snapshots["claudeCLI"], at: Date())
         }
         return store.snapshots[claudeClient == "cli" ? "claudeCLI" : "claude"]
     }
     private var isStrip: Bool { size.height < 90 }
-    private var title: String { isClaude ? "Claude" : snapshot?.title ?? source.displayName }
-    private var icon: String { snapshot?.symbol ?? source.icon }
+    private var title: String { isClaude ? shown.displayName : snapshot?.title ?? source.displayName }
+    private var icon: String { snapshot?.symbol ?? shown.icon }
+    private var tint: Color { shown.tint }
 
     var body: some View {
         Group {
@@ -46,8 +58,9 @@ struct UsageWidgetView: View {
 
     private var clientSelector: some View {
         HStack(spacing: 1) {
-            clientButton("App", value: "app")
-            clientButton("CLI", value: "cli")
+            ForEach(tabs, id: \.value) { tab in
+                clientButton(tab.label, value: tab.value)
+            }
         }
         .padding(2)
         .background(Capsule().fill(Color.white.opacity(0.06)))
@@ -58,14 +71,14 @@ struct UsageWidgetView: View {
         Button { claudeClient = value } label: {
             Text(verbatim: label)
                 .font(.system(size: 9, weight: .semibold))
-                .foregroundStyle(claudeClient == value ? Color.white : Color.secondary)
+                .foregroundStyle(isSelected(value) ? Color.white : Color.secondary)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 4)
-                .background(Capsule().fill(claudeClient == value ? source.tint.opacity(0.40) : Color.clear))
+                .background(Capsule().fill(isSelected(value) ? tint.opacity(0.40) : Color.clear))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Claude \(label)")
-        .accessibilityAddTraits(claudeClient == value ? .isSelected : [])
+        .accessibilityLabel(label)
+        .accessibilityAddTraits(isSelected(value) ? .isSelected : [])
     }
 
     private func sampleDescription(at now: Date) -> String {
@@ -77,12 +90,12 @@ struct UsageWidgetView: View {
 
     private var claudeStrip: some View {
         TimelineView(.periodic(from: .now, by: 30)) { context in
-            DashboardCardChrome(tint: source.tint) {
+            DashboardCardChrome(tint: tint) {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 4) {
-                        Text("Claude").font(.system(size: 12, weight: .semibold))
+                        Text(verbatim: title).font(.system(size: 12, weight: .semibold))
                         Spacer(minLength: 0)
-                        if showsSelector { clientSelector }
+                        clientSelector
                     }
                     HStack(spacing: 6) {
                         if let snapshot {
@@ -112,8 +125,8 @@ struct UsageWidgetView: View {
             let date = snapshot?.lastUpdatedDate
             let age = Freshness.text(of: date, at: context.date)
             let subtitle = [snapshot?.model, age].compactMap { $0 }.joined(separator: " · ")
-            DashboardCard(icon: icon, tint: source.tint, title: title, subtitle: subtitle.isEmpty ? nil : subtitle) {
-                if showsSelector { clientSelector } else { FreshnessDot(date: date, now: context.date) }
+            DashboardCard(icon: icon, tint: tint, title: title, subtitle: subtitle.isEmpty ? nil : subtitle) {
+                if isClaude { clientSelector } else { FreshnessDot(date: date, now: context.date) }
             } content: {
                 if let snapshot {
                     rings(snapshot)
@@ -144,7 +157,7 @@ struct UsageWidgetView: View {
                     fraction: metric.normalizedValue ?? 0,
                     valueText: metric.formattedValue,
                     label: metric.title,
-                    tint: source.tint,
+                    tint: tint,
                     diameter: diameter
                 )
                 .frame(maxWidth: .infinity)
@@ -159,7 +172,7 @@ struct UsageWidgetView: View {
                 fraction: metric.normalizedValue ?? 0,
                 valueText: metric.formattedValue,
                 label: metric.title,
-                tint: source.tint
+                tint: tint
             )
         }
     }
@@ -169,7 +182,7 @@ struct UsageWidgetView: View {
     /// Widest layout that fits wins: title + all gauges + freshness, then
     /// without the freshness pill, then a stacked title/chips layout.
     private var strip: some View {
-        DashboardCardChrome(tint: source.tint) {
+        DashboardCardChrome(tint: tint) {
             if let snapshot {
                 let metrics = snapshot.windows + snapshot.bars
                 ViewThatFits(in: .horizontal) {
@@ -186,13 +199,13 @@ struct UsageWidgetView: View {
 
     private func stripRow(_ snapshot: UsageSnapshot, metrics: [UsageMetric], showsPill: Bool) -> some View {
         HStack(spacing: 14) {
-            DashboardCardTitle(icon: icon, tint: source.tint, title: title, subtitle: snapshot.model)
+            DashboardCardTitle(icon: icon, tint: tint, title: title, subtitle: snapshot.model)
             ForEach(metrics, id: \.title) { metric in
                 MiniGauge(
                     fraction: metric.normalizedValue ?? 0,
                     valueText: metric.formattedValue,
                     label: metric.title,
-                    tint: source.tint
+                    tint: tint
                 )
             }
             if showsPill {
@@ -204,7 +217,7 @@ struct UsageWidgetView: View {
 
     private func stripStacked(_ snapshot: UsageSnapshot, metrics: [UsageMetric]) -> some View {
         VStack(alignment: .leading, spacing: 7) {
-            DashboardCardTitle(icon: icon, tint: source.tint, title: title)
+            DashboardCardTitle(icon: icon, tint: tint, title: title)
             HStack(spacing: 8) {
                 ForEach(metrics.prefix(3), id: \.title) { metric in
                     HStack(spacing: 3) {
@@ -212,7 +225,7 @@ struct UsageWidgetView: View {
                             .foregroundStyle(.secondary)
                         Text(metric.formattedValue)
                             .fontWeight(.bold)
-                            .foregroundStyle(usageGaugeColor(used: metric.normalizedValue ?? 0, tint: source.tint))
+                            .foregroundStyle(usageGaugeColor(used: metric.normalizedValue ?? 0, tint: tint))
                     }
                     .font(.system(size: 10, design: .rounded))
                     .lineLimit(1)

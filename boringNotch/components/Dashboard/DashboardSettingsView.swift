@@ -56,7 +56,7 @@ struct DashboardSettingsView: View {
             } header: {
                 Text("Claude")
             } footer: {
-                Text("When the desktop app and Claude Code are signed in to the same account, the Claude card hides the App / CLI switch and shows whichever sample is newer.")
+                Text("When the desktop app and Claude Code are signed in to the same account, the quota card shows App and CLI as one Claude tab, using whichever sample is newer.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

@@ -88,12 +88,15 @@ class CodexTests(unittest.TestCase):
             {"type": "turn_context", "payload": {"model": "gpt-5-codex"}},
             {"type": "event_msg", "payload": {"type": "token_count", "info": {
                 "last_token_usage": {"total_tokens": 10}, "model_context_window": 100}}},
-            {"type": "event_msg", "payload": {"type": "token_count", "info": {
+            {"type": "event_msg", "timestamp": "2026-11-19T07:27:37.982Z", "payload": {"type": "token_count", "info": {
                 "last_token_usage": {"total_tokens": 25}, "model_context_window": 100},
-                "rate_limits": {"primary": {"window_minutes": 300, "used_percent": 12.34},
+                "rate_limits": {"primary": {"window_minutes": 300, "used_percent": 12.34, "resets_at": 1795090627},
                                 "secondary": {"window_minutes": 10080, "used_percent": 56}}}},
         ]]
-        snapshot = sync.codex_snapshot(lines)
+        snapshot = sync.codex_snapshot(lines, now=0)
+        self.assertEqual(snapshot["lastUpdatedDate"], "2026-11-19T07:27:37Z")
+        self.assertEqual(snapshot["metrics"][2]["resetsAt"], "2026-11-19T12:17:07Z")
+        self.assertNotIn("resetsAt", snapshot["metrics"][3])
         self.assertEqual(snapshot["title"], "Codex")
         self.assertEqual(snapshot["metricsBarValue"], "25%")
         self.assertEqual([m["title"] for m in snapshot["metrics"]], ["Model", "Context", "5h", "7d"])

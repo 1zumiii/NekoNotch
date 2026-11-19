@@ -14,12 +14,14 @@ struct UsageMetric: Decodable, Equatable {
     let title: String
     let formattedValue: String
     let normalizedValue: Double?
+    /// Codex windows: when the window restarts. Past it, usage is shown as 0%.
+    var resetsAt: Date? = nil
 }
 
 struct UsageSnapshot: Decodable, Equatable {
     let title: String
     let symbol: String?
-    let metrics: [UsageMetric]
+    var metrics: [UsageMetric]
     let lastUpdatedDate: Date?
     var staleAt: Date? = nil
     /// App quota only: whether Claude Code is signed in to the same account,
@@ -34,6 +36,17 @@ struct UsageSnapshot: Decodable, Equatable {
         let bExpired = b.staleAt.map { now >= $0 } == true
         if aExpired != bExpired { return aExpired ? b : a }
         return (a.lastUpdatedDate ?? .distantPast) >= (b.lastUpdatedDate ?? .distantPast) ? a : b
+    }
+
+    /// Windows whose reset time has passed restart at 0%. Only metrics that
+    /// carry resetsAt (Codex) change; the Claude CLI keeps its old value.
+    func resettingWindows(at now: Date) -> UsageSnapshot {
+        var copy = self
+        copy.metrics = metrics.map { metric in
+            guard let reset = metric.resetsAt, now >= reset, metric.normalizedValue != nil else { return metric }
+            return UsageMetric(title: metric.title, formattedValue: "0%", normalizedValue: 0)
+        }
+        return copy
     }
 
     func isStale(at now: Date) -> Bool {
@@ -76,22 +89,25 @@ struct UsageSource: Identifiable {
         return URL(fileURLWithPath: path, isDirectory: true)
     }()
 
-    static let all: [UsageSource] = [
-        UsageSource(
-            id: "claude",
-            displayName: "Claude",
-            icon: "staroflife",
-            relativePath: "Library/Application Support/NekoNotch/claude-app-quota.json",
-            tint: Color(red: 0.85, green: 0.47, blue: 0.34)
-        ),
-        UsageSource(
-            id: "codex",
-            displayName: "Codex",
-            icon: "camera.aperture",
-            relativePath: "Library/Application Support/NekoNotch/codex-usage.json",
-            tint: Color(red: 0.36, green: 0.62, blue: 1.0)
-        )
-    ]
+    /// The Claude App quota. The dashboard's quota card is built on it and
+    /// switches to the CLI limits and to Codex.
+    static let claude = UsageSource(
+        id: "claude",
+        displayName: "Claude",
+        icon: "staroflife",
+        relativePath: "Library/Application Support/NekoNotch/claude-app-quota.json",
+        tint: Color(red: 0.85, green: 0.47, blue: 0.34)
+    )
+
+    static let codex = UsageSource(
+        id: "codex",
+        displayName: "Codex",
+        icon: "camera.aperture",
+        relativePath: "Library/Application Support/NekoNotch/codex-usage.json",
+        tint: Color(red: 0.36, green: 0.62, blue: 1.0)
+    )
+
+    static let all: [UsageSource] = [claude, codex]
 
     static let claudeCLI = UsageSource(
         id: "claudeCLI", displayName: "Claude CLI", icon: "staroflife",

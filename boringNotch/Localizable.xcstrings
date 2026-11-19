@@ -1,6 +1,16 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "AI Quota" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 额度"
+          }
+        }
+      }
+    },
     "Merge Claude App and CLI on the same account" : {
       "localizations" : {
         "zh-Hans" : {
@@ -11,12 +21,12 @@
         }
       }
     },
-    "When the desktop app and Claude Code are signed in to the same account, the Claude card hides the App / CLI switch and shows whichever sample is newer." : {
+    "When the desktop app and Claude Code are signed in to the same account, the quota card shows App and CLI as one Claude tab, using whichever sample is newer." : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "桌面端与 Claude Code 登录同一账户时，Claude 卡片隐藏 App / CLI 切换，显示两者中较新的数据。"
+            "value" : "桌面端与 Claude Code 登录同一账户时，额度卡片把 App 与 CLI 合成一个 Claude 页，显示两者中较新的数据。"
           }
         }
       }

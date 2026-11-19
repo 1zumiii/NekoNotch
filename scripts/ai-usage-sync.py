@@ -38,6 +38,7 @@ CLI_LIMITS = ROOT / "claude-cli-limits.json"
 APP_QUOTA = ROOT / "claude-app-quota.json"
 TOKEN_STATS = ROOT / "ai-token-stats.json"
 CLI_FALLBACK_SECONDS = 30 * 60
+CODEX_FORMAT = 2
 
 MONTHS = {m: i for i, m in enumerate(
     ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"], 1)}
@@ -196,10 +197,29 @@ def window_title(minutes):
     return f"{minutes:g}m"
 
 
-def codex_snapshot(lines):
-    """The Codex card content from a transcript's lines, or None without a token count."""
+def iso_utc(seconds):
+    return datetime.fromtimestamp(seconds, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def event_time(stamp):
+    """Epoch seconds of a transcript timestamp like 2026-11-19T07:27:37.982Z, or None.
+    strptime, not fromisoformat: the LaunchAgent runs the system Python 3.9."""
+    if not isinstance(stamp, str):
+        return None
+    for pattern in ("%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%dT%H:%M:%SZ"):
+        try:
+            return datetime.strptime(stamp, pattern).replace(tzinfo=timezone.utc).timestamp()
+        except ValueError:
+            continue
+    return None
+
+
+def codex_snapshot(lines, now=None):
+    """The Codex card content from a transcript's lines, or None without a token count.
+    The sample time is that of the token count itself, not of this export."""
     model = "Codex"
     token_count = None
+    sampled = None
     for line in lines:
         try:
             event = json.loads(line)
@@ -210,6 +230,7 @@ def codex_snapshot(lines):
             model = payload.get("model") or model
         elif payload.get("type") == "token_count":
             token_count = payload
+            sampled = event_time(event.get("timestamp"))
     if token_count is None:
         return None
     metrics = [{"title": "Model", "formattedValue": model}]
@@ -226,10 +247,16 @@ def codex_snapshot(lines):
         title = window_title(limit.get("window_minutes"))
         metric = percentage_metric(title, limit.get("used_percent")) if title else None
         if metric is not None and title not in titles:
+            # Past this time the window has restarted; the card shows it as 0%.
+            resets = limit.get("resets_at")
+            if isinstance(resets, (int, float)) and not isinstance(resets, bool) and resets > 0:
+                metric["resetsAt"] = iso_utc(resets)
             metrics.append(metric)
             titles.add(title)
+    if sampled is None:
+        sampled = now if now is not None else time.time()
     snapshot = {"title": "Codex", "symbol": "camera.aperture", "metrics": metrics,
-                "lastUpdatedDate": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+                "lastUpdatedDate": iso_utc(sampled)}
     if context is not None:
         snapshot["metricsBarValue"] = context["formattedValue"]
     return snapshot
@@ -239,7 +266,8 @@ def sync_codex(state):
     transcript = codex_session()
     if transcript is None:
         return
-    current = signature(transcript)
+    # The format number makes a changed export format rebuild the file once.
+    current = signature(transcript) + [CODEX_FORMAT]
     if state.get("codex") == current and CODEX_OUTPUT.exists():
         return
     with transcript.open(encoding="utf-8") as stream:

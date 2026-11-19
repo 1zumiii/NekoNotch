@@ -79,8 +79,16 @@ The collector also compares the account id of the desktop app
 App export as `sameAccount`; nothing else from those files is read or copied.
 When both clients use one account and the dashboard setting "Merge Claude App
 and CLI on the same account" (`claudeMergeSameAccount`, on by default) is on,
-the card hides the selector and shows the fresher sample: one whose reset time
-has not passed, then the newer one. The desktop app writes its history only
+App and CLI become one Claude tab that shows the fresher sample: one whose reset
+time has not passed, then the newer one.
+
+Codex is a tab of the same card (the selector reads Claude | Codex, or
+App | CLI | Codex when the accounts differ); there is no separate Codex
+widget. The Codex export takes its sample time from the token count event, not
+from the export run, and stores each window's `resetsAt`. Once that time has
+passed the card shows the window at 0%: a new window has started and any newer
+local Codex use would have produced a newer token count. Codex use on another
+machine is not seen until a local session runs. The desktop app writes its history only
 now and then (gaps of hours are normal), so the CLI sample is usually the one
 shown while Claude Code is in use.
 

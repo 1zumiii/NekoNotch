@@ -22,24 +22,25 @@ struct DashboardWidgetInfo: Identifiable {
 
 enum DashboardWidgets {
     // Storage, battery usage and system load moved to the rainbow cat's system monitor.
-    static let all: [DashboardWidgetInfo] = usageWidgets + [claudeCodeWidget]
+    // Codex is a tab of the quota card; its own widget (id "codex") is gone and
+    // DashboardLayout.normalized drops it from saved layouts.
+    static let all: [DashboardWidgetInfo] = [quotaWidget, claudeCodeWidget]
 
-    private static let usageWidgets: [DashboardWidgetInfo] = UsageSource.all.enumerated().map { index, source in
-        DashboardWidgetInfo(
-            id: source.id,
-            title: LocalizedStringKey(source.displayName),
-            icon: source.icon,
-            tint: source.tint,
-            minWidth: 4,
-            minHeight: 2,
-            maxWidth: 12,
-            maxHeight: 4,
-            defaultPlacement: DashboardPlacement(
-                id: source.id, enabled: true, col: index * 4, row: 0, width: 4, height: 4
-            ),
-            content: { size in AnyView(UsageWidgetView(source: source, size: size)) }
-        )
-    }
+    /// Keeps the id "claude" so saved layouts keep its place and size.
+    private static let quotaWidget = DashboardWidgetInfo(
+        id: UsageSource.claude.id,
+        title: "AI Quota",
+        icon: UsageSource.claude.icon,
+        tint: UsageSource.claude.tint,
+        minWidth: 4,
+        minHeight: 2,
+        maxWidth: 12,
+        maxHeight: 4,
+        defaultPlacement: DashboardPlacement(
+            id: UsageSource.claude.id, enabled: true, col: 0, row: 0, width: 4, height: 4
+        ),
+        content: { size in AnyView(UsageWidgetView(source: .claude, size: size)) }
+    )
 
     private static let claudeCodeWidget = DashboardWidgetInfo(
         id: "claudeCode",
