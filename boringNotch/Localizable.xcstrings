@@ -8447,12 +8447,12 @@
         }
       }
     },
-    "When an app has so many menus that the left side of the notch covers the last of them, it folds away as the pointer comes over it, and opens again once the pointer has left the menu bar and no menu is open. This works while music or a notification shows too, and the cat keeps running and singing meanwhile." : {
+    "When an app has so many menus that a side of the notch covers some of them, that side folds away as the pointer comes over it, and opens again once the pointer has left the menu bar and no menu is open. On the left this uncovers the last menus; on the right, the menus the system moves past the notch when they do not all fit before it, and the cat steps out of the way. This works while music or a notification shows too, and the cat keeps running and singing meanwhile." : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "应用的菜单项较多、刘海左侧盖住最后几个菜单时，指针移到左侧，左侧即收起；指针离开菜单栏且没有菜单展开后，左侧重新展开。播放音乐或显示通知时同样如此，收起期间猫照常奔跑和唱歌。"
+            "value" : "应用的菜单项较多、刘海某一侧盖住部分菜单时，指针移到这一侧，这一侧即收起。指针离开菜单栏且没有菜单展开后，这一侧重新展开。左侧收起时露出最后几个菜单，右侧收起时露出系统因放不下而移到刘海右边的菜单，猫暂时让开。播放音乐或显示通知时同样如此，收起期间猫照常奔跑和唱歌。"
           }
         }
       }

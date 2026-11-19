@@ -1,5 +1,5 @@
 //
-//  LeftWingMenuAvoidanceTests.swift
+//  WingMenuAvoidanceTests.swift
 //  boringNotchTests
 //
 //  SPDX-License-Identifier: GPL-3.0-only
@@ -10,7 +10,7 @@ import XCTest
 
 /// Uses the screen and layout of `ClosedNotchLayoutTests`: the left wing runs
 /// from 572 to the cutout at 656, with the closed row above y = 942.
-final class LeftWingMenuAvoidanceTests: XCTestCase {
+final class WingMenuAvoidanceTests: XCTestCase {
     private let layout = ClosedNotchLayoutTests.layout
     private let screen = ClosedNotchLayoutTests.screen
     private let start = ContinuousClock.now
@@ -28,7 +28,7 @@ final class LeftWingMenuAvoidanceTests: XCTestCase {
     }
 
     private func poll(
-        _ avoidance: inout LeftWingMenuAvoidance,
+        _ avoidance: inout WingMenuAvoidance,
         at milliseconds: Int,
         pointer: CGPoint,
         menuIsOpen: Bool = false
@@ -36,14 +36,14 @@ final class LeftWingMenuAvoidanceTests: XCTestCase {
         avoidance.poll(at: at(milliseconds), pointer: pointer, layout: layout, screen: screen, menuIsOpen: menuIsOpen)
     }
 
-    private func folded() -> LeftWingMenuAvoidance {
-        var avoidance = LeftWingMenuAvoidance()
+    private func folded() -> WingMenuAvoidance {
+        var avoidance = WingMenuAvoidance(side: .left)
         avoidance.fold()
         return avoidance
     }
 
     func testComingOverTheWingStartsACheckAndFolds() {
-        var avoidance = LeftWingMenuAvoidance()
+        var avoidance = WingMenuAvoidance(side: .left)
         XCTAssertTrue(avoidance.shouldCheckMenus(pointer: onWing, layout: layout, screen: screen))
         XCTAssertFalse(avoidance.shouldCheckMenus(pointer: nearWing, layout: layout, screen: screen))
         XCTAssertFalse(avoidance.shouldCheckMenus(pointer: away, layout: layout, screen: screen))
@@ -54,7 +54,7 @@ final class LeftWingMenuAvoidanceTests: XCTestCase {
     }
 
     func testNoFoldWhenThePointerLeftDuringTheCheck() {
-        let avoidance = LeftWingMenuAvoidance()
+        let avoidance = WingMenuAvoidance(side: .left)
         XCTAssertFalse(avoidance.confirmsFold(pointer: away, layout: layout, screen: screen))
     }
 
@@ -113,7 +113,7 @@ final class LeftWingMenuAvoidanceTests: XCTestCase {
         }
         XCTAssertTrue(avoidance.isFolded)
 
-        var unfolded = LeftWingMenuAvoidance()
+        var unfolded = WingMenuAvoidance(side: .left)
         XCTAssertFalse(unfolded.shouldCheckMenus(pointer: nearWing, layout: layout, screen: screen))
         XCTAssertFalse(poll(&unfolded, at: 250, pointer: nearWing))
         XCTAssertFalse(unfolded.isFolded)
@@ -143,5 +143,23 @@ final class LeftWingMenuAvoidanceTests: XCTestCase {
         XCTAssertFalse(poll(&avoidance, at: 600, pointer: away))
         XCTAssertFalse(poll(&avoidance, at: 1000, pointer: away))
         XCTAssertTrue(poll(&avoidance, at: 1100, pointer: away))
+    }
+
+    // MARK: Right wing
+
+    /// The right wing runs from the cutout at 856 to 856 + 8 + 70 + 6 = 940.
+    func testRightWingFoldsFromItsOwnSide() {
+        var right = WingMenuAvoidance(side: .right)
+        XCTAssertTrue(right.shouldCheckMenus(pointer: CGPoint(x: 900, y: 960), layout: layout, screen: screen))
+        XCTAssertTrue(right.shouldCheckMenus(pointer: CGPoint(x: 942, y: 960), layout: layout, screen: screen))
+        XCTAssertFalse(right.shouldCheckMenus(pointer: CGPoint(x: 943, y: 960), layout: layout, screen: screen))
+        // The left wing is not the right one's business.
+        XCTAssertFalse(right.shouldCheckMenus(pointer: onWing, layout: layout, screen: screen))
+
+        right.fold()
+        // 60 pt past its end keeps it folded; further away it comes back.
+        XCTAssertFalse(right.poll(at: at(250), pointer: CGPoint(x: 990, y: 960), layout: layout, screen: screen, menuIsOpen: false))
+        XCTAssertFalse(right.poll(at: at(500), pointer: CGPoint(x: 1100, y: 960), layout: layout, screen: screen, menuIsOpen: false))
+        XCTAssertTrue(right.poll(at: at(1000), pointer: CGPoint(x: 1100, y: 960), layout: layout, screen: screen, menuIsOpen: false))
     }
 }

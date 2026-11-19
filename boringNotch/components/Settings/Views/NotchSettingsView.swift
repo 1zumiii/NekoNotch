@@ -26,6 +26,7 @@ struct NotchSettingsView: View {
         Form {
             sizingSection
             behaviorSection
+            menuAvoidanceSection
             gesturesSection
             windowSection
         }
@@ -178,6 +179,20 @@ struct NotchSettingsView: View {
             Text("Behavior")
         } footer: {
             Text("Shows a smaller opened notch with just the music player — no tabs, calendar or mirror.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    /// Folding a wing aside for app menus is about the menu bar, not the
+    /// cat, so it lives here; the key keeps its old name for saved settings.
+    private var menuAvoidanceSection: some View {
+        Section {
+            Defaults.Toggle(key: .rainbowCatMenuAvoidance) {
+                Text("Make way for app menus")
+            }
+        } footer: {
+            Text("When an app has so many menus that a side of the notch covers some of them, that side folds away as the pointer comes over it, and opens again once the pointer has left the menu bar and no menu is open. On the left this uncovers the last menus; on the right, the menus the system moves past the notch when they do not all fit before it, and the cat steps out of the way. This works while music or a notification shows too, and the cat keeps running and singing meanwhile.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

@@ -129,7 +129,8 @@ struct UsageWidgetView: View {
         TimelineView(.periodic(from: .now, by: 30)) { context in
             let date = snapshot?.lastUpdatedDate
             let age = Freshness.text(of: date, at: context.date)
-            let subtitle = [snapshot?.model, age].compactMap { $0 }.joined(separator: " · ")
+            // Only the age, as on the Claude tab; the model name crowded the header.
+            let subtitle = [isClaude ? nil : snapshot?.model, age].compactMap { $0 }.joined(separator: " · ")
             DashboardCard(icon: icon, tint: tint, title: title, subtitle: subtitle.isEmpty ? nil : subtitle) {
                 if isClaude { clientSelector } else { FreshnessDot(date: date, now: context.date) }
             } content: {

@@ -24,9 +24,10 @@ extension Defaults.Keys {
     /// Hovering over the cat opens the system monitor instead of the usual tabs.
     static let rainbowCatSystemMonitor = Key<Bool>("rainbowCatSystemMonitor", default: true)
 
-    /// The empty wing left of the cutout folds away when the pointer comes
-    /// over it and it covers the frontmost app's menus, so the last of them
-    /// can be clicked.
+    /// A wing beside the cutout folds away when the pointer comes over it
+    /// and it covers the frontmost app's menus, so they can be clicked: the
+    /// left wing over the last menus, the cat's wing over those the system
+    /// moved past the cutout.
     static let rainbowCatMenuAvoidance = Key<Bool>("rainbowCatMenuAvoidance", default: true)
 
     /// How many times as fast the cat runs at full CPU load as at rest.

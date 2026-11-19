@@ -89,17 +89,6 @@ struct RainbowCatSettingsView: View {
             .disabled(!enabled)
 
             Section {
-                Defaults.Toggle(key: .rainbowCatMenuAvoidance) {
-                    Text("Make way for app menus")
-                }
-            } footer: {
-                Text("When an app has so many menus that the left side of the notch covers the last of them, it folds away as the pointer comes over it, and opens again once the pointer has left the menu bar and no menu is open. This works while music or a notification shows too, and the cat keeps running and singing meanwhile.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .disabled(!enabled)
-
-            Section {
                 speedSlider("Cat at its fastest", value: $catMaxSpeed, range: 1...6, step: 0.5)
                 speedSlider("Stars at their fastest", value: $skyMaxSpeed, range: 1...10, step: 0.5)
                 Toggle(isOn: $warp) {

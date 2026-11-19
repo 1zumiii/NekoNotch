@@ -97,4 +97,15 @@ final class ClosedNotchLayoutTests: XCTestCase {
         XCTAssertTrue(layout.leftWingCoversMenus(endingAt: [657], on: screen))
         XCTAssertFalse(layout.leftWingCoversMenus(endingAt: [], on: screen))
     }
+
+    func testRightWingSpanAndMenus() {
+        XCTAssertEqual(layout.wingSpan(.right, on: screen), .init(outer: 940, cutout: 856))
+        XCTAssertTrue(layout.pointerIsBesideCutout(CGPoint(x: 900, y: 960), on: screen, slack: 2, side: .right))
+        XCTAssertFalse(layout.pointerIsBesideCutout(CGPoint(x: 700, y: 960), on: screen, slack: 60, side: .right))
+        // Menus the system put right of the cutout.
+        XCTAssertTrue(layout.wingCoversMenus(.right, endingAt: [300, 610, 900], on: screen))
+        XCTAssertTrue(layout.wingCoversMenus(.right, endingAt: [1100], on: screen))
+        // All menus fit left of the cutout.
+        XCTAssertFalse(layout.wingCoversMenus(.right, endingAt: [300, 610, 656], on: screen))
+    }
 }

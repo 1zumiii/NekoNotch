@@ -23,8 +23,9 @@ struct ClosedNotchLayout: Equatable {
     var edgeMargin: CGFloat
     /// Radius of the closed notch's bottom corners.
     var bottomCornerRadius: CGFloat
-    /// How far what the closed notch shows reaches left of the cutout, not
-    /// counting the bottom corner. Nil for the idle cat's starry wing.
+    /// How far what the closed notch shows reaches left of the cutout (and,
+    /// the row being symmetric, right of it), not counting the bottom
+    /// corner. Nil for the cat's row.
     var leftReach: CGFloat? = nil
 
     // MARK: - Hover region
@@ -78,26 +79,54 @@ struct ClosedNotchLayout: Equatable {
 
     // MARK: - Wings on screen
 
+    /// The wing left of the cutout (the starry sky, or album art or an
+    /// icon) or right of it (the cat, or what replaces it).
+    enum WingSide: Equatable {
+        case left, right
+    }
+
     struct WingSpan: Equatable {
-        /// Left end of the empty wing, in screen points.
+        /// Outer end of the wing, in screen points: its left end for the
+        /// left wing, its right end for the right one.
         var outer: CGFloat
-        /// Left edge of the cutout.
+        /// The cutout's edge on that side.
         var cutout: CGFloat
+    }
+
+    /// How far the wings reach beside the cutout, not counting the bottom
+    /// corner. The closed row is symmetric, so both wings reach as far.
+    private var wingReach: CGFloat {
+        leftReach ?? (edgeMargin + catWingWidth)
     }
 
     /// From the left wing's outer edge to the cutout.
     func leftWingSpan(on screen: CGRect) -> WingSpan {
-        let cutout = screen.midX - cutoutWidth / 2
-        let reach = leftReach ?? (edgeMargin + catWingWidth)
-        return WingSpan(outer: cutout - reach - bottomCornerRadius, cutout: cutout)
+        wingSpan(.left, on: screen)
     }
 
-    /// Whether the pointer is in the menu bar, from `slack` points left of
-    /// the wing to the cutout.
-    func pointerIsBesideCutout(_ pointer: CGPoint, on screen: CGRect, slack: CGFloat) -> Bool {
-        let span = leftWingSpan(on: screen)
-        return pointer.x >= span.outer - slack && pointer.x <= span.cutout
-            && isAtRowHeight(pointer, on: screen)
+    func wingSpan(_ side: WingSide, on screen: CGRect) -> WingSpan {
+        switch side {
+        case .left:
+            let cutout = screen.midX - cutoutWidth / 2
+            return WingSpan(outer: cutout - wingReach - bottomCornerRadius, cutout: cutout)
+        case .right:
+            let cutout = screen.midX + cutoutWidth / 2
+            return WingSpan(outer: cutout + wingReach + bottomCornerRadius, cutout: cutout)
+        }
+    }
+
+    /// Whether the pointer is in the menu bar over a wing, from the cutout
+    /// to `slack` points past the wing's outer end.
+    func pointerIsBesideCutout(
+        _ pointer: CGPoint, on screen: CGRect, slack: CGFloat, side: WingSide = .left
+    ) -> Bool {
+        let span = wingSpan(side, on: screen)
+        let beside: Bool
+        switch side {
+        case .left: beside = pointer.x >= span.outer - slack && pointer.x <= span.cutout
+        case .right: beside = pointer.x >= span.cutout && pointer.x <= span.outer + slack
+        }
+        return beside && isAtRowHeight(pointer, on: screen)
     }
 
     /// Whether the pointer is right of the cutout, on the cat's wing.
@@ -111,8 +140,19 @@ struct ClosedNotchLayout: Equatable {
     /// Whether a menu ending at one of `menuEdges` lies under the left wing.
     /// Menus the system has put past the cutout are not under it.
     func leftWingCoversMenus(endingAt menuEdges: [CGFloat], on screen: CGRect) -> Bool {
-        let span = leftWingSpan(on: screen)
-        return menuEdges.contains { $0 > span.outer + 2 && $0 <= span.cutout + 1 }
+        wingCoversMenus(.left, endingAt: menuEdges, on: screen)
+    }
+
+    /// Whether a menu ending at one of `menuEdges` lies under the wing. An
+    /// app with more menus than fit left of the cutout has the rest put
+    /// right of it, starting at the cutout's edge, so any menu ending past
+    /// that edge is at least partly under the right wing.
+    func wingCoversMenus(_ side: WingSide, endingAt menuEdges: [CGFloat], on screen: CGRect) -> Bool {
+        let span = wingSpan(side, on: screen)
+        switch side {
+        case .left: return menuEdges.contains { $0 > span.outer + 2 && $0 <= span.cutout + 1 }
+        case .right: return menuEdges.contains { $0 > span.cutout + 2 }
+        }
     }
 
     private func isAtRowHeight(_ pointer: CGPoint, on screen: CGRect) -> Bool {
