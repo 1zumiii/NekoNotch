@@ -49,6 +49,36 @@ struct UsageSnapshot: Decodable, Equatable {
         return copy
     }
 
+    /// "gpt-6.2-astra" → "Astra 6.2", "gpt-5.1-codex-max" → "Codex Max 5.1",
+    /// "gpt-5" → "GPT-5"; anything else is returned unchanged.
+    static func shortModelName(_ raw: String) -> String {
+        let parts = raw.split(separator: "-").map(String.init)
+        guard parts.count >= 2, parts[0].lowercased() == "gpt",
+              Double(parts[1]) != nil else { return raw }
+        let version = parts[1]
+        let name = parts.dropFirst(2).map { $0.prefix(1).uppercased() + $0.dropFirst() }
+        return name.isEmpty ? "GPT-" + version : (name + [version]).joined(separator: " ")
+    }
+
+    /// The Codex tab: quota windows only (past their reset at 0%) and a short
+    /// model name. The export's context share is left out: it belongs to one
+    /// conversation, not to the quota.
+    func codexDisplay(at now: Date) -> UsageSnapshot {
+        var copy = resettingWindows(at: now)
+        copy.metrics = copy.metrics.compactMap { metric in
+            switch metric.title {
+            case "Model":
+                return UsageMetric(title: "Model", formattedValue: Self.shortModelName(metric.formattedValue),
+                                   normalizedValue: nil)
+            case "Context":
+                return nil
+            default:
+                return metric
+            }
+        }
+        return copy
+    }
+
     func isStale(at now: Date) -> Bool {
         guard let lastUpdatedDate else { return true }
         return now.timeIntervalSince(lastUpdatedDate) > 15 * 60 || staleAt.map { now >= $0 } == true

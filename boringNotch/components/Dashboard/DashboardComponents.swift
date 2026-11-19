@@ -50,6 +50,9 @@ struct DashboardCardTitle: View {
     let tint: Color
     let title: String
     var subtitle: String?
+    /// Strips measure the title at its full width (ViewThatFits); a card
+    /// header lets it shrink so a long subtitle truncates inside the card.
+    var keepsFullWidth = true
 
     var body: some View {
         HStack(spacing: 8) {
@@ -71,7 +74,7 @@ struct DashboardCardTitle: View {
                 }
             }
         }
-        .fixedSize(horizontal: true, vertical: false)
+        .fixedSize(horizontal: keepsFullWidth, vertical: false)
     }
 }
 
@@ -88,9 +91,9 @@ struct DashboardCard<Trailing: View, Content: View>: View {
         DashboardCardChrome(tint: tint) {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: 8) {
-                    DashboardCardTitle(icon: icon, tint: tint, title: title, subtitle: subtitle)
+                    DashboardCardTitle(icon: icon, tint: tint, title: title, subtitle: subtitle, keepsFullWidth: false)
                     Spacer(minLength: 4)
-                    trailing
+                    trailing.layoutPriority(1)
                 }
                 content
             }

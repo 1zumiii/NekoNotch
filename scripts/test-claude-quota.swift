@@ -36,6 +36,16 @@ struct ClaudeQuotaTests {
         assert(codex.resettingWindows(at: reset).windows.map(\.formattedValue) == ["0%", "92%"])
         assert(cli.resettingWindows(at: Date(timeIntervalSince1970: 9999)).windows.map(\.formattedValue) == ["35%", "67%"],
                "Claude CLI keeps its value past a reset")
-        print("Passed: account separation, sample order, timestamp units, expiry, retained values, missing data, legacy format, unsupported format, same-account merge, Codex reset")
+        assert(UsageSnapshot.shortModelName("gpt-6.2-astra") == "Astra 6.2")
+        assert(UsageSnapshot.shortModelName("gpt-5.1-codex-max") == "Codex Max 5.1")
+        assert(UsageSnapshot.shortModelName("gpt-5") == "GPT-5")
+        assert(UsageSnapshot.shortModelName("o3") == "o3")
+        let withContext = UsageSnapshot(title: "Codex", symbol: nil, metrics: [
+            UsageMetric(title: "Model", formattedValue: "gpt-6.2-astra", normalizedValue: nil),
+            UsageMetric(title: "Context", formattedValue: "58.1%", normalizedValue: 0.581)],
+            lastUpdatedDate: Date(timeIntervalSince1970: 0))
+        assert(withContext.codexDisplay(at: Date(timeIntervalSince1970: 60)).bars.isEmpty, "The quota card shows no context bar")
+        assert(withContext.codexDisplay(at: Date(timeIntervalSince1970: 3600)).model == "Astra 6.2")
+        print("Passed: model names, Codex context, account separation, sample order, timestamp units, expiry, retained values, missing data, legacy format, unsupported format, same-account merge, Codex reset")
     }
 }

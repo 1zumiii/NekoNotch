@@ -47,7 +47,7 @@ struct ClaudeCodeStatsWidgetView: View {
     }
 
     /// 6 840 000 000 → "6.8b", like the terminal screen.
-    private static func compact(_ value: Double) -> String {
+    static func compact(_ value: Double) -> String {
         switch value {
         case 1_000_000_000...: return String(format: "%.1fb", value / 1_000_000_000)
         case 1_000_000...: return String(format: "%.1fm", value / 1_000_000)
@@ -191,10 +191,13 @@ struct ClaudeCodeStatsWidgetView: View {
 
 /// Weeks as columns, Monday to Sunday as rows, newest week on the right. The
 /// shade follows the logarithm of the day's tokens, since a few huge days would
-/// otherwise turn every other day into the faintest square.
+/// otherwise turn every other day into the faintest square. Hovering a day
+/// shows its date and each provider's tokens; the colors stay blended.
 private struct HeatMap: View {
     let days: [String: [String: Double]]
     let tint: Color
+
+    @State private var hovered: Cell?
 
     private static let gap: CGFloat = 2.5
     private static let utc: Calendar = {
@@ -209,59 +212,165 @@ private struct HeatMap: View {
         formatter.locale = Locale(identifier: "en_US_POSIX")
         return formatter
     }()
+    /// Days are UTC, so the label is formatted in UTC too.
+    private static let labelFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.timeZone = TimeZone(identifier: "UTC")
+        formatter.setLocalizedDateFormatFromTemplate("MMMd EEE")
+        return formatter
+    }()
+
+    private struct Cell: Equatable {
+        let date: Date
+        let rect: CGRect
+        let row: Int
+    }
+
+    /// Where every day sits; drawing and hovering share it.
+    private struct Grid {
+        let side: CGFloat
+        let columns: Int
+        let originX: CGFloat
+        let firstMonday: Date
+        let today: Date
+
+        func rect(column: Int, row: Int) -> CGRect {
+            CGRect(x: originX + CGFloat(column) * (side + HeatMap.gap), y: CGFloat(row) * (side + HeatMap.gap),
+                   width: side, height: side)
+        }
+
+        func date(column: Int, row: Int) -> Date? {
+            guard let date = HeatMap.utc.date(byAdding: .day, value: column * 7 + row, to: firstMonday),
+                  date <= today else { return nil }
+            return date
+        }
+    }
+
+    private static func grid(in size: CGSize) -> Grid? {
+        let side = floor((size.height - gap * 6) / 7)
+        guard side > 2 else { return nil }
+        let columns = max(1, min(26, Int((size.width + gap) / (side + gap))))
+        let calendar = utc
+        let today = calendar.startOfDay(for: Date())
+        // Monday of the current week, then back to the first visible week.
+        let sinceMonday = (calendar.component(.weekday, from: today) + 5) % 7  // weekday: 1 = Sunday
+        guard let thisMonday = calendar.date(byAdding: .day, value: -sinceMonday, to: today),
+              let firstMonday = calendar.date(byAdding: .weekOfYear, value: -(columns - 1), to: thisMonday)
+        else { return nil }
+        let gridWidth = CGFloat(columns) * (side + gap) - gap
+        return Grid(side: side, columns: columns, originX: size.width - gridWidth,
+                    firstMonday: firstMonday, today: today)
+    }
+
+    private static func cell(at point: CGPoint, in size: CGSize) -> Cell? {
+        guard let grid = grid(in: size) else { return nil }
+        let step = grid.side + gap
+        let column = Int(floor((point.x - grid.originX) / step))
+        let row = Int(floor(point.y / step))
+        guard (0..<grid.columns).contains(column), (0..<7).contains(row) else { return nil }
+        let rect = grid.rect(column: column, row: row)
+        // The gaps between squares count as nothing.
+        guard rect.insetBy(dx: -0.5, dy: -0.5).contains(point),
+              let date = grid.date(column: column, row: row) else { return nil }
+        return Cell(date: date, rect: rect, row: row)
+    }
 
     var body: some View {
-        Canvas { context, canvasSize in
-            let gap = Self.gap
-            let side = floor((canvasSize.height - gap * 6) / 7)
-            guard side > 2 else { return }
-            let columns = max(1, min(26, Int((canvasSize.width + gap) / (side + gap))))
+        GeometryReader { proxy in
+            Canvas { context, canvasSize in
+                guard let grid = Self.grid(in: canvasSize) else { return }
+                let peak = days.values.map { $0.values.reduce(0, +) }.max() ?? 0
+                let scale = peak > 0 ? log10(1 + peak) : 1
 
-            let calendar = Self.utc
-            let today = calendar.startOfDay(for: Date())
-            // Monday of the current week, then back to the first visible week.
-            let sinceMonday = (calendar.component(.weekday, from: today) + 5) % 7  // weekday: 1 = Sunday
-            guard let thisMonday = calendar.date(byAdding: .day, value: -sinceMonday, to: today),
-                  let firstMonday = calendar.date(byAdding: .weekOfYear, value: -(columns - 1), to: thisMonday)
-            else { return }
-
-            let peak = days.values.map { $0.values.reduce(0, +) }.max() ?? 0
-            let scale = peak > 0 ? log10(1 + peak) : 1
-            let gridWidth = CGFloat(columns) * (side + gap) - gap
-            let originX = canvasSize.width - gridWidth
-
-            for column in 0..<columns {
-                for row in 0..<7 {
-                    guard let date = calendar.date(byAdding: .day, value: column * 7 + row, to: firstMonday),
-                          date <= today else { continue }
-                    let usage = days[Self.formatter.string(from: date)] ?? [:]
-                    let tokens = usage.values.reduce(0, +)
-                    let color: Color
-                    if tokens <= 0 {
-                        color = Color.white.opacity(0.08)
-                    } else {
-                        // Four shades, like the terminal screen.
-                        let level = min(3, Int((log10(1 + tokens) / scale) * 4))
-                        let codexShare = min(1, max(0, (usage["codex"] ?? 0) / tokens))
-                        // Deepen the mixed shade instead of desaturating it.
-                        // Pure-provider days keep their legend color; opacity
-                        // remains tied only to the total token volume.
-                        let overlap = 4 * codexShare * (1 - codexShare)
-                        color = Color(
-                            red: (0.85 + (0.64 - 0.85) * codexShare) * (1 - 0.06 * overlap),
-                            green: (0.47 + (0.42 - 0.47) * codexShare) * (1 - 0.35 * overlap),
-                            blue: (0.34 + (0.92 - 0.34) * codexShare) * (1 - 0.04 * overlap)
-                        ).opacity(0.28 + 0.24 * Double(level))
+                for column in 0..<grid.columns {
+                    for row in 0..<7 {
+                        guard let date = grid.date(column: column, row: row) else { continue }
+                        let usage = days[Self.formatter.string(from: date)] ?? [:]
+                        let tokens = usage.values.reduce(0, +)
+                        let color: Color
+                        if tokens <= 0 {
+                            color = Color.white.opacity(0.08)
+                        } else {
+                            // Four shades, like the terminal screen.
+                            let level = min(3, Int((log10(1 + tokens) / scale) * 4))
+                            let codexShare = min(1, max(0, (usage["codex"] ?? 0) / tokens))
+                            // Deepen the mixed shade instead of desaturating it.
+                            // Pure-provider days keep their legend color; opacity
+                            // remains tied only to the total token volume.
+                            let overlap = 4 * codexShare * (1 - codexShare)
+                            color = Color(
+                                red: (0.85 + (0.64 - 0.85) * codexShare) * (1 - 0.06 * overlap),
+                                green: (0.47 + (0.42 - 0.47) * codexShare) * (1 - 0.35 * overlap),
+                                blue: (0.34 + (0.92 - 0.34) * codexShare) * (1 - 0.04 * overlap)
+                            ).opacity(0.28 + 0.24 * Double(level))
+                        }
+                        let rect = grid.rect(column: column, row: row)
+                        context.fill(Path(roundedRect: rect, cornerRadius: grid.side * 0.25), with: .color(color))
                     }
-                    let rect = CGRect(
-                        x: originX + CGFloat(column) * (side + gap),
-                        y: CGFloat(row) * (side + gap),
-                        width: side,
-                        height: side
-                    )
-                    context.fill(Path(roundedRect: rect, cornerRadius: side * 0.25), with: .color(color))
+                }
+            }
+            .contentShape(Rectangle())
+            .onContinuousHover { phase in
+                switch phase {
+                case .active(let point): hovered = Self.cell(at: point, in: proxy.size)
+                case .ended: hovered = nil
+                }
+            }
+            .overlay(alignment: .topLeading) {
+                if let hovered {
+                    // A view, not a Canvas stroke: the Canvas clips at its bounds,
+                    // which cut the ring of the top row and the right column.
+                    // The explicit top-leading stack matters: an implicit one
+                    // centres the small ring in the bubble's width first.
+                    let ring = hovered.rect.insetBy(dx: -1, dy: -1)
+                    ZStack(alignment: .topLeading) {
+                        RoundedRectangle(cornerRadius: hovered.rect.width * 0.3)
+                            .stroke(Color.white.opacity(0.85), lineWidth: 1)
+                            .frame(width: ring.width, height: ring.height)
+                            .offset(x: ring.minX, y: ring.minY)
+                        bubble(for: hovered, in: proxy.size)
+                    }
+                    .allowsHitTesting(false)
                 }
             }
         }
+        // The card's own tooltip would cover the bubble.
+        .help("")
+    }
+
+    private func bubble(for cell: Cell, in size: CGSize) -> some View {
+        let usage = days[Self.formatter.string(from: cell.date)] ?? [:]
+        let width: CGFloat = 112
+        let height: CGFloat = 44
+        // Beside the square, flipped to stay inside the heat map.
+        let x = min(max(cell.rect.midX - width / 2, 0), max(size.width - width, 0))
+        let below = cell.rect.maxY + 4
+        let y = cell.row < 4 && below + height <= size.height + 12 ? below : max(cell.rect.minY - height - 4, -12)
+        return VStack(alignment: .leading, spacing: 2) {
+            Text(verbatim: Self.labelFormatter.string(from: cell.date))
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(.secondary)
+            providerLine("Claude", usage["claude"] ?? 0, ClaudeCodeStatsWidgetView.tint)
+            providerLine("Codex", usage["codex"] ?? 0, ClaudeCodeStatsWidgetView.codexTint)
+        }
+        .padding(.horizontal, 7)
+        .padding(.vertical, 5)
+        .frame(width: width, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 7).fill(Color.black.opacity(0.88)))
+        .overlay(RoundedRectangle(cornerRadius: 7).stroke(Color.white.opacity(0.12), lineWidth: 1))
+        .fixedSize(horizontal: false, vertical: true)
+        .offset(x: x, y: y)
+        .allowsHitTesting(false)
+    }
+
+    private func providerLine(_ name: String, _ tokens: Double, _ color: Color) -> some View {
+        HStack(spacing: 4) {
+            Circle().fill(color).frame(width: 5, height: 5)
+            Text(verbatim: name).foregroundStyle(color)
+            Spacer(minLength: 4)
+            Text(verbatim: ClaudeCodeStatsWidgetView.compact(tokens)).monospacedDigit()
+        }
+        .font(.system(size: 9, weight: .semibold, design: .rounded))
+        .lineLimit(1)
     }
 }

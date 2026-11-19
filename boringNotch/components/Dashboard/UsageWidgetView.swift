@@ -23,8 +23,12 @@ struct UsageWidgetView: View {
     private var showsCodex: Bool { isClaude && claudeClient == "codex" }
     /// The source on screen: its tint, icon and fallback title.
     private var shown: UsageSource { showsCodex ? .codex : source }
-    private var tabs: [(label: String, value: String)] {
-        isMerged ? [("Claude", "app"), ("Codex", "codex")] : [("App", "app"), ("CLI", "cli"), ("Codex", "codex")]
+    /// Icons, not names: three names do not fit beside the title at 4 columns.
+    private var tabs: [(label: String, icon: String, value: String)] {
+        let codex = ("Codex", UsageSource.codex.icon, "codex")
+        return isMerged
+            ? [("Claude", UsageSource.claude.icon, "app"), codex]
+            : [("Claude App", "macwindow", "app"), ("Claude CLI", "terminal", "cli"), codex]
     }
     private func isSelected(_ value: String) -> Bool {
         // Merged, the CLI choice is part of the single Claude tab.
@@ -32,7 +36,7 @@ struct UsageWidgetView: View {
     }
     private var snapshot: UsageSnapshot? {
         guard isClaude else { return store.snapshots[source.id] }
-        if showsCodex { return store.snapshots["codex"]?.resettingWindows(at: Date()) }
+        if showsCodex { return store.snapshots["codex"]?.codexDisplay(at: Date()) }
         if isMerged {
             return UsageSnapshot.fresher(store.snapshots["claude"], store.snapshots["claudeCLI"], at: Date())
         }
@@ -59,7 +63,7 @@ struct UsageWidgetView: View {
     private var clientSelector: some View {
         HStack(spacing: 1) {
             ForEach(tabs, id: \.value) { tab in
-                clientButton(tab.label, value: tab.value)
+                clientButton(tab.label, icon: tab.icon, value: tab.value)
             }
         }
         .padding(2)
@@ -67,16 +71,17 @@ struct UsageWidgetView: View {
         .fixedSize()
     }
 
-    private func clientButton(_ label: String, value: String) -> some View {
+    private func clientButton(_ label: String, icon: String, value: String) -> some View {
         Button { claudeClient = value } label: {
-            Text(verbatim: label)
+            Image(systemName: icon)
                 .font(.system(size: 9, weight: .semibold))
                 .foregroundStyle(isSelected(value) ? Color.white : Color.secondary)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 4)
+                .frame(width: 20, height: 16)
                 .background(Capsule().fill(isSelected(value) ? tint.opacity(0.40) : Color.clear))
+                .contentShape(Capsule())
         }
         .buttonStyle(.plain)
+        .help(label)
         .accessibilityLabel(label)
         .accessibilityAddTraits(isSelected(value) ? .isSelected : [])
     }
@@ -173,8 +178,7 @@ struct UsageWidgetView: View {
                 valueText: metric.formattedValue,
                 label: metric.title,
                 tint: tint
-            )
-        }
+            )        }
     }
 
     // MARK: One row tall
